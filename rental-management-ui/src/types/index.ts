@@ -101,6 +101,9 @@ export interface Property {
   propertyFacility: string;
   propertyType: number;
   address: Address;
+  note?: string;
+  creationDate: string;
+  lastModificationDate?: string;
 }
 
 export interface PropertyOwnerContact {
@@ -126,6 +129,21 @@ export interface CreatePropertyDto {
   propertyFacility: string;
   ownerId: number;
   address: CreateAddressDto;
+  note?: string;
+}
+
+export interface UpdatePropertyDto {
+  propertyName: string;
+  propertyType: number;
+  propertySize: string;
+  propertyRent: number;
+  currencyCode?: number;
+  status: number;
+  propertyPic?: string;
+  propertyDescription: string;
+  propertyFacility: string;
+  ownerId: number;
+  address: UpdateAddressDto;
   note?: string;
 }
 

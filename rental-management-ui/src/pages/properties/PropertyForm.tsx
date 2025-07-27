@@ -6,7 +6,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { ArrowLeft, Save } from 'lucide-react';
 import { propertyApi, lookupApi } from '../../services/api';
-import { CreatePropertyDto } from '../../types';
+import { CreatePropertyDto, UpdatePropertyDto } from '../../types';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import { formatErrorMessage } from '../../utils/errorHandler';
@@ -78,7 +78,7 @@ const PropertyForm: React.FC = () => {
     handleSubmit,
     formState: { errors, isSubmitting },
     reset
-  } = useForm<CreatePropertyDto>({
+  } = useForm<CreatePropertyDto | UpdatePropertyDto>({
     resolver: yupResolver(schema),
     defaultValues: {
       currencyCode: 8, // INR = 8
@@ -109,7 +109,7 @@ const PropertyForm: React.FC = () => {
           area: property.address.area,
           city: property.address.city,
           pincode: property.address.pincode,
-          stateId: 1, // Map from address data
+          stateId: 1, // Default to 1 since we don't have stateId in Address type
           countryId: property.address.countryId,
         } : {
           street: '',
@@ -133,7 +133,7 @@ const PropertyForm: React.FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: CreatePropertyDto) => propertyApi.update(Number(id), data),
+    mutationFn: (data: UpdatePropertyDto) => propertyApi.update(Number(id), data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       queryClient.invalidateQueries({ queryKey: ['property', id] });
@@ -141,11 +141,11 @@ const PropertyForm: React.FC = () => {
     },
   });
 
-  const onSubmit = (data: CreatePropertyDto) => {
+  const onSubmit = (data: CreatePropertyDto | UpdatePropertyDto) => {
     if (isEdit) {
-      updateMutation.mutate(data);
+      updateMutation.mutate(data as UpdatePropertyDto);
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(data as CreatePropertyDto);
     }
   };
 
@@ -277,7 +277,11 @@ const PropertyForm: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Owner *
               </label>
-              <select {...register('ownerId')} className="input">
+              <select
+                {...register('ownerId')}
+                className={`input ${isEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                disabled={isEdit}
+              >
                 <option value="">Select Owner</option>
                 {owners?.data.map((owner) => (
                   <option key={owner.id} value={owner.id}>
@@ -287,6 +291,11 @@ const PropertyForm: React.FC = () => {
               </select>
               {errors.ownerId && (
                 <p className="text-error-600 text-sm mt-1">{errors.ownerId.message}</p>
+              )}
+              {isEdit && (
+                <p className="text-gray-500 text-sm mt-1">
+                  Owner cannot be changed in edit mode
+                </p>
               )}
             </div>
 

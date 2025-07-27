@@ -13,10 +13,13 @@ import PropertyForm from './pages/properties/PropertyForm';
 import PropertyDetail from './pages/properties/PropertyDetail';
 import RoomsList from './pages/rooms/RoomsList';
 import RoomForm from './pages/rooms/RoomForm';
+import RoomDetail from './pages/rooms/RoomDetail';
 import TenantsList from './pages/tenants/TenantsList';
 import TenantForm from './pages/tenants/TenantForm';
+import TenantDetail from './pages/tenants/TenantDetail';
 import RentsList from './pages/rents/RentsList';
 import RentForm from './pages/rents/RentForm';
+import RentDetail from './pages/rents/RentDetail';
 import './index.css';
 
 const queryClient = new QueryClient({
@@ -94,6 +97,14 @@ function App() {
               </ProtectedRoute>
             } />
 
+            <Route path="/properties/:id/edit" element={
+              <ProtectedRoute>
+                <Layout>
+                  <PropertyForm />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
             <Route path="/rooms" element={
               <ProtectedRoute>
                 <Layout>
@@ -106,6 +117,14 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <RoomForm />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/rooms/:id" element={
+              <ProtectedRoute>
+                <Layout>
+                  <RoomDetail />
                 </Layout>
               </ProtectedRoute>
             } />
@@ -126,6 +145,14 @@ function App() {
               </ProtectedRoute>
             } />
 
+            <Route path="/tenants/:id" element={
+              <ProtectedRoute>
+                <Layout>
+                  <TenantDetail />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
             <Route path="/rents" element={
               <ProtectedRoute>
                 <Layout>
@@ -138,6 +165,14 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <RentForm />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/rents/:id" element={
+              <ProtectedRoute>
+                <Layout>
+                  <RentDetail />
                 </Layout>
               </ProtectedRoute>
             } />

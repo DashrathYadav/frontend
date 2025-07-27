@@ -210,6 +210,11 @@ export const tenantApi = {
     return response.data.data;
   },
 
+  getByRoomId: async (roomId: number): Promise<Tenant[]> => {
+    const response = await api.get<ApiResponse<Tenant[]>>(`/tenant/room/${roomId}`);
+    return response.data.data;
+  },
+
   create: async (data: CreateTenantDto): Promise<number> => {
     const response = await api.post<ApiResponse<number>>('/tenant/create', data);
     return response.data.data;
