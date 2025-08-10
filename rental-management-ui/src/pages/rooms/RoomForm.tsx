@@ -2,38 +2,22 @@ import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
 import { ArrowLeft, Save } from 'lucide-react';
 import { roomApi, lookupApi } from '../../services/api';
-import { CreateRoomDto } from '../../types';
+import { CreateRoomDto, UpdateRoomDto } from '../../types';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import { formatErrorMessage } from '../../utils/errorHandler';
+import { useRoleAccess } from '../../hooks/useRoleAccess';
 
-const schema = yup.object({
-  roomNo: yup.number().required('Room number is required').min(1),
-  propertyId: yup.number().required('Property is required').min(1),
-  ownerId: yup.number().required('Owner is required').min(1),
-  roomRent: yup.number().required('Room rent is required').min(0),
-  status: yup.number().required('Status is required'),
-  tenantLimit: yup.number().required('Tenant limit is required').min(1),
-  address: yup.object({
-    street: yup.string().required('Street is required'),
-    landMark: yup.string().required('Landmark is required'),
-    area: yup.string().required('Area is required'),
-    city: yup.string().required('City is required'),
-    pincode: yup.string().required('Pincode is required').matches(/^\d{6}$/, 'Pincode must be 6 digits'),
-    stateId: yup.number().required('State is required').min(1),
-    countryId: yup.number().required('Country is required').min(1),
-  }),
-});
+
 
 const RoomForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const queryClient = useQueryClient();
   const isEdit = Boolean(id);
+  const { isAdmin, isOwner, user } = useRoleAccess();
 
   const { data: owners } = useQuery({
     queryKey: ['owners-lookup'],
@@ -55,15 +39,7 @@ const RoomForm: React.FC = () => {
     queryFn: lookupApi.getCurrencies,
   });
 
-  const { data: states } = useQuery({
-    queryKey: ['states'],
-    queryFn: lookupApi.getStates,
-  });
 
-  const { data: countries } = useQuery({
-    queryKey: ['countries'],
-    queryFn: lookupApi.getCountries,
-  });
 
   const { data: room, isLoading: roomLoading } = useQuery({
     queryKey: ['room', id],
@@ -77,16 +53,12 @@ const RoomForm: React.FC = () => {
     formState: { errors, isSubmitting },
     reset,
     watch
-  } = useForm<CreateRoomDto>({
-    resolver: yupResolver(schema),
+  } = useForm<any>({
     defaultValues: {
       currencyCode: 8, // INR = 8
       status: 1, // Available = 1
       tenantLimit: 1,
-      address: {
-        countryId: 1,
-        stateId: 1,
-      }
+      ownerId: isOwner() ? user?.userId : undefined, // Default to current user if Owner
     }
   });
 
@@ -112,16 +84,7 @@ const RoomForm: React.FC = () => {
         roomDescription: room.roomDescription || '',
         roomFacility: room.roomFacility || '',
         tenantLimit: room.tenantLimit,
-        note: room.note || '',
-        address: {
-          street: room.address.street,
-          landMark: room.address.landMark,
-          area: room.address.area,
-          city: room.address.city,
-          pincode: room.address.pincode,
-          stateId: 1, // Map from address data
-          countryId: room.address.countryId,
-        }
+        note: room.note || ''
       });
     }
   }, [room, isEdit, reset]);
@@ -135,7 +98,7 @@ const RoomForm: React.FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: CreateRoomDto) => roomApi.update(Number(id), data),
+    mutationFn: (data: UpdateRoomDto) => roomApi.update(Number(id), data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rooms'] });
       queryClient.invalidateQueries({ queryKey: ['room', id] });
@@ -143,11 +106,11 @@ const RoomForm: React.FC = () => {
     },
   });
 
-  const onSubmit = (data: CreateRoomDto) => {
+  const onSubmit = (data: any) => {
     if (isEdit) {
-      updateMutation.mutate(data);
+      updateMutation.mutate(data as UpdateRoomDto);
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(data as CreateRoomDto);
     }
   };
 
@@ -192,11 +155,17 @@ const RoomForm: React.FC = () => {
               <input
                 type="number"
                 {...register('roomNo')}
-                className="input"
+                className={`input ${isEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 placeholder="Enter room number"
+                disabled={isEdit}
               />
               {errors.roomNo && (
-                <p className="text-error-600 text-sm mt-1">{errors.roomNo.message}</p>
+                <p className="text-error-600 text-sm mt-1">{String(errors.roomNo?.message)}</p>
+              )}
+              {isEdit && (
+                <p className="text-gray-500 text-sm mt-1">
+                  Room number cannot be changed in edit mode
+                </p>
               )}
             </div>
 
@@ -214,22 +183,60 @@ const RoomForm: React.FC = () => {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Owner *
-              </label>
-              <select {...register('ownerId')} className="input">
-                <option value="">Select Owner</option>
-                {owners?.data.map((owner) => (
-                  <option key={owner.id} value={owner.id}>
-                    {owner.value}
-                  </option>
-                ))}
-              </select>
-              {errors.ownerId && (
-                <p className="text-error-600 text-sm mt-1">{errors.ownerId.message}</p>
-              )}
-            </div>
+            {/* Owner field - visibility and editability based on user role */}
+            {isAdmin() && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Owner *
+                </label>
+                <select
+                  {...register('ownerId')}
+                  className="input"
+                >
+                  <option value="">Select Owner</option>
+                  {owners?.data.map((owner) => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.value}
+                    </option>
+                  ))}
+                </select>
+                {errors.ownerId && (
+                  <p className="text-error-600 text-sm mt-1">{String(errors.ownerId?.message)}</p>
+                )}
+              </div>
+            )}
+
+            {/* For Owner users in add mode - show disabled field */}
+            {!isEdit && isOwner() && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Owner *
+                </label>
+                <select
+                  {...register('ownerId')}
+                  className="input bg-gray-100 cursor-not-allowed"
+                  disabled={true}
+                >
+                  <option value="">Select Owner</option>
+                  {owners?.data.map((owner) => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.value}
+                    </option>
+                  ))}
+                </select>
+                {errors.ownerId && (
+                  <p className="text-error-600 text-sm mt-1">{String(errors.ownerId?.message)}</p>
+                )}
+                <p className="text-gray-500 text-sm mt-1">
+                  You can only create rooms for yourself
+                </p>
+              </div>
+            )}
+
+            {/* For Owner users in edit mode - hide the field completely */}
+            {isEdit && isOwner() && (
+              <input type="hidden" {...register('ownerId')} />
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -237,8 +244,8 @@ const RoomForm: React.FC = () => {
               </label>
               <select
                 {...register('propertyId')}
-                className="input"
-                disabled={!selectedOwnerId}
+                className={`input ${isEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                disabled={isEdit || !selectedOwnerId}
               >
                 <option value="">Select Property</option>
                 {properties?.data.map((property) => (
@@ -247,8 +254,13 @@ const RoomForm: React.FC = () => {
                   </option>
                 ))}
               </select>
-              {errors.propertyId && (
-                <p className="text-error-600 text-sm mt-1">{errors.propertyId.message}</p>
+              {!isEdit && errors.propertyId && (
+                <p className="text-error-600 text-sm mt-1">{String(errors.propertyId?.message)}</p>
+              )}
+              {isEdit && (
+                <p className="text-gray-500 text-sm mt-1">
+                  Property cannot be changed in edit mode
+                </p>
               )}
             </div>
 
@@ -274,7 +286,7 @@ const RoomForm: React.FC = () => {
                 placeholder="Enter monthly rent"
               />
               {errors.roomRent && (
-                <p className="text-error-600 text-sm mt-1">{errors.roomRent.message}</p>
+                <p className="text-error-600 text-sm mt-1">{String(errors.roomRent?.message)}</p>
               )}
             </div>
 
@@ -304,7 +316,7 @@ const RoomForm: React.FC = () => {
                 ))}
               </select>
               {errors.status && (
-                <p className="text-error-600 text-sm mt-1">{errors.status.message}</p>
+                <p className="text-error-600 text-sm mt-1">{String(errors.status?.message)}</p>
               )}
             </div>
 
@@ -319,7 +331,7 @@ const RoomForm: React.FC = () => {
                 placeholder="Maximum number of tenants"
               />
               {errors.tenantLimit && (
-                <p className="text-error-600 text-sm mt-1">{errors.tenantLimit.message}</p>
+                <p className="text-error-600 text-sm mt-1">{String(errors.tenantLimit?.message)}</p>
               )}
             </div>
 
@@ -349,116 +361,7 @@ const RoomForm: React.FC = () => {
           </div>
         </div>
 
-        {/* Address Section */}
-        <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Address Information</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Street Address *
-              </label>
-              <input
-                {...register('address.street')}
-                className="input"
-                placeholder="Enter street address"
-              />
-              {errors.address?.street && (
-                <p className="text-error-600 text-sm mt-1">{errors.address.street.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Landmark *
-              </label>
-              <input
-                {...register('address.landMark')}
-                className="input"
-                placeholder="Enter landmark"
-              />
-              {errors.address?.landMark && (
-                <p className="text-error-600 text-sm mt-1">{errors.address.landMark.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Area *
-              </label>
-              <input
-                {...register('address.area')}
-                className="input"
-                placeholder="Enter area"
-              />
-              {errors.address?.area && (
-                <p className="text-error-600 text-sm mt-1">{errors.address.area.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                City *
-              </label>
-              <input
-                {...register('address.city')}
-                className="input"
-                placeholder="Enter city"
-              />
-              {errors.address?.city && (
-                <p className="text-error-600 text-sm mt-1">{errors.address.city.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Pincode *
-              </label>
-              <input
-                {...register('address.pincode')}
-                className="input"
-                placeholder="Enter 6-digit pincode"
-              />
-              {errors.address?.pincode && (
-                <p className="text-error-600 text-sm mt-1">{errors.address.pincode.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                State *
-              </label>
-              <select {...register('address.stateId')} className="input">
-                <option value="">Select State</option>
-                {states?.data.map((state) => (
-                  <option key={state.id} value={state.id}>
-                    {state.value}
-                  </option>
-                ))}
-              </select>
-              {errors.address?.stateId && (
-                <p className="text-error-600 text-sm mt-1">{errors.address.stateId.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Country *
-              </label>
-              <select {...register('address.countryId')} className="input">
-                <option value="">Select Country</option>
-                {countries?.data.map((country) => (
-                  <option key={country.id} value={country.id}>
-                    {country.value}
-                  </option>
-                ))}
-              </select>
-              {errors.address?.countryId && (
-                <p className="text-error-600 text-sm mt-1">{errors.address.countryId.message}</p>
-              )}
-            </div>
-          </div>
-        </div>
 
         {/* Additional Information */}
         <div className="card p-6">

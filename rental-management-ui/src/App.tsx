@@ -16,6 +16,7 @@ import RoomForm from './pages/rooms/RoomForm';
 import RoomDetail from './pages/rooms/RoomDetail';
 import TenantsList from './pages/tenants/TenantsList';
 import TenantForm from './pages/tenants/TenantForm';
+
 import TenantDetail from './pages/tenants/TenantDetail';
 import RentsList from './pages/rents/RentsList';
 import RentForm from './pages/rents/RentForm';
@@ -129,6 +130,14 @@ function App() {
               </ProtectedRoute>
             } />
 
+            <Route path="/rooms/:id/edit" element={
+              <ProtectedRoute>
+                <Layout>
+                  <RoomForm />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
             <Route path="/tenants" element={
               <ProtectedRoute>
                 <Layout>
@@ -149,6 +158,14 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <TenantDetail />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/tenants/:id/edit" element={
+              <ProtectedRoute>
+                <Layout>
+                  <TenantForm />
                 </Layout>
               </ProtectedRoute>
             } />

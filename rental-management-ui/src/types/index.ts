@@ -166,7 +166,6 @@ export interface Room {
   roomPic?: string;
   roomDescription?: string;
   roomFacility?: string;
-  address: Address;
   tenantLimit: number;
   currentTenantCount: number;
   note?: string;
@@ -186,7 +185,6 @@ export interface CreateRoomDto {
   roomPic?: string;
   roomDescription?: string;
   roomFacility?: string;
-  address: CreateAddressDto;
   tenantLimit: number;
   note?: string;
 }
@@ -201,7 +199,6 @@ export interface UpdateRoomDto {
   roomPic?: string;
   roomDescription?: string;
   roomFacility?: string;
-  address?: UpdateAddressDto;
   tenantLimit: number;
   currentTenantCount: number;
   note?: string;
@@ -223,8 +220,6 @@ export interface Tenant {
 
   permanentAddressId: number;
   permanentAddress: Address;
-  addressId: number;
-  currentAddress: Address;
   isActive: boolean;
   lockInPeriod: string;
   note?: string;
@@ -255,7 +250,6 @@ export interface CreateTenantDto {
   password: string;
 
   permanentAddress: CreateAddressDto;
-  currentAddress: CreateAddressDto;
   lockInPeriod: string;
   note?: string;
   deposited: number;
@@ -277,11 +271,14 @@ export interface UpdateTenantDto {
   lockInPeriod: string;
   note?: string;
   isActive: boolean;
+  deposited: number;
   depositToReturn: number;
   presentRentValue?: number;
   pastRentValue?: number;
   currencyCode?: number;
+  boardingDate: string;
   leavingDate?: string;
+  permanentAddress?: UpdateAddressDto;
 }
 
 // RentTrack types

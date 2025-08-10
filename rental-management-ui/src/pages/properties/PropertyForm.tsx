@@ -10,6 +10,7 @@ import { CreatePropertyDto, UpdatePropertyDto } from '../../types';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import { formatErrorMessage } from '../../utils/errorHandler';
+import { useRoleAccess } from '../../hooks/useRoleAccess';
 
 const schema = yup.object({
   propertyName: yup.string().required('Property name is required'),
@@ -36,6 +37,7 @@ const PropertyForm: React.FC = () => {
   const { id } = useParams();
   const queryClient = useQueryClient();
   const isEdit = Boolean(id);
+  const { isAdmin, isOwner, user } = useRoleAccess();
 
   const { data: owners } = useQuery({
     queryKey: ['owners-lookup'],
@@ -83,6 +85,7 @@ const PropertyForm: React.FC = () => {
     defaultValues: {
       currencyCode: 8, // INR = 8
       status: 1, // Available = 1
+      ownerId: isOwner() ? user?.userId : undefined, // Default to current user if Owner
       address: {
         countryId: 1,
         stateId: 1,
@@ -273,31 +276,60 @@ const PropertyForm: React.FC = () => {
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Owner *
-              </label>
-              <select
-                {...register('ownerId')}
-                className={`input ${isEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                disabled={isEdit}
-              >
-                <option value="">Select Owner</option>
-                {owners?.data.map((owner) => (
-                  <option key={owner.id} value={owner.id}>
-                    {owner.value}
-                  </option>
-                ))}
-              </select>
-              {errors.ownerId && (
-                <p className="text-error-600 text-sm mt-1">{errors.ownerId.message}</p>
-              )}
-              {isEdit && (
+            {/* Owner field - visibility and editability based on user role */}
+            {isAdmin() && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Owner *
+                </label>
+                <select
+                  {...register('ownerId')}
+                  className="input"
+                >
+                  <option value="">Select Owner</option>
+                  {owners?.data.map((owner) => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.value}
+                    </option>
+                  ))}
+                </select>
+                {errors.ownerId && (
+                  <p className="text-error-600 text-sm mt-1">{errors.ownerId.message}</p>
+                )}
+              </div>
+            )}
+
+            {/* For Owner users in add mode - show disabled field */}
+            {!isEdit && isOwner() && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Owner *
+                </label>
+                <select
+                  {...register('ownerId')}
+                  className="input bg-gray-100 cursor-not-allowed"
+                  disabled={true}
+                >
+                  <option value="">Select Owner</option>
+                  {owners?.data.map((owner) => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.value}
+                    </option>
+                  ))}
+                </select>
+                {errors.ownerId && (
+                  <p className="text-error-600 text-sm mt-1">{errors.ownerId.message}</p>
+                )}
                 <p className="text-gray-500 text-sm mt-1">
-                  Owner cannot be changed in edit mode
+                  You can only create properties for yourself
                 </p>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* For Owner users in edit mode - hide the field completely */}
+            {isEdit && isOwner() && (
+              <input type="hidden" {...register('ownerId')} />
+            )}
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">

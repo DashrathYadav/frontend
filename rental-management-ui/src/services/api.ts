@@ -13,6 +13,7 @@ import type {
   RoomSearchRequest,
   Tenant,
   CreateTenantDto,
+  UpdateTenantDto,
   TenantSearchRequest,
   RentTrack,
   CreateRentTrackDto,
@@ -220,7 +221,7 @@ export const tenantApi = {
     return response.data.data;
   },
 
-  update: async (id: number, data: Partial<CreateTenantDto>): Promise<boolean> => {
+  update: async (id: number, data: UpdateTenantDto): Promise<boolean> => {
     const response = await api.put<ApiResponse<boolean>>(`/tenant/${id}`, data);
     return response.data.data;
   }

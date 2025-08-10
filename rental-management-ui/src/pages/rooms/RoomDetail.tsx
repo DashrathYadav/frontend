@@ -1,17 +1,17 @@
 import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  ArrowLeft, 
-  Edit, 
-  MapPin, 
-  Building2, 
-  Users, 
-  CheckCircle,
-  AlertCircle,
-  Clock,
-  Settings,
-  Image as ImageIcon
+import {
+    ArrowLeft,
+    Edit,
+    MapPin,
+    Building2,
+    Users,
+    CheckCircle,
+    AlertCircle,
+    Clock,
+    Settings,
+    Image as ImageIcon
 } from 'lucide-react';
 import { roomApi, propertyApi, tenantApi } from '../../services/api';
 import { formatCurrency } from '../../utils';
@@ -440,42 +440,25 @@ const RoomDetail: React.FC = () => {
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Location Details</CardTitle>
-                                    <CardDescription>Room address and location information</CardDescription>
+                                    <CardDescription>Room location is same as property address</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-6">
                                         <div className="flex items-start space-x-3">
                                             <MapPin className="w-5 h-5 text-gray-400 mt-1 flex-shrink-0" />
                                             <div className="flex-1">
-                                                <h4 className="font-semibold text-gray-900 mb-3">Address Components</h4>
-                                                <div className="space-y-3">
-                                                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                                                        <span className="text-sm text-gray-600">Street Address</span>
-                                                        <span className="font-medium text-sm">{room.address.street}</span>
-                                                    </div>
-                                                    {room.address.landMark && (
-                                                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                                                            <span className="text-sm text-gray-600">Landmark</span>
-                                                            <span className="font-medium text-sm">{room.address.landMark}</span>
-                                                        </div>
-                                                    )}
-                                                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                                                        <span className="text-sm text-gray-600">Area</span>
-                                                        <span className="font-medium text-sm">{room.address.area}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                                                        <span className="text-sm text-gray-600">City</span>
-                                                        <span className="font-medium text-sm">{room.address.city}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                                                        <span className="text-sm text-gray-600">State</span>
-                                                        <span className="font-medium text-sm">{room.address.state}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center py-2">
-                                                        <span className="text-sm text-gray-600">Pincode</span>
-                                                        <span className="font-medium text-sm">{room.address.pincode}</span>
-                                                    </div>
-                                                </div>
+                                                <h4 className="font-semibold text-gray-900 mb-3">Property Address</h4>
+                                                <p className="text-sm text-gray-600 mb-4">
+                                                    This room is located at the same address as the property.
+                                                    For detailed address information, please view the property details.
+                                                </p>
+                                                <Link
+                                                    to={`/properties/${room.propertyId}`}
+                                                    className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 transition-colors duration-200"
+                                                >
+                                                    View Property Address Details
+                                                    <ArrowLeft className="w-3 h-3 ml-1 rotate-180" />
+                                                </Link>
                                             </div>
                                         </div>
                                     </div>
