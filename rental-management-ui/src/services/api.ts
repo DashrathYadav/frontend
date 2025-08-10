@@ -17,6 +17,7 @@ import type {
   TenantSearchRequest,
   RentTrack,
   CreateRentTrackDto,
+  UpdateRentTrackDto,
   RentTrackSearchRequest,
   LookupResponse,
   DashboardStats
@@ -259,7 +260,7 @@ export const rentTrackApi = {
     return response.data.data;
   },
 
-  update: async (id: number, data: Partial<CreateRentTrackDto>): Promise<boolean> => {
+  update: async (id: number, data: UpdateRentTrackDto): Promise<boolean> => {
     const response = await api.put<ApiResponse<boolean>>(`/renttrack/${id}`, data);
     return response.data.data;
   }

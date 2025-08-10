@@ -1,15 +1,15 @@
 import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  ArrowLeft, 
-  Edit, 
-  CheckCircle,
-  AlertCircle,
-  Image as ImageIcon,
-  Home,
-  DollarSign,
-  Building2
+import {
+    ArrowLeft,
+    Edit,
+    CheckCircle,
+    AlertCircle,
+    Image as ImageIcon,
+    Home,
+    DollarSign,
+    Building2
 } from 'lucide-react';
 import { tenantApi, propertyApi, roomApi, rentTrackApi } from '../../services/api';
 import { formatCurrency } from '../../utils';
@@ -297,31 +297,18 @@ const TenantDetail: React.FC = () => {
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Address Information</CardTitle>
-                                    <CardDescription>Current and permanent addresses</CardDescription>
+                                    <CardDescription>Permanent address</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <h4 className="font-semibold text-gray-900 mb-3">Current Address</h4>
-                                            <div className="space-y-2 text-sm">
-                                                <p><span className="text-gray-600">Street:</span> {tenant.currentAddress.street}</p>
-                                                <p><span className="text-gray-600">Landmark:</span> {tenant.currentAddress.landMark}</p>
-                                                <p><span className="text-gray-600">Area:</span> {tenant.currentAddress.area}</p>
-                                                <p><span className="text-gray-600">City:</span> {tenant.currentAddress.city}</p>
-                                                <p><span className="text-gray-600">State:</span> {tenant.currentAddress.state}</p>
-                                                <p><span className="text-gray-600">Pincode:</span> {tenant.currentAddress.pincode}</p>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <h4 className="font-semibold text-gray-900 mb-3">Permanent Address</h4>
-                                            <div className="space-y-2 text-sm">
-                                                <p><span className="text-gray-600">Street:</span> {tenant.permanentAddress.street}</p>
-                                                <p><span className="text-gray-600">Landmark:</span> {tenant.permanentAddress.landMark}</p>
-                                                <p><span className="text-gray-600">Area:</span> {tenant.permanentAddress.area}</p>
-                                                <p><span className="text-gray-600">City:</span> {tenant.permanentAddress.city}</p>
-                                                <p><span className="text-gray-600">State:</span> {tenant.permanentAddress.state}</p>
-                                                <p><span className="text-gray-600">Pincode:</span> {tenant.permanentAddress.pincode}</p>
-                                            </div>
+                                    <div>
+                                        <h4 className="font-semibold text-gray-900 mb-3">Permanent Address</h4>
+                                        <div className="space-y-2 text-sm">
+                                            <p><span className="text-gray-600">Street:</span> {tenant.permanentAddress.street}</p>
+                                            <p><span className="text-gray-600">Landmark:</span> {tenant.permanentAddress.landMark}</p>
+                                            <p><span className="text-gray-600">Area:</span> {tenant.permanentAddress.area}</p>
+                                            <p><span className="text-gray-600">City:</span> {tenant.permanentAddress.city}</p>
+                                            <p><span className="text-gray-600">State:</span> {tenant.permanentAddress.state}</p>
+                                            <p><span className="text-gray-600">Pincode:</span> {tenant.permanentAddress.pincode}</p>
                                         </div>
                                     </div>
                                 </CardContent>

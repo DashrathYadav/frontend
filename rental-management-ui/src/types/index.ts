@@ -315,6 +315,17 @@ export interface CreateRentTrackDto {
   currencyCode?: number;
 }
 
+export interface UpdateRentTrackDto {
+  expectedRentValue?: number;
+  receivedRentValue?: number;
+  pendingAmount?: number;
+  rentPeriodStartDate: string;
+  rentPeriodEndDate: string;
+  status: number;
+  note?: string;
+  currencyCode?: number;
+}
+
 // Search request types
 export interface PropertySearchRequest {
   searchTerm?: string;

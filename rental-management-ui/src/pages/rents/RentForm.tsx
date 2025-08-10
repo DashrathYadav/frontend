@@ -6,11 +6,12 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { ArrowLeft, Save } from 'lucide-react';
 import { rentTrackApi, lookupApi, tenantApi } from '../../services/api';
-import { CreateRentTrackDto } from '../../types';
+import { CreateRentTrackDto, UpdateRentTrackDto } from '../../types';
 import { RentStatus, Currency } from '../../constants';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import { formatErrorMessage } from '../../utils/errorHandler';
+import { useRoleAccess } from '../../hooks/useRoleAccess';
 
 const schema = yup.object({
   propertyId: yup.number().required('Property is required').min(1),
@@ -31,6 +32,7 @@ const RentForm: React.FC = () => {
   const queryClient = useQueryClient();
   const isEdit = Boolean(id);
   const hasPreFilledRef = React.useRef(false);
+  const { isAdmin, isOwner, user } = useRoleAccess();
 
   // Get tenantId from URL params for pre-filling
   const tenantIdFromUrl = searchParams.get('tenantId');
@@ -72,6 +74,7 @@ const RentForm: React.FC = () => {
       status: RentStatus.Pending,
       rentPeriodStartDate: new Date().toISOString().split('T')[0],
       rentPeriodEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+      ownerId: isOwner() ? user?.userId : undefined, // Default to current user if Owner
     }
   });
 
@@ -153,7 +156,7 @@ const RentForm: React.FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: CreateRentTrackDto) => rentTrackApi.update(Number(id), data),
+    mutationFn: (data: UpdateRentTrackDto) => rentTrackApi.update(Number(id), data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rents'] });
       queryClient.invalidateQueries({ queryKey: ['rent', id] });
@@ -161,11 +164,11 @@ const RentForm: React.FC = () => {
     },
   });
 
-  const onSubmit = (data: CreateRentTrackDto) => {
+  const onSubmit = (data: CreateRentTrackDto | UpdateRentTrackDto) => {
     if (isEdit) {
-      updateMutation.mutate(data);
+      updateMutation.mutate(data as UpdateRentTrackDto);
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(data as CreateRentTrackDto);
     }
   };
 
@@ -222,22 +225,60 @@ const RentForm: React.FC = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Property & Tenant Details</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Owner *
-              </label>
-              <select {...register('ownerId')} className="input">
-                <option value="">Select Owner</option>
-                {owners?.data.map((owner) => (
-                  <option key={owner.id} value={owner.id}>
-                    {owner.value}
-                  </option>
-                ))}
-              </select>
-              {errors.ownerId && (
-                <p className="text-error-600 text-sm mt-1">{errors.ownerId.message}</p>
-              )}
-            </div>
+            {/* Owner field - visibility and editability based on user role */}
+            {isAdmin() && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Owner *
+                </label>
+                <select
+                  {...register('ownerId')}
+                  className="input"
+                >
+                  <option value="">Select Owner</option>
+                  {owners?.data.map((owner) => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.value}
+                    </option>
+                  ))}
+                </select>
+                {errors.ownerId && (
+                  <p className="text-error-600 text-sm mt-1">{errors.ownerId.message}</p>
+                )}
+              </div>
+            )}
+
+            {/* For Owner users in add mode - show disabled field */}
+            {!isEdit && isOwner() && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Owner *
+                </label>
+                <select
+                  {...register('ownerId')}
+                  className="input bg-gray-100 cursor-not-allowed"
+                  disabled={true}
+                >
+                  <option value="">Select Owner</option>
+                  {owners?.data.map((owner) => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.value}
+                    </option>
+                  ))}
+                </select>
+                {errors.ownerId && (
+                  <p className="text-error-600 text-sm mt-1">{errors.ownerId.message}</p>
+                )}
+                <p className="text-gray-500 text-sm mt-1">
+                  You can only create rent records for yourself
+                </p>
+              </div>
+            )}
+
+            {/* For Owner users in edit mode - hide the field completely */}
+            {isEdit && isOwner() && (
+              <input type="hidden" {...register('ownerId')} />
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -245,8 +286,8 @@ const RentForm: React.FC = () => {
               </label>
               <select
                 {...register('propertyId')}
-                className="input"
-                disabled={!selectedOwnerId || propertiesLoading}
+                className={`input ${isEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                disabled={isEdit || !selectedOwnerId || propertiesLoading}
               >
                 <option value="">
                   {propertiesLoading ? 'Loading properties...' : 'Select Property'}
@@ -260,6 +301,11 @@ const RentForm: React.FC = () => {
               {errors.propertyId && (
                 <p className="text-error-600 text-sm mt-1">{errors.propertyId.message}</p>
               )}
+              {isEdit && (
+                <p className="text-gray-500 text-sm mt-1">
+                  Property cannot be changed in edit mode
+                </p>
+              )}
             </div>
 
             <div>
@@ -268,8 +314,8 @@ const RentForm: React.FC = () => {
               </label>
               <select
                 {...register('roomId')}
-                className="input"
-                disabled={!selectedPropertyId || roomsLoading}
+                className={`input ${isEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                disabled={isEdit || !selectedPropertyId || roomsLoading}
               >
                 <option value="">
                   {roomsLoading ? 'Loading rooms...' : 'Select Room (Optional)'}
@@ -280,6 +326,11 @@ const RentForm: React.FC = () => {
                   </option>
                 ))}
               </select>
+              {isEdit && (
+                <p className="text-gray-500 text-sm mt-1">
+                  Room cannot be changed in edit mode
+                </p>
+              )}
             </div>
 
             <div>
@@ -288,8 +339,8 @@ const RentForm: React.FC = () => {
               </label>
               <select
                 {...register('tenantId')}
-                className="input"
-                disabled={!selectedOwnerId || tenantsLoading}
+                className={`input ${isEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                disabled={isEdit || !selectedOwnerId || tenantsLoading}
               >
                 <option value="">
                   {tenantsLoading ? 'Loading tenants...' : 'Select Tenant'}
@@ -302,6 +353,11 @@ const RentForm: React.FC = () => {
               </select>
               {errors.tenantId && (
                 <p className="text-error-600 text-sm mt-1">{errors.tenantId.message}</p>
+              )}
+              {isEdit && (
+                <p className="text-gray-500 text-sm mt-1">
+                  Tenant cannot be changed in edit mode
+                </p>
               )}
             </div>
           </div>
