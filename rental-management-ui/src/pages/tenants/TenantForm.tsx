@@ -161,6 +161,7 @@ const TenantForm: React.FC = () => {
         tenantEmail: tenant.tenantEmail || '',
         tenantProfilePic: tenant.tenantProfilePic || '',
         tenantDocument: tenant.tenantDocument || '',
+        loginId: tenant.loginId,
         lockInPeriod: tenant.lockInPeriod,
         deposited: tenant.deposited,
         depositToReturn: tenant.depositToReturn || 0,
@@ -171,6 +172,9 @@ const TenantForm: React.FC = () => {
         boardingDate: tenant.boardingDate.split('T')[0],
         leavingDate: tenant.leavingDate ? tenant.leavingDate.split('T')[0] : '',
         note: tenant.note || '',
+        ownerId: tenant.ownerId,
+        propertyId: tenant.propertyId,
+        roomId: tenant.roomId,
         permanentAddress: {
           street: tenant.permanentAddress.street,
           landMark: tenant.permanentAddress.landMark,
@@ -202,10 +206,16 @@ const TenantForm: React.FC = () => {
   });
 
   const onSubmit = (data: any) => {
+    // Transform empty strings to null for nullable DateTime fields
+    const transformedData = {
+      ...data,
+      leavingDate: data.leavingDate === '' ? null : data.leavingDate,
+    };
+
     if (isEdit) {
-      updateMutation.mutate(data as UpdateTenantDto);
+      updateMutation.mutate(transformedData as UpdateTenantDto);
     } else {
-      createMutation.mutate(data as CreateTenantDto);
+      createMutation.mutate(transformedData as CreateTenantDto);
     }
   };
 
@@ -483,7 +493,7 @@ const TenantForm: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Owner *
                   </label>
-                  <select {...register('ownerId')} className="input">
+                  <select {...register('ownerId')} className="input bg-gray-100 cursor-not-allowed" disabled={true}>
                     <option value="">Select Owner</option>
                     {owners?.data.map((owner) => (
                       <option key={owner.id} value={owner.id}>
@@ -494,6 +504,9 @@ const TenantForm: React.FC = () => {
                   {(errors as any).ownerId && (
                     <p className="text-error-600 text-sm mt-1">{(errors as any).ownerId?.message}</p>
                   )}
+                  <p className="text-gray-500 text-sm mt-1">
+                    Owner cannot be changed in edit mode
+                  </p>
                 </div>
               )}
 
@@ -508,8 +521,8 @@ const TenantForm: React.FC = () => {
                 </label>
                 <select
                   {...register('propertyId')}
-                  className="input"
-                  disabled={!selectedOwnerId}
+                  className="input bg-gray-100 cursor-not-allowed"
+                  disabled={true}
                 >
                   <option value="">Select Property</option>
                   {properties?.data.map((property) => (
@@ -521,6 +534,9 @@ const TenantForm: React.FC = () => {
                 {(errors as any).propertyId && (
                   <p className="text-error-600 text-sm mt-1">{(errors as any).propertyId?.message}</p>
                 )}
+                <p className="text-gray-500 text-sm mt-1">
+                  Property cannot be changed in edit mode
+                </p>
               </div>
 
               <div>
@@ -529,8 +545,8 @@ const TenantForm: React.FC = () => {
                 </label>
                 <select
                   {...register('roomId')}
-                  className="input"
-                  disabled={!selectedPropertyId}
+                  className="input bg-gray-100 cursor-not-allowed"
+                  disabled={true}
                 >
                   <option value="">Select Room</option>
                   {rooms?.data.map((room) => (
@@ -542,6 +558,9 @@ const TenantForm: React.FC = () => {
                 {(errors as any).roomId && (
                   <p className="text-error-600 text-sm mt-1">{(errors as any).roomId?.message}</p>
                 )}
+                <p className="text-gray-500 text-sm mt-1">
+                  Room cannot be changed in edit mode
+                </p>
               </div>
 
               <div>
