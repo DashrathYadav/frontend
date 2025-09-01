@@ -8,6 +8,26 @@ import {
     State
 } from './enums';
 
+// ============================================================================
+// ⚠️  DEPRECATION WARNING
+// ============================================================================
+// This file contains hardcoded lookup constants and is DEPRECATED.
+// 
+// Please migrate to the API-based lookup system using:
+// - useLookup() hook from '../contexts/LookupContext'
+// - Dynamic lookup data from the backend API
+//
+// Example migration:
+// BEFORE: import { getPropertyTypeValue } from '../constants/lookups'
+// AFTER:  const { getPropertyTypeName } = useLookup()
+//
+// This provides:
+// - Real-time data from API
+// - Better performance with caching
+// - Consistency across the application
+// - Automatic updates when backend data changes
+// ============================================================================
+
 // Lookup data interfaces
 export interface LookupData {
     id: string;
@@ -130,8 +150,16 @@ export const STATE_LOOKUPS: LookupData[] = [
     { id: State.Sikkim.toString(), value: 'Sikkim', description: 'Organic state' }
 ];
 
-// Helper functions
+// ============================================================================
+// ⚠️  DEPRECATED HELPER FUNCTIONS
+// ============================================================================
+// These functions use hardcoded lookup data and are DEPRECATED.
+// Please use the LookupContext API-based system instead:
+// const { getPropertyTypeName, getCurrencyName, ... } = useLookup()
+// ============================================================================
+
 export const getLookupValue = (lookups: LookupData[], id: string | number): string => {
+    console.warn('[DEPRECATED] getLookupValue is deprecated. Use useLookup() hook instead.');
     const lookup = lookups.find(item => item.id === id.toString());
     return lookup?.value || 'Unknown';
 };
@@ -141,10 +169,58 @@ export const getLookupDescription = (lookups: LookupData[], id: string | number)
     return lookup?.description || '';
 };
 
-export const getPropertyTypeValue = (id: string | number): string => getLookupValue(PROPERTY_TYPE_LOOKUPS, id);
-export const getAvailabilityStatusValue = (id: string | number): string => getLookupValue(AVAILABILITY_STATUS_LOOKUPS, id);
-export const getCurrencyValue = (id: string | number): string => getLookupValue(CURRENCY_LOOKUPS, id);
-export const getRentStatusValue = (id: string | number): string => getLookupValue(RENT_STATUS_LOOKUPS, id);
-export const getRoomTypeValue = (id: string | number): string => getLookupValue(ROOM_TYPE_LOOKUPS, id);
-export const getCountryValue = (id: string | number): string => getLookupValue(COUNTRY_LOOKUPS, id);
-export const getStateValue = (id: string | number): string => getLookupValue(STATE_LOOKUPS, id); 
+/**
+ * @deprecated Use useLookup().getPropertyTypeName() instead
+ */
+export const getPropertyTypeValue = (id: string | number): string => {
+    console.warn('[DEPRECATED] getPropertyTypeValue is deprecated. Use useLookup().getPropertyTypeName() instead.');
+    return getLookupValue(PROPERTY_TYPE_LOOKUPS, id);
+};
+
+/**
+ * @deprecated Use useLookup().getAvailabilityStatusName() instead
+ */
+export const getAvailabilityStatusValue = (id: string | number): string => {
+    console.warn('[DEPRECATED] getAvailabilityStatusValue is deprecated. Use useLookup().getAvailabilityStatusName() instead.');
+    return getLookupValue(AVAILABILITY_STATUS_LOOKUPS, id);
+};
+
+/**
+ * @deprecated Use useLookup().getCurrencyName() instead
+ */
+export const getCurrencyValue = (id: string | number): string => {
+    console.warn('[DEPRECATED] getCurrencyValue is deprecated. Use useLookup().getCurrencyName() instead.');
+    return getLookupValue(CURRENCY_LOOKUPS, id);
+};
+
+/**
+ * @deprecated Use useLookup().getRentStatusName() instead
+ */
+export const getRentStatusValue = (id: string | number): string => {
+    console.warn('[DEPRECATED] getRentStatusValue is deprecated. Use useLookup().getRentStatusName() instead.');
+    return getLookupValue(RENT_STATUS_LOOKUPS, id);
+};
+
+/**
+ * @deprecated Use useLookup().getRoomTypeName() instead
+ */
+export const getRoomTypeValue = (id: string | number): string => {
+    console.warn('[DEPRECATED] getRoomTypeValue is deprecated. Use useLookup().getRoomTypeName() instead.');
+    return getLookupValue(ROOM_TYPE_LOOKUPS, id);
+};
+
+/**
+ * @deprecated Use useLookup().getCountryName() instead
+ */
+export const getCountryValue = (id: string | number): string => {
+    console.warn('[DEPRECATED] getCountryValue is deprecated. Use useLookup().getCountryName() instead.');
+    return getLookupValue(COUNTRY_LOOKUPS, id);
+};
+
+/**
+ * @deprecated Use useLookup().getStateName() instead
+ */
+export const getStateValue = (id: string | number): string => {
+    console.warn('[DEPRECATED] getStateValue is deprecated. Use useLookup().getStateName() instead.');
+    return getLookupValue(STATE_LOOKUPS, id);
+}; 

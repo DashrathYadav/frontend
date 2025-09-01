@@ -166,13 +166,13 @@ const RentDetail: React.FC = () => {
                         <CardHeader>
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-lg">Payment Status</CardTitle>
-                                <StatusBadge status={rentTrack.status} category="rent" />
+                                <StatusBadge status={rentTrack.statusId} category="rent" />
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center space-x-2">
-                                {getStatusIcon(rentTrack.status)}
-                                <span className="font-semibold text-lg">{getStatusLabel(rentTrack.status)}</span>
+                                {getStatusIcon(rentTrack.statusId)}
+                                <span className="font-semibold text-lg">{getStatusLabel(rentTrack.statusId)}</span>
                             </div>
                             <div className="text-sm text-gray-600">
                                 Rent Period: {formatDate(rentTrack.rentPeriodStartDate)} - {formatDate(rentTrack.rentPeriodEndDate)}
@@ -340,14 +340,14 @@ const RentDetail: React.FC = () => {
                                             <div>
                                                 <label className="text-sm font-medium text-gray-500">Status</label>
                                                 <div className="flex items-center space-x-2 mt-1">
-                                                    {getStatusIcon(rentTrack.status)}
-                                                    <span className="text-lg text-gray-900">{getStatusLabel(rentTrack.status)}</span>
+                                                    {getStatusIcon(rentTrack.statusId)}
+                                                    <span className="text-lg text-gray-900">{getStatusLabel(rentTrack.statusId)}</span>
                                                 </div>
                                             </div>
                                             <div>
                                                 <label className="text-sm font-medium text-gray-500">Currency</label>
                                                 <p className="text-lg text-gray-900">
-                                                    {rentTrack.currencyCode ? `Currency Code: ${rentTrack.currencyCode}` : 'Not specified'}
+                                                    {rentTrack.currencyId ? `Currency ID: ${rentTrack.currencyId}` : 'Not specified'}
                                                 </p>
                                             </div>
                                         </div>

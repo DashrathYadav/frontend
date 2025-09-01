@@ -1,0 +1,1501 @@
+  {
+    "api_name": "Rentwiz Property Management API",
+    "version": "v1",
+    "base_url": "http://localhost:5268/api/v1",
+    "description": "Comprehensive API documentation for Rentwiz Property Management System",
+    "authentication": "JWT Bearer Token (configured; many endpoints currently marked [AllowAnonymous] for development)",
+    "content_type": "application/json",
+    "endpoints": {
+      "authentication": {
+        "register": {
+          "description": "Owner registration endpoint",
+          "method": "POST",
+          "url": "{base_url}/auth/register",
+          "request_body": {
+            "loginId": "string (required)",
+            "password": "string (required)",
+            "fullName": "string (required)",
+            "mobileNumber": "string (required - 10-15 digits, unique)",
+            "email": "string (optional)",
+            "aadharNumber": "string (optional)",
+            "profilePic": "string (optional)",
+            "document": "string (optional)",
+            "address": {
+              "street": "string (required)",
+              "landMark": "string (required)",
+              "area": "string (required)",
+              "city": "string (required)",
+              "pincode": "string (required)",
+              "stateId": "number (required)",
+              "countryId": "number (required)"
+            },
+            "note": "string (required)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Owner registered successfully",
+            "data": null,
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "message": "Failed to register owner | Validation errors | Mobile number already exists",
+            "data": null,
+            "errors": ["Mobile number is required", "Invalid mobile number format", "Mobile number must be between 10 and 15 digits", "Mobile number already exists"]
+          }
+        },
+        "login": {
+          "description": "User authentication endpoint",
+          "method": "POST",
+          "url": "{base_url}/auth/login",
+          "request_body": {
+            "loginId": "string (required)",
+            "password": "string (required)",
+            "role": "string (required - Admin/Owner/Tenant)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Login successful",
+            "data": {
+              "token": "string (JWT token)",
+              "userType": "string (Owner | Tenant)",
+              "owner": "OwnerResponseDto when userType=Owner (nullable)",
+              "tenant": "TenantResponseDto when userType=Tenant (nullable)"
+            },
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "message": "Invalid login id or password | Role is required | Unsupported role",
+            "data": null,
+            "errors": []
+          }
+        }
+      },
+  
+      "owner": {
+        "create_owner": {
+          "description": "Create a new owner",
+          "method": "POST",
+          "url": "{base_url}/owner/create",
+          "request_body": {
+            "loginId": "string (required)",
+            "password": "string (required)",
+            "fullName": "string (required)",
+            "mobileNumber": "string (required - 10-15 digits, unique)",
+            "email": "string (optional)",
+            "aadharNumber": "string (optional)",
+            "profilePic": "string (optional)",
+            "document": "string (optional)",
+            "address": {
+              "street": "string (required)",
+              "landMark": "string (required)",
+              "area": "string (required)",
+              "city": "string (required)",
+              "pincode": "string (required)",
+              "stateId": "number (required)",
+              "countryId": "number (required)"
+            },
+            "note": "string (required)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Owner created successfully",
+            "data": "number (ownerId)",
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "message": "Validation failed | LoginId is already in use | Mobile number already exists | Failed to create address",
+            "data": null,
+            "errors": ["Mobile number is required", "Invalid mobile number format", "Mobile number must be between 10 and 15 digits", "Mobile number already exists", "string array of other validation errors"]
+          }
+        },
+        "get_owner_by_id": {
+          "description": "Get owner by ID",
+          "method": "GET",
+          "url": "{base_url}/owner/{id}",
+          "path_parameters": {
+            "id": "number (required - ownerId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Owner Found",
+            "data": {
+              "ownerId": "number",
+              "loginId": "string",
+              "fullName": "string",
+              "mobileNumber": "string",
+              "phoneNumber": "string (nullable)",
+              "email": "string (nullable)",
+              "aadharNumber": "string (nullable)",
+              "profilePic": "string (nullable)",
+              "addressId": "number",
+              "address": {
+                "addressId": "number",
+                "street": "string",
+                "landMark": "string",
+                "area": "string",
+                "city": "string",
+                "pincode": "string",
+                "stateId": "number",
+                "countryId": "number"
+              },
+              "roleId": "number",
+              "note": "string (nullable)",
+              "isActive": "boolean"
+            },
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "message": "Owner not found | Access denied",
+            "data": null,
+            "errors": []
+          }
+        }
+      },
+  
+      "property": {
+        "create_property": {
+          "description": "Create a new property",
+          "method": "POST",
+          "url": "{base_url}/property/create",
+          "request_body": {
+            "propertyName": "string (required)",
+            "propertyTypeId": "number (required - property type ID)",
+            "propertySize": "string (required)",
+            "propertyRent": "decimal (required)",
+            "currencyId": "number (optional)",
+            "statusId": "number (required)",
+            "propertyPic": "string (optional)",
+            "propertyDescription": "string (required)",
+            "propertyFacility": "string (required)",
+            "ownerId": "number (required)",
+            "address": {
+              "street": "string (required)",
+              "landMark": "string (required)",
+              "area": "string (required)",
+              "city": "string (required)",
+              "pincode": "string (required)",
+              "stateId": "number (required)",
+              "countryId": "number (required)"
+            },
+            "note": "string (optional)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Property created successfully",
+            "data": "number (propertyId)",
+            "errors": []
+          }
+        },
+        "get_property_by_id": {
+          "description": "Get property by ID",
+          "method": "GET",
+          "url": "{base_url}/property/{id}",
+          "path_parameters": {
+            "id": "number (required - propertyId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Property found",
+            "data": {
+              "propertyId": "number",
+              "propertyName": "string",
+              "propertySize": "string",
+              "ownerId": "number",
+              "ownerName": "string",
+              "propertyRent": "decimal",
+              "propertyValue": "decimal",
+              "currencyId": "number (nullable)",
+              "statusId": "number",
+              "propertyPic": "string (nullable)",
+              "propertyDescription": "string",
+              "propertyFacility": "string",
+              "propertyTypeId": "number",
+              "address": {
+                "addressId": "number",
+                "street": "string",
+                "landMark": "string",
+                "area": "string",
+                "city": "string",
+                "pincode": "string",
+                "stateId": "number",
+                "countryId": "number"
+              },
+              "note": "string (nullable)",
+              "creationDate": "string (ISO date)",
+              "lastModificationDate": "string (ISO date, nullable)"
+            },
+            "errors": []
+          }
+        },
+        "get_properties_by_owner": {
+          "description": "Get all properties for a specific owner",
+          "method": "GET",
+          "url": "{base_url}/property/owner/{ownerId}",
+          "path_parameters": {
+            "ownerId": "number (required - ownerId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Properties retrieved successfully",
+            "data": [
+              {
+                "propertyId": "number",
+                "propertyName": "string",
+                "propertyTypeId": "number",
+                "propertyRent": "decimal",
+                "statusId": "number",
+                "address": {
+                  "city": "string",
+                  "state": "string"
+                }
+              }
+            ],
+            "errors": []
+          }
+        },
+        "search_properties": {
+          "description": "Search properties with filters",
+          "method": "GET",
+          "url": "{base_url}/property/search",
+          "query_parameters": {
+            "searchTerm": "string (optional)",
+            "propertyTypeId": "number (optional)",
+            "city": "string (optional)",
+            "minRent": "decimal (optional)",
+            "maxRent": "decimal (optional)",
+            "statusId": "number (optional)",
+            "ownerId": "number (optional)",
+            "pageNumber": "number (optional - default 1)",
+            "pageSize": "number (optional - default 10)",
+            "sortBy": "string (optional)",
+            "sortDirection": "string (optional - asc|desc)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Properties retrieved successfully",
+            "data": {
+              "items": ["PropertyResponseDto"],
+              "totalCount": "number",
+              "pageNumber": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          }
+        },
+        "get_property_owner_contact": {
+          "description": "Get owner contact details for a property",
+          "method": "GET",
+          "url": "{base_url}/property/{id}/owner-contact",
+          "path_parameters": {
+            "id": "number (required - propertyId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Property owner contact information retrieved successfully",
+            "data": {
+              "ownerId": "number",
+              "fullName": "string",
+              "mobileNumber": "string",
+              "phoneNumber": "string (nullable)",
+              "email": "string (nullable)",
+              "profilePic": "string (nullable)",
+              "isActive": "boolean",
+              "note": "string (nullable)"
+            },
+            "errors": []
+          }
+        },
+        "update_property": {
+          "description": "Update an existing property",
+          "method": "PUT",
+          "url": "{base_url}/property/{id}",
+          "path_parameters": {
+            "id": "number (required - propertyId)"
+          },
+          "request_body": {
+            "propertyName": "string (required)",
+            "propertyTypeId": "number (required)",
+            "propertySize": "string (required)",
+            "propertyRent": "decimal (required)",
+            "currencyId": "number (optional)",
+            "statusId": "number (required)",
+            "propertyPic": "string (optional)",
+            "propertyDescription": "string (required)",
+            "propertyFacility": "string (required)",
+            "ownerId": "number (required)",
+            "address": {
+              "addressId": "number (required)",
+              "street": "string (required)",
+              "landMark": "string (required)",
+              "area": "string (required)",
+              "city": "string (required)",
+              "pincode": "string (required)",
+              "stateId": "number (required)",
+              "countryId": "number (required)"
+            },
+            "note": "string (optional)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Property updated successfully",
+            "data": true,
+            "errors": []
+          }
+        }
+      },
+  
+      "tenant": {
+        "create_tenant": {
+          "description": "Create a new tenant",
+          "method": "POST",
+          "url": "{base_url}/tenant/create",
+          "request_body": {
+            "tenantName": "string (required)",
+            "tenantMobile": "string (required)",
+            "tenantEmail": "string (optional)",
+            "tenantAdharId": "string (required)",
+            "tenantProfilePic": "string (optional)",
+            "tenantDocument": "string (optional)",
+            "loginId": "string (required)",
+            "password": "string (required)",
+            "permanentAddress": {
+              "street": "string (required)",
+              "landMark": "string (required)",
+              "area": "string (required)",
+              "city": "string (required)",
+              "pincode": "string (required)",
+              "stateId": "number (required)",
+              "countryId": "number (required)"
+            },
+            "lockInPeriod": "string (required)",
+            "note": "string (optional)",
+            "deposited": "decimal (required)",
+            "presentRentValue": "decimal (optional)",
+            "pastRentValue": "decimal (optional)",
+            "currencyId": "number (optional)",
+            "boardingDate": "string (ISO date - required)",
+            "ownerId": "number (required)",
+            "propertyId": "number (required)",
+            "roomId": "number (required)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Tenant created successfully",
+            "data": "number (tenantId)",
+            "errors": []
+          }
+        },
+        "get_tenant_by_id": {
+          "description": "Get tenant by ID",
+          "method": "GET",
+          "url": "{base_url}/tenant/{id}",
+          "path_parameters": {
+            "id": "number (required - tenantId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Tenant Found",
+            "data": {
+              "tenantId": "number",
+              "tenantName": "string",
+              "tenantMobile": "string",
+              "tenantEmail": "string (nullable)",
+              "tenantAdharId": "string",
+              "tenantProfilePic": "string (nullable)",
+              "tenantDocument": "string (nullable)",
+              "loginId": "string",
+              "roleId": "number",
+              "permanentAddressId": "number",
+              "permanentAddress": {
+                "addressId": "number",
+                "street": "string",
+                "landMark": "string",
+                "area": "string",
+                "city": "string",
+                "pincode": "string",
+                "state": "string",
+                "countryId": "number"
+              },
+              "isActive": "boolean",
+              "lockInPeriod": "string",
+              "note": "string (nullable)",
+              "deposited": "decimal",
+              "depositToReturn": "decimal",
+              "presentRentValue": "decimal (nullable)",
+              "pastRentValue": "decimal (nullable)",
+              "currencyId": "number (nullable)",
+              "boardingDate": "string (ISO date)",
+              "leavingDate": "string (ISO date, nullable)",
+              "ownerId": "number",
+              "propertyId": "number",
+              "roomId": "number (nullable)",
+              "creationDate": "string (ISO date)",
+              "lastModificationDate": "string (ISO date, nullable)"
+            },
+            "errors": []
+          }
+        },
+        "get_tenants_by_property": {
+          "description": "Get all tenants for a specific property",
+          "method": "GET",
+          "url": "{base_url}/tenant/property/{propertyId}",
+          "path_parameters": {
+            "propertyId": "number (required - propertyId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Tenants retrieved successfully",
+            "data": ["TenantResponseDto"],
+            "errors": []
+          }
+        },
+        "get_tenants_by_owner": {
+          "description": "Get all tenants for a specific owner",
+          "method": "GET",
+          "url": "{base_url}/tenant/owner/{ownerId}",
+          "path_parameters": {
+            "ownerId": "number (required - ownerId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Tenants retrieved successfully",
+            "data": ["TenantResponseDto"],
+            "errors": []
+          }
+        },
+        "get_tenants_by_room": {
+          "description": "Get all tenants for a specific room",
+          "method": "GET",
+          "url": "{base_url}/tenant/room/{roomId}",
+          "path_parameters": {
+            "roomId": "number (required - roomId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Tenants retrieved successfully",
+            "data": ["TenantResponseDto"],
+            "errors": []
+          }
+        },
+        "search_tenants": {
+          "description": "Search tenants with filters and pagination",
+          "method": "GET",
+          "url": "{base_url}/tenant/search",
+          "query_parameters": {
+            "searchTerm": "string (optional)",
+            "tenantName": "string (optional)",
+            "email": "string (optional)",
+            "mobileNumber": "string (optional)",
+            "propertyId": "number (optional)",
+            "roomNumber": "number (optional)",
+            "ownerId": "number (optional)",
+            "isActive": "boolean (optional)",
+            "minRent": "decimal (optional)",
+            "maxRent": "decimal (optional)",
+            "boardingDateFrom": "string (ISO date - optional)",
+            "boardingDateTo": "string (ISO date - optional)",
+            "leavingDateFrom": "string (ISO date - optional)",
+            "leavingDateTo": "string (ISO date - optional)",
+            "pageNumber": "number (optional - default 1)",
+            "pageSize": "number (optional - default 10)",
+            "sortBy": "string (optional)",
+            "sortDirection": "string (optional - asc|desc)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Tenants retrieved successfully",
+            "data": {
+              "items": ["TenantResponseDto"],
+              "totalCount": "number",
+              "pageNumber": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          }
+        },
+        "update_tenant": {
+          "description": "Update an existing tenant",
+          "method": "PUT",
+          "url": "{base_url}/tenant/{id}",
+          "path_parameters": {
+            "id": "number (required - tenantId)"
+          },
+          "request_body": {
+            "tenantName": "string (required)",
+            "tenantMobile": "string (required)",
+            "tenantEmail": "string (optional)",
+            "tenantProfilePic": "string (optional)",
+            "tenantDocument": "string (optional)",
+            "lockInPeriod": "string (required)",
+            "note": "string (optional)",
+            "isActive": "boolean (required)",
+            "deposited": "decimal (required)",
+            "depositToReturn": "decimal (required)",
+            "presentRentValue": "decimal (optional)",
+            "pastRentValue": "decimal (optional)",
+            "currencyId": "number (optional)",
+            "leavingDate": "string (ISO date - optional)",
+            "permanentAddress": {
+              "addressId": "number (required if provided)",
+              "street": "string (required)",
+              "landMark": "string (required)",
+              "area": "string (required)",
+              "city": "string (required)",
+              "pincode": "string (required)",
+              "stateId": "number (required)",
+              "countryId": "number (required)"
+            }
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Tenant updated successfully",
+            "data": true,
+            "errors": []
+          }
+        }
+      },
+  
+      "room": {
+        "create_room": {
+          "description": "Create a new room",
+          "method": "POST",
+          "url": "{base_url}/room/create",
+          "request_body": {
+            "roomNo": "number (required)",
+            "propertyId": "number (required)",
+            "ownerId": "number (required)",
+            "roomTypeId": "number (optional)",
+            "roomSize": "string (optional)",
+            "roomRent": "decimal (required)",
+            "currencyId": "number (optional)",
+            "statusId": "number (required)",
+            "roomPic": "string (optional)",
+            "roomDescription": "string (optional)",
+            "roomFacility": "string (optional)",
+            "tenantLimit": "number (required)",
+            "note": "string (optional)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Room created successfully",
+            "data": "number (roomId)",
+            "errors": []
+          }
+        },
+        "get_room_by_id": {
+          "description": "Get room by ID",
+          "method": "GET",
+          "url": "{base_url}/room/{id}",
+          "path_parameters": {
+            "id": "number (required - roomId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Room retrieved successfully",
+            "data": "RoomResponseDto",
+            "errors": []
+          }
+        },
+        "get_rooms_by_property": {
+          "description": "Get all rooms for a specific property",
+          "method": "GET",
+          "url": "{base_url}/room/property/{propertyId}",
+          "path_parameters": {
+            "propertyId": "number (required - propertyId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Rooms retrieved successfully",
+            "data": ["RoomResponseDto"],
+            "errors": []
+          }
+        },
+        "get_rooms_by_owner": {
+          "description": "Get all rooms for a specific owner",
+          "method": "GET",
+          "url": "{base_url}/room/owner/{ownerId}",
+          "path_parameters": {
+            "ownerId": "number (required - ownerId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Rooms retrieved successfully",
+            "data": ["RoomResponseDto"],
+            "errors": []
+          }
+        },
+        "search_rooms_by_property": {
+          "description": "Get rooms by property with pagination",
+          "method": "GET",
+          "url": "{base_url}/room/property/{propertyId}/search",
+          "path_parameters": {
+            "propertyId": "number (required)"
+          },
+          "query_parameters": {
+            "searchTerm": "string (optional)",
+            "roomTypeId": "number (optional)",
+            "minRent": "decimal (optional)",
+            "maxRent": "decimal (optional)",
+            "statusId": "number (optional)",
+            "propertyId": "number (optional)",
+            "ownerId": "number (optional)",
+            "minSize": "number (optional)",
+            "maxSize": "number (optional)",
+            "isAvailable": "boolean (optional)",
+            "pageNumber": "number (optional - default 1)",
+            "pageSize": "number (optional - default 10)",
+            "sortBy": "string (optional)",
+            "sortDirection": "string (optional - asc|desc)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Rooms retrieved successfully",
+            "data": {
+              "items": ["RoomResponseDto"],
+              "totalCount": "number",
+              "pageNumber": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          }
+        },
+        "search_rooms_by_owner": {
+          "description": "Get rooms by owner with pagination",
+          "method": "GET",
+          "url": "{base_url}/room/owner/{ownerId}/search",
+          "path_parameters": {
+            "ownerId": "number (required)"
+          },
+          "query_parameters": {
+            "searchTerm": "string (optional)",
+            "roomTypeId": "number (optional)",
+            "minRent": "decimal (optional)",
+            "maxRent": "decimal (optional)",
+            "statusId": "number (optional)",
+            "propertyId": "number (optional)",
+            "ownerId": "number (optional)",
+            "minSize": "number (optional)",
+            "maxSize": "number (optional)",
+            "isAvailable": "boolean (optional)",
+            "pageNumber": "number (optional - default 1)",
+            "pageSize": "number (optional - default 10)",
+            "sortBy": "string (optional)",
+            "sortDirection": "string (optional - asc|desc)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Rooms retrieved successfully",
+            "data": {
+              "items": ["RoomResponseDto"],
+              "totalCount": "number",
+              "pageNumber": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          }
+        },
+        "search_rooms": {
+          "description": "Search rooms with pagination",
+          "method": "GET",
+          "url": "{base_url}/room/search",
+          "query_parameters": {
+            "searchTerm": "string (optional)",
+            "roomTypeId": "number (optional)",
+            "minRent": "decimal (optional)",
+            "maxRent": "decimal (optional)",
+            "statusId": "number (optional)",
+            "propertyId": "number (optional)",
+            "ownerId": "number (optional)",
+            "minSize": "number (optional)",
+            "maxSize": "number (optional)",
+            "isAvailable": "boolean (optional)",
+            "pageNumber": "number (optional - default 1)",
+            "pageSize": "number (optional - default 10)",
+            "sortBy": "string (optional)",
+            "sortDirection": "string (optional - asc|desc)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Rooms retrieved successfully",
+            "data": {
+              "items": ["RoomResponseDto"],
+              "totalCount": "number",
+              "pageNumber": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          }
+        },
+        "update_room": {
+          "description": "Update an existing room",
+          "method": "PUT",
+          "url": "{base_url}/room/{id}",
+          "path_parameters": {
+            "id": "number (required - roomId)"
+          },
+          "request_body": {
+            "roomNo": "number (required)",
+            "roomTypeId": "number (optional)",
+            "roomSize": "string (optional)",
+            "roomRent": "decimal (required)",
+            "currencyId": "number (optional)",
+            "statusId": "number (required)",
+            "roomPic": "string (optional)",
+            "roomDescription": "string (optional)",
+            "roomFacility": "string (optional)",
+            "tenantLimit": "number (required)",
+            "currentTenantCount": "number (required)",
+            "note": "string (optional)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Room updated successfully",
+            "data": true,
+            "errors": []
+          }
+        }
+      },
+  
+      "renttrack": {
+        "create_rent_track": {
+          "description": "Create a new rent track record",
+          "method": "POST",
+          "url": "{base_url}/renttrack/create",
+          "request_body": {
+            "propertyId": "number (required)",
+            "roomId": "number (optional)",
+            "tenantId": "number (required)",
+            "ownerId": "number (required)",
+            "expectedRentValue": "decimal (optional)",
+            "receivedRentValue": "decimal (optional)",
+            "pendingAmount": "decimal (optional)",
+            "rentPeriodStartDate": "string (ISO date - required)",
+            "rentPeriodEndDate": "string (ISO date - required)",
+            "paymentReceivedDate": "string (ISO date - optional)",
+            "statusId": "number (required)",
+            "note": "string (optional)",
+            "currencyId": "number (optional)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Rent track created successfully",
+            "data": "number (rentTrackId)",
+            "errors": []
+          }
+        },
+        "get_rent_track_by_id": {
+          "description": "Get rent track by ID - Returns enhanced RentTrackResponseDto with property name, tenant name, and room number",
+          "method": "GET",
+          "url": "{base_url}/renttrack/{id}",
+          "path_parameters": {
+            "id": "number (required - rentTrackId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Rent track retrieved successfully",
+            "data": "RentTrackResponseDto (enhanced with propertyName, tenantName, roomNo)",
+            "errors": []
+          }
+        },
+        "get_rent_tracks_by_property": {
+          "description": "Get all rent tracks for a specific property - Returns enhanced RentTrackResponseDto with property name, tenant name, and room number",
+          "method": "GET",
+          "url": "{base_url}/renttrack/property/{propertyId}",
+          "path_parameters": {
+            "propertyId": "number (required - propertyId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Rent tracks retrieved successfully",
+            "data": ["RentTrackResponseDto (enhanced with propertyName, tenantName, roomNo)"],
+            "errors": []
+          }
+        },
+        "get_rent_tracks_by_tenant": {
+          "description": "Get all rent tracks for a specific tenant - Returns enhanced RentTrackResponseDto with property name, tenant name, and room number",
+          "method": "GET",
+          "url": "{base_url}/renttrack/tenant/{tenantId}",
+          "path_parameters": {
+            "tenantId": "number (required - tenantId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Rent tracks retrieved successfully",
+            "data": ["RentTrackResponseDto (enhanced with propertyName, tenantName, roomNo)"],
+            "errors": []
+          }
+        },
+        "get_rent_tracks_by_owner": {
+          "description": "Get all rent tracks for a specific owner - Returns enhanced RentTrackResponseDto with property name, tenant name, and room number",
+          "method": "GET",
+          "url": "{base_url}/renttrack/owner/{ownerId}",
+          "path_parameters": {
+            "ownerId": "number (required - ownerId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Rent tracks retrieved successfully",
+            "data": ["RentTrackResponseDto (enhanced with propertyName, tenantName, roomNo)"],
+            "errors": []
+          }
+        },
+        "search_rent_tracks": {
+          "description": "Search rent tracks with filters (paginated) - Enhanced with property name, tenant name, and room number search and display",
+          "method": "POST",
+          "url": "{base_url}/renttrack/search",
+          "request_body": {
+            "searchTerm": "string (optional - searches across note, rent values, property name, tenant name, and room number)",
+            "propertyId": "number (optional)",
+            "roomId": "number (optional)",
+            "tenantId": "number (optional)",
+            "ownerId": "number (optional)",
+            "minExpectedRent": "decimal (optional)",
+            "maxExpectedRent": "decimal (optional)",
+            "minReceivedRent": "decimal (optional)",
+            "maxReceivedRent": "decimal (optional)",
+            "rentPeriodStartFrom": "string (ISO date - optional)",
+            "rentPeriodStartTo": "string (ISO date - optional)",
+            "rentPeriodEndFrom": "string (ISO date - optional)",
+            "rentPeriodEndTo": "string (ISO date - optional)",
+            "statusId": "number (optional)",
+            "currencyId": "number (optional)",
+            "pageNumber": "number (optional - default 1)",
+            "pageSize": "number (optional - default 10)",
+            "sortBy": "string (optional - supports: rentPeriodStartDate, rentPeriodEndDate, expectedRentValue, receivedRentValue, status, createdDate, propertyId, propertyName, tenantId, tenantName, roomNo)",
+            "sortDirection": "string (optional - asc|desc)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "RentTracks Found",
+            "data": {
+              "items": ["RentTrackResponseDto (enhanced with propertyName, tenantName, roomNo)"],
+              "totalCount": "number",
+              "pageNumber": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          },
+          "performance_notes": {
+            "database_optimization": "Uses NOLOCK hints for improved read performance",
+            "joins": "Implements INNER JOIN with Properties and Tenants, LEFT JOIN with Rooms",
+            "search_enhancement": "Extended search includes property names, tenant names, and room numbers"
+          }
+        },
+        "get_rent_track_count": {
+          "description": "Get count of rent tracks - Admin sees all rent tracks, Owner sees only their own rent tracks",
+          "method": "GET", 
+          "url": "{base_url}/renttrack/count",
+          "response_body_success": {
+            "status": true,
+            "message": "string",
+            "data": "number (count of rent tracks based on user role)",
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "message": "Access denied | Error getting rent track count",
+            "data": null,
+            "errors": []
+          },
+          "authorization": {
+            "required": "AdminOrOwnerPolicy",
+            "admin": "Returns count of all rent tracks in the system",
+            "owner": "Returns count of rent tracks associated with the logged-in owner"
+          }
+        },
+        "update_rent_track": {
+          "description": "Update an existing rent track",
+          "method": "PUT",
+          "url": "{base_url}/renttrack/{id}",
+          "path_parameters": {
+            "id": "number (required - rentTrackId)"
+          },
+          "request_body": {
+            "expectedRentValue": "decimal (optional)",
+            "receivedRentValue": "decimal (optional)",
+            "pendingAmount": "decimal (optional)",
+            "rentPeriodStartDate": "string (ISO date - required)",
+            "rentPeriodEndDate": "string (ISO date - required)",
+            "paymentReceivedDate": "string (ISO date - optional)",
+            "statusId": "number (required)",
+            "note": "string (optional)",
+            "currencyId": "number (optional)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Rent track updated successfully",
+            "data": true,
+            "errors": []
+          }
+        }
+      },
+  
+      "lookups": {
+        "get_property_types": {
+          "description": "Get all property types",
+          "method": "GET",
+          "url": "{base_url}/lookups/property-types",
+          "query_parameters": {
+            "pageIndex": "number (optional - default 1)",
+            "pageSize": "number (optional - default 10)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Property types retrieved successfully",
+            "data": {
+              "items": [
+                { "id": "string", "value": "string", "description": "string" }
+              ],
+              "totalCount": "number",
+              "pageIndex": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          }
+        },
+        "get_room_types": {
+          "description": "Get all room types",
+          "method": "GET",
+          "url": "{base_url}/lookups/room-types",
+          "query_parameters": {
+            "pageIndex": "number (optional - default 1)",
+            "pageSize": "number (optional - default 10)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Room types retrieved successfully",
+            "data": {
+              "items": [
+                { "id": "string", "value": "string", "description": "string" }
+              ],
+              "totalCount": "number",
+              "pageIndex": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          }
+        },
+        "get_currencies": {
+          "description": "Get all currencies",
+          "method": "GET",
+          "url": "{base_url}/lookups/currencies",
+          "query_parameters": {
+            "pageIndex": "number (optional - default 1)",
+            "pageSize": "number (optional - default 10)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Currencies retrieved successfully",
+            "data": {
+              "items": [
+                { "id": "string", "value": "string", "description": "string" }
+              ],
+              "totalCount": "number",
+              "pageIndex": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          }
+        },
+        "get_availability_status": {
+          "description": "Get availability statuses",
+          "method": "GET",
+          "url": "{base_url}/lookups/availability-status",
+          "query_parameters": {
+            "pageIndex": "number (optional - default 1)",
+            "pageSize": "number (optional - default 10)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Availability statuses retrieved successfully",
+            "data": {
+              "items": [
+                { "id": "string", "value": "string", "description": "string" }
+              ],
+              "totalCount": "number",
+              "pageIndex": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          }
+        },
+        "get_states": {
+          "description": "Get states",
+          "method": "GET",
+          "url": "{base_url}/lookups/states",
+          "query_parameters": {
+            "pageIndex": "number (optional - default 1)",
+            "pageSize": "number (optional - default 10)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "States retrieved successfully",
+            "data": {
+              "items": [
+                { "id": "string", "value": "string" }
+              ],
+              "totalCount": "number",
+              "pageIndex": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          }
+        },
+        "get_countries": {
+          "description": "Get countries",
+          "method": "GET",
+          "url": "{base_url}/lookups/countries",
+          "query_parameters": {
+            "pageIndex": "number (optional - default 1)",
+            "pageSize": "number (optional - default 10)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Countries retrieved successfully",
+            "data": {
+              "items": [
+                { "id": "string", "value": "string" }
+              ],
+              "totalCount": "number",
+              "pageIndex": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          }
+        },
+        "get_owners": {
+          "description": "Get owners (lookup)",
+          "method": "GET",
+          "url": "{base_url}/lookups/owners",
+          "query_parameters": {
+            "pageIndex": "number (optional - default 1)",
+            "pageSize": "number (optional - default 100)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Owners retrieved successfully",
+            "data": {
+              "items": [
+                { "id": "string", "value": "string" }
+              ],
+              "totalCount": "number",
+              "pageIndex": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          }
+        },
+        "get_properties_lookup": {
+          "description": "Get properties (lookup)",
+          "method": "GET",
+          "url": "{base_url}/lookups/properties",
+          "query_parameters": {
+            "ownerId": "number (optional)",
+            "pageIndex": "number (optional - default 1)",
+            "pageSize": "number (optional - default 100)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Properties retrieved successfully",
+            "data": {
+              "items": [
+                { "id": "string", "value": "string" }
+              ],
+              "totalCount": "number",
+              "pageIndex": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          }
+        },
+        "get_rooms_lookup": {
+          "description": "Get rooms for property (lookup)",
+          "method": "GET",
+          "url": "{base_url}/lookups/rooms",
+          "query_parameters": {
+            "propertyId": "number (required)",
+            "pageIndex": "number (optional - default 1)",
+            "pageSize": "number (optional - default 100)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Rooms retrieved successfully",
+            "data": {
+              "items": [
+                { "id": "string", "value": "string" }
+              ],
+              "totalCount": "number",
+              "pageIndex": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          }
+        },
+        "get_tenants_lookup": {
+          "description": "Get tenants (lookup)",
+          "method": "GET",
+          "url": "{base_url}/lookups/tenants",
+          "query_parameters": {
+            "ownerId": "number (optional)",
+            "pageIndex": "number (optional - default 1)",
+            "pageSize": "number (optional - default 100)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Tenants retrieved successfully",
+            "data": {
+              "items": [
+                { "id": "string", "value": "string" }
+              ],
+              "totalCount": "number",
+              "pageIndex": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          }
+        },
+        "get_rent_status_lookup": {
+          "description": "Get rent statuses (lookup)",
+          "method": "GET",
+          "url": "{base_url}/lookups/rent-status",
+          "query_parameters": {
+            "pageIndex": "number (optional, default: 1)",
+            "pageSize": "number (optional, default: 100)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Rent status lookups retrieved successfully",
+            "data": {
+              "data": ["LookupData"],
+              "totalCount": "number",
+              "pageIndex": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          }
+        },
+        "get_roles_lookup": {
+          "description": "Get roles (lookup) - Admin only",
+          "method": "GET",
+          "url": "{base_url}/lookups/roles",
+          "query_parameters": {
+            "pageIndex": "number (optional, default: 1)",
+            "pageSize": "number (optional, default: 100)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Roles lookups retrieved successfully",
+            "data": {
+              "data": ["LookupData"],
+              "totalCount": "number",
+              "pageIndex": "number",
+              "pageSize": "number",
+              "totalPages": "number"
+            },
+            "errors": []
+          }
+        },
+        "get_tenants_by_room": {
+          "description": "Get all tenants for a specific room",
+          "method": "GET",
+          "url": "{base_url}/lookups/tenants-by-room",
+          "query_parameters": {
+            "roomId": "number (required - room ID)",
+            "pageIndex": "number (optional - default 1)",
+            "pageSize": "number (optional - default 100)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Tenants retrieved successfully",
+            "data": {
+              "data": [
+                {
+                  "id": "string (tenant ID)",
+                  "value": "string (tenant name)",
+                  "description": "string (tenant name - mobile (email))"
+                }
+              ],
+              "totalCount": "number",
+              "pageIndex": "number",
+              "pageSize": "number"
+            },
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "message": "RoomId is required and must be greater than 0 | Error retrieving tenants for room | Access denied",
+            "data": null,
+            "errors": []
+          },
+          "authorization": "AdminOrOwnerPolicy (Bearer JWT token required)",
+          "notes": [
+            "Owners can only see tenants from their own rooms",
+            "Only returns active tenants (IsActive = true)",
+            "roomId parameter is required and must be > 0"
+          ]
+        },
+        "get_all_lookups": {
+          "description": "Get all lookup data in one call",
+          "method": "GET",
+          "url": "{base_url}/lookups/all",
+          "response_body_success": {
+            "status": true,
+            "message": "All lookup data retrieved successfully",
+            "data": {
+              "propertyTypes": ["LookupData"],
+              "currencies": ["LookupData"],
+              "availabilityStatuses": ["LookupData"],
+              "roomTypes": ["LookupData"],
+              "states": ["LookupData"],
+              "countries": ["LookupData"],
+              "rentStatuses": ["LookupData"],
+              "owners": ["LookupData"],
+              "roles": ["LookupData (Admin only)"]
+            },
+            "errors": []
+          }
+        }
+      },
+  
+      "dashboard": {
+        "get_dashboard_stats": {
+          "description": "Get dashboard counts",
+          "method": "GET",
+          "url": "{base_url}/dashboard/stats",
+          "response_body_success": {
+            "status": true,
+            "message": "Success",
+            "data": {
+              "totalOwners": "number",
+              "totalProperties": "number",
+              "totalRooms": "number",
+              "totalTenants": "number",
+              "totalRentTracks": "number"
+            },
+            "errors": []
+          }
+        }
+      },
+  
+      "address": {
+        "create_address": {
+          "description": "Create a new address",
+          "method": "POST",
+          "url": "{base_url}/address/create",
+          "request_body": {
+            "street": "string (required)",
+            "landMark": "string (required)",
+            "area": "string (required)",
+            "city": "string (required)",
+            "pincode": "string (required)",
+            "stateId": "number (required)",
+            "countryId": "number (required)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Address created successfully",
+            "data": "number (addressId)",
+            "errors": []
+          }
+        },
+        "get_address_by_id": {
+          "description": "Get address by ID",
+          "method": "GET",
+          "url": "{base_url}/address/{id}",
+          "path_parameters": {
+            "id": "number (required - addressId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Address retrieved successfully",
+            "data": {
+              "addressId": "number",
+              "street": "string",
+              "landMark": "string",
+              "area": "string",
+              "city": "string",
+              "pincode": "string",
+              "state": "string",
+              "countryId": "number"
+            },
+            "errors": []
+          }
+        },
+        "get_all_addresses": {
+          "description": "Get all addresses",
+          "method": "GET",
+          "url": "{base_url}/address",
+          "response_body_success": {
+            "status": true,
+            "message": "Addresses retrieved successfully",
+            "data": [
+              {
+                "addressId": "number",
+                "street": "string",
+                "landMark": "string",
+                "area": "string",
+                "city": "string",
+                "pincode": "string",
+                "state": "string",
+                "countryId": "number"
+              }
+            ],
+            "errors": []
+          }
+        }
+      }
+    },
+  
+    "common_error_responses": {
+      "400_bad_request": {
+        "status": false,
+        "message": "Validation failed",
+        "data": null,
+        "errors": ["Field validation error messages"]
+      },
+      "401_unauthorized": {
+        "status": false,
+        "message": "Unauthorized access",
+        "data": null,
+        "errors": []
+      },
+      "403_forbidden": {
+        "status": false,
+        "message": "Access denied",
+        "data": null,
+        "errors": []
+      },
+      "404_not_found": {
+        "status": false,
+        "message": "Resource not found",
+        "data": null,
+        "errors": []
+      },
+      "500_internal_server_error": {
+        "status": false,
+        "message": "Internal server error occurred",
+        "data": null,
+        "errors": ["Detailed error message"]
+      }
+    },
+  
+    "data_types_reference": {
+      "RentTrackResponseDto": {
+        "description": "Enhanced rent track response with related entity data",
+        "properties": {
+          "rentTrackId": "number",
+          "propertyId": "number", 
+          "roomId": "number (nullable)",
+          "tenantId": "number",
+          "ownerId": "number",
+          "roomNo": "string (nullable - room number from joined Room table)",
+          "propertyName": "string (property name from joined Property table)",
+          "tenantName": "string (tenant name from joined Tenant table)",
+          "expectedRentValue": "decimal (nullable)",
+          "receivedRentValue": "decimal (nullable)",
+          "pendingAmount": "decimal (nullable)",
+          "rentPeriodStartDate": "string (ISO date)",
+          "rentPeriodEndDate": "string (ISO date)",
+          "paymentReceivedDate": "string (ISO date - nullable)",
+          "statusId": "number (rent status)",
+          "note": "string (nullable)",
+          "currencyId": "number (nullable)",
+          "createdDate": "string (ISO date)",
+          "lastModifiedDate": "string (ISO date)"
+        },
+        "enhancements": {
+          "v1.1": "Added roomNo, propertyName, and tenantName fields populated via database JOINs with NOLOCK optimization"
+        }
+      },
+      "RoomResponseDto": {
+        "description": "Room response with related entity data and tenant count",
+        "properties": {
+          "roomId": "number",
+          "roomNo": "number",
+          "propertyId": "number",
+          "propertyName": "string (property name from joined Property table)",
+          "ownerId": "number",
+          "ownerName": "string (owner name from joined Owner table)",
+          "roomTypeId": "number (nullable)",
+          "roomSize": "string (nullable)",
+          "roomRent": "decimal",
+          "currencyId": "number (nullable)",
+          "statusId": "number (room status)",
+          "roomPic": "string (nullable)",
+          "roomDescription": "string (nullable)",
+          "roomFacility": "string (nullable)",
+          "tenantLimit": "number",
+          "currentTenantCount": "number (count of active tenants in this room)",
+          "note": "string (nullable)",
+          "creationDate": "string (ISO date)",
+          "lastModificationDate": "string (ISO date - nullable)"
+        },
+        "enhancements": {
+          "v1.2": "Added currentTenantCount field populated via separate tenant count query for accurate active tenant count"
+        }
+      },
+      "property_types": {
+        "1": "Apartment",
+        "2": "House",
+        "3": "Commercial",
+        "4": "PG/Hostel"
+      },
+      "room_types": {
+        "1": "Single",
+        "2": "Double",
+        "3": "Triple",
+        "4": "Shared"
+      },
+      "property_status": {
+        "1": "Available",
+        "2": "Occupied",
+        "3": "Maintenance",
+        "4": "Not Available"
+      },
+      "rent_status": {
+        "1": "Pending",
+        "2": "Paid",
+        "3": "Overdue",
+        "4": "Partial"
+      },
+      "user_roles": {
+        "1": "Admin",
+        "2": "Owner",
+        "3": "Tenant"
+      }
+    },
+  
+    "notes": [
+      "JSON uses camelCase naming.",
+      "Pagination is 1-based.",
+      "Search endpoints use pageNumber/pageSize; lookup endpoints use pageIndex/pageSize.",
+      "All monetary values are decimal type.",
+      "Standard response wrapper has status, message, data, errors unless otherwise noted.",
+      "Some endpoints are [AllowAnonymous] during development.",
+      "RentTrack API endpoints enhanced (v1.1): All RentTrack endpoints now return additional fields (propertyName, tenantName, roomNo) populated via optimized database JOINs with NOLOCK hints.",
+      "SearchRentTracks: Enhanced search functionality now includes property names, tenant names, and room numbers in search terms, with expanded sorting options.",
+      "Performance optimization: Database queries use NOLOCK hints for improved read performance."
+    ]
+  }
+  

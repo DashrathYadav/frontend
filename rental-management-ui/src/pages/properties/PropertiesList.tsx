@@ -11,9 +11,17 @@ import EnhancedFilterBar from '../../components/EnhancedFilterBar';
 import EnhancedPagination from '../../components/EnhancedPagination';
 import EntityCard, { EntityCardItem } from '../../components/EntityCard';
 import { useEnhancedPagination } from '../../hooks/useEnhancedPagination';
-import { AvailabilityStatus, PropertyType } from '../../constants/enums';
+import { useLookup } from '../../contexts/LookupContext';
 
 const PropertiesList: React.FC = () => {
+  const { 
+    getPropertyTypeName, 
+    getAvailabilityStatusName,
+    getAvailabilityStatusBadgeClass,
+    lookups,
+    isLoading: lookupsLoading
+  } = useLookup();
+
   // Use enhanced pagination hook
   const {
     pagination,
@@ -43,22 +51,6 @@ const PropertiesList: React.FC = () => {
         return result;
       } catch (error) {
         console.warn('Failed to load owners lookup:', error);
-        throw error;
-      }
-    },
-    retry: 1,
-    retryDelay: 1000,
-  });
-
-  const { data: propertyTypes, isLoading: propertyTypesLoading, error: propertyTypesError } = useQuery({
-    queryKey: ['property-types'],
-    queryFn: async () => {
-      try {
-        const result = await lookupApi.getPropertyTypes();
-        console.log('Property types lookup response:', result);
-        return result;
-      } catch (error) {
-        console.warn('Failed to load property types lookup:', error);
         throw error;
       }
     },
@@ -125,13 +117,22 @@ const PropertiesList: React.FC = () => {
       placeholder: 'Select Owner'
     },
     {
-      key: 'propertyType',
+      key: 'propertyTypeId',
       label: 'Property Type',
-      options: propertyTypes?.data?.map(type => ({
+      options: lookups.propertyTypes.map(type => ({
         value: type.id.toString(),
         label: type.value
-      })) || [],
+      })),
       placeholder: 'Select Type'
+    },
+    {
+      key: 'statusId',
+      label: 'Status',
+      options: lookups.availabilityStatuses.map(status => ({
+        value: status.id.toString(),
+        label: status.value
+      })),
+      placeholder: 'Select Status'
     }
   ];
 
@@ -212,64 +213,6 @@ const PropertiesList: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {properties.map((property) => {
-                // Get property type label from enum
-                const getPropertyTypeLabel = (type: number) => {
-                  switch (type) {
-                    case PropertyType.Apartment:
-                      return 'Apartment';
-                    case PropertyType.House:
-                      return 'House';
-                    case PropertyType.Studio:
-                      return 'Studio';
-                    case PropertyType.Condo:
-                      return 'Condo';
-                    case PropertyType.Townhouse:
-                      return 'Townhouse';
-                    case PropertyType.Commercial:
-                      return 'Commercial';
-                    case PropertyType.Office:
-                      return 'Office';
-                    case PropertyType.Warehouse:
-                      return 'Warehouse';
-                    case PropertyType.Other:
-                      return 'Other';
-                    default:
-                      return 'Unknown';
-                  }
-                };
-
-                // Get status label from enum
-                const getStatusLabel = (status: number) => {
-                  switch (status) {
-                    case AvailabilityStatus.Available:
-                      return 'Available';
-                    case AvailabilityStatus.NotAvailable:
-                      return 'Not Available';
-                    case AvailabilityStatus.Pending:
-                      return 'Pending';
-                    case AvailabilityStatus.Rented:
-                      return 'Rented';
-                    case AvailabilityStatus.Sold:
-                      return 'Sold';
-                    case AvailabilityStatus.UnderMaintenance:
-                      return 'Under Maintenance';
-                    default:
-                      return 'Unknown';
-                  }
-                };
-
-                const getStatusVariant = (status: number) => {
-                  switch (status) {
-                    case AvailabilityStatus.Available:
-                      return 'default' as const;
-                    case AvailabilityStatus.Rented:
-                      return 'secondary' as const;
-                    case AvailabilityStatus.Sold:
-                      return 'outline' as const;
-                    default:
-                      return 'destructive' as const;
-                  }
-                };
 
                 const cardItem: EntityCardItem = {
                   id: property.propertyId,
@@ -279,7 +222,7 @@ const PropertiesList: React.FC = () => {
                   editUrl: `/properties/${property.propertyId}/edit`,
                   badges: [
                     {
-                      label: getPropertyTypeLabel(property.propertyType),
+                      label: getPropertyTypeName(property.propertyTypeId),
                       variant: 'secondary' as const
                     }
                   ],
@@ -287,7 +230,7 @@ const PropertiesList: React.FC = () => {
                     {
                       icon: <MapPin className="w-4 h-4" />,
                       label: 'Location',
-                      value: `${property.address.city}, ${property.address.state}`
+                      value: `${property.address.city}, ${property.address.area}`
                     },
                     {
                       icon: <DollarSign className="w-4 h-4" />,
@@ -301,8 +244,8 @@ const PropertiesList: React.FC = () => {
                     }
                   ],
                   footerStatus: {
-                    label: getStatusLabel(property.status),
-                    variant: getStatusVariant(property.status)
+                    label: getAvailabilityStatusName(property.statusId),
+                    variant: getAvailabilityStatusBadgeClass(property.statusId) as 'default' | 'secondary' | 'destructive' | 'outline'
                   },
                   footerAction: {
                     label: 'Show Rooms',

@@ -17,11 +17,7 @@ import { roomApi, propertyApi, tenantApi } from '../../services/api';
 import { formatCurrency } from '../../utils';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
-import {
-    getRoomTypeValue,
-    getAvailabilityStatusValue,
-    getCurrencyValue
-} from '../../constants/lookups';
+import { useLookup } from '../../contexts/LookupContext';
 import { StatusBadge, TypeBadge } from '../../components/ui/badge-system';
 
 // Import shadcn-ui components
@@ -33,6 +29,13 @@ const RoomDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const roomId = parseInt(id!);
+    
+    // Use LookupContext for consistent lookup data
+    const { 
+        getRoomTypeName,
+        getAvailabilityStatusName,
+        getCurrencyName
+    } = useLookup();
 
     // Fetch room details
     const { data: room, isLoading: roomLoading, error: roomError } = useQuery({
@@ -74,9 +77,9 @@ const RoomDetail: React.FC = () => {
         return <ErrorMessage message="Failed to load room details" />;
     }
 
-    const roomTypeName = getRoomTypeValue(room.roomType || 0);
-    const statusName = getAvailabilityStatusValue(room.status);
-    const currencyName = room.currencyCode ? getCurrencyValue(room.currencyCode) : 'USD';
+    const roomTypeName = getRoomTypeName(room.roomTypeId || 0);
+    const statusName = getAvailabilityStatusName(room.statusId);
+    const currencyName = room.currencyId ? getCurrencyName(room.currencyId) : 'USD';
 
     const getStatusIcon = (status: number) => {
         switch (status) {
@@ -142,8 +145,8 @@ const RoomDetail: React.FC = () => {
                         <CardHeader>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2">
-                                    <TypeBadge type={room.roomType || 0} category="room" />
-                                    <StatusBadge status={room.status} category="availability" />
+                                    <TypeBadge type={room.roomTypeId || 0} category="room" />
+                                    <StatusBadge status={room.statusId} category="availability" />
                                 </div>
                                 <Badge variant="outline" className="text-sm">
                                     {currencyName}
@@ -288,7 +291,7 @@ const RoomDetail: React.FC = () => {
                                             <div>
                                                 <label className="text-sm font-medium text-gray-500">Status</label>
                                                 <div className="flex items-center space-x-2 mt-1">
-                                                    {getStatusIcon(room.status)}
+                                                    {getStatusIcon(room.statusId)}
                                                     <span className="text-lg text-gray-900">{statusName}</span>
                                                 </div>
                                             </div>

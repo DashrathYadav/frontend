@@ -9,10 +9,18 @@ import ListPageWrapper from '../../components/ListPageWrapper';
 import EntityCard, { EntityCardItem } from '../../components/EntityCard';
 import { useEnhancedPagination } from '../../hooks/useEnhancedPagination';
 import ErrorMessage from '../../components/ErrorMessage';
-import { AvailabilityStatus, RoomType } from '../../constants/enums';
+import { useLookup } from '../../contexts/LookupContext';
 
 const RoomsList: React.FC = () => {
   const [urlParams] = useSearchParams();
+  
+  // Use LookupContext for consistent lookup data
+  const { 
+    getRoomTypeName,
+    getAvailabilityStatusName,
+    getAvailabilityStatusBadgeClass,
+    lookups
+  } = useLookup();
 
   // Use enhanced pagination hook
   const {
@@ -98,21 +106,7 @@ const RoomsList: React.FC = () => {
     enabled: true, // Always enable this query
   });
 
-  const { data: roomTypes, isLoading: roomTypesLoading, error: roomTypesError } = useQuery({
-    queryKey: ['room-types'],
-    queryFn: async () => {
-      try {
-        const result = await lookupApi.getRoomTypes();
-        console.log('Room types lookup response:', result);
-        return result;
-      } catch (error) {
-        console.warn('Failed to load room types lookup:', error);
-        throw error;
-      }
-    },
-    retry: 1,
-    retryDelay: 1000,
-  });
+  // Room types are now provided by LookupContext
 
   // Fetch rooms with enhanced pagination
   const { data: roomsData, isLoading: roomsLoading, error: roomsError } = useQuery({
@@ -183,13 +177,22 @@ const RoomsList: React.FC = () => {
       placeholder: 'Select Property'
     },
     {
-      key: 'roomType',
+      key: 'roomTypeId',
       label: 'Room Type',
-      options: roomTypes?.data?.map(type => ({
+      options: lookups.roomTypes.map(type => ({
         value: type.id.toString(),
         label: type.value
-      })) || [],
+      })),
       placeholder: 'Select Type'
+    },
+    {
+      key: 'statusId',
+      label: 'Status',
+      options: lookups.availabilityStatuses.map(status => ({
+        value: status.id.toString(),
+        label: status.value
+      })),
+      placeholder: 'Select Status'
     }
   ];
 
@@ -254,84 +257,6 @@ const RoomsList: React.FC = () => {
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {rooms.map((room) => {
-          // Get room type label from enum
-          const getRoomTypeLabel = (type: number) => {
-            switch (type) {
-              case RoomType.MasterBedroom:
-                return 'Master Bedroom';
-              case RoomType.GuestBedroom:
-                return 'Guest Bedroom';
-              case RoomType.Studio:
-                return 'Studio';
-              case RoomType.PremiumStudio:
-                return 'Premium Studio';
-              case RoomType.MicroStudio:
-                return 'Micro Studio';
-              case RoomType.SingleRoom:
-                return 'Single Room';
-              case RoomType.SharedRoom:
-                return 'Shared Room';
-              case RoomType.FamilyRoom:
-                return 'Family Room';
-              case RoomType.ExecutiveSuite:
-                return 'Executive Suite';
-              case RoomType.PenthouseMaster:
-                return 'Penthouse Master';
-              case RoomType.PenthouseSuite:
-                return 'Penthouse Suite';
-              case RoomType.LoftRoom:
-                return 'Loft Room';
-              case RoomType.DuplexMaster:
-                return 'Duplex Master';
-              case RoomType.CornerRoom:
-                return 'Corner Room';
-              case RoomType.EconomyRoom:
-                return 'Economy Room';
-              case RoomType.DeluxeRoom:
-                return 'Deluxe Room';
-              case RoomType.GardenViewRoom:
-                return 'Garden View Room';
-              case RoomType.AccessibilityRoom:
-                return 'Accessibility Room';
-              case RoomType.Other:
-                return 'Other';
-              default:
-                return 'Unknown';
-            }
-          };
-
-          // Get status label from enum
-          const getStatusLabel = (status: number) => {
-            switch (status) {
-              case AvailabilityStatus.Available:
-                return 'Available';
-              case AvailabilityStatus.NotAvailable:
-                return 'Not Available';
-              case AvailabilityStatus.Pending:
-                return 'Pending';
-              case AvailabilityStatus.Rented:
-                return 'Rented';
-              case AvailabilityStatus.Sold:
-                return 'Sold';
-              case AvailabilityStatus.UnderMaintenance:
-                return 'Under Maintenance';
-              default:
-                return 'Unknown';
-            }
-          };
-
-          const getStatusVariant = (status: number) => {
-            switch (status) {
-              case AvailabilityStatus.Available:
-                return 'default' as const;
-              case AvailabilityStatus.Rented:
-                return 'secondary' as const;
-              case AvailabilityStatus.Sold:
-                return 'outline' as const;
-              default:
-                return 'destructive' as const;
-            }
-          };
 
           const cardItem: EntityCardItem = {
             id: room.roomId,
@@ -341,7 +266,7 @@ const RoomsList: React.FC = () => {
             editUrl: `/rooms/${room.roomId}/edit`,
             badges: [
               {
-                label: getRoomTypeLabel(room.roomType || 0),
+                label: getRoomTypeName(room.roomTypeId || 0),
                 variant: 'secondary' as const
               }
             ],
@@ -363,8 +288,8 @@ const RoomsList: React.FC = () => {
               }
             ],
             footerStatus: {
-              label: getStatusLabel(room.status),
-              variant: getStatusVariant(room.status)
+              label: getAvailabilityStatusName(room.statusId),
+              variant: getAvailabilityStatusBadgeClass(room.statusId) as 'default' | 'secondary' | 'destructive' | 'outline'
             },
             footerAction: {
               label: 'Show Tenants',

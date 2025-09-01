@@ -9,6 +9,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import { formatErrorMessage } from '../../utils/errorHandler';
 import { useRoleAccess } from '../../hooks/useRoleAccess';
+import { useLookup } from '../../contexts/LookupContext';
 
 
 
@@ -18,26 +19,16 @@ const RoomForm: React.FC = () => {
   const queryClient = useQueryClient();
   const isEdit = Boolean(id);
   const { isAdmin, isOwner, user } = useRoleAccess();
+  
+  // Use LookupContext for consistent lookup data
+  const { lookups } = useLookup();
 
   const { data: owners } = useQuery({
     queryKey: ['owners-lookup'],
     queryFn: lookupApi.getOwners,
   });
-
-  const { data: roomTypes } = useQuery({
-    queryKey: ['room-types'],
-    queryFn: lookupApi.getRoomTypes,
-  });
-
-  const { data: availabilityStatuses } = useQuery({
-    queryKey: ['availability-statuses'],
-    queryFn: lookupApi.getAvailabilityStatuses,
-  });
-
-  const { data: currencies } = useQuery({
-    queryKey: ['currencies'],
-    queryFn: lookupApi.getCurrencies,
-  });
+  
+  // Room types, availability statuses, and currencies are now provided by LookupContext
 
 
 
@@ -76,11 +67,11 @@ const RoomForm: React.FC = () => {
         roomNo: room.roomNo,
         propertyId: room.propertyId,
         ownerId: room.ownerId,
-        roomType: room.roomType,
+        roomTypeId: room.roomTypeId,
         roomSize: room.roomSize || '',
         roomRent: room.roomRent,
-        currencyCode: room.currencyCode,
-        status: room.status,
+        currencyId: room.currencyId,
+        statusId: room.statusId,
         roomDescription: room.roomDescription || '',
         roomFacility: room.roomFacility || '',
         tenantLimit: room.tenantLimit,
@@ -173,9 +164,9 @@ const RoomForm: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Room Type
               </label>
-              <select {...register('roomType')} className="input">
+              <select {...register('roomTypeId')} className="input">
                 <option value="">Select Type</option>
-                {roomTypes?.data.map((type) => (
+                {lookups.roomTypes.map((type) => (
                   <option key={type.id} value={type.id}>
                     {type.value}
                   </option>
@@ -294,8 +285,8 @@ const RoomForm: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Currency
               </label>
-              <select {...register('currencyCode')} className="input">
-                {currencies?.data.map((currency) => (
+              <select {...register('currencyId')} className="input">
+                {lookups.currencies.map((currency) => (
                   <option key={currency.id} value={currency.id}>
                     {currency.value}
                   </option>
@@ -307,9 +298,9 @@ const RoomForm: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Status *
               </label>
-              <select {...register('status')} className="input">
+              <select {...register('statusId')} className="input">
                 <option value="">Select Status</option>
-                {availabilityStatuses?.data.map((status) => (
+                {lookups.availabilityStatuses.map((status) => (
                   <option key={status.id} value={status.id}>
                     {status.value}
                   </option>

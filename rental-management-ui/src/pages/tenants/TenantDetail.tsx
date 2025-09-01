@@ -307,7 +307,7 @@ const TenantDetail: React.FC = () => {
                                             <p><span className="text-gray-600">Landmark:</span> {tenant.permanentAddress.landMark}</p>
                                             <p><span className="text-gray-600">Area:</span> {tenant.permanentAddress.area}</p>
                                             <p><span className="text-gray-600">City:</span> {tenant.permanentAddress.city}</p>
-                                            <p><span className="text-gray-600">State:</span> {tenant.permanentAddress.state}</p>
+                                            <p><span className="text-gray-600">State:</span> {tenant.permanentAddress.stateId}</p>
                                             <p><span className="text-gray-600">Pincode:</span> {tenant.permanentAddress.pincode}</p>
                                         </div>
                                     </div>
@@ -340,8 +340,8 @@ const TenantDetail: React.FC = () => {
                                                         <h4 className="font-semibold text-gray-900">
                                                             Rent Period: {formatDate(rent.rentPeriodStartDate)} - {formatDate(rent.rentPeriodEndDate)}
                                                         </h4>
-                                                        <Badge variant={rent.status === 1 ? "default" : "secondary"}>
-                                                            {rent.status === 1 ? "Paid" : "Pending"}
+                                                        <Badge variant={rent.statusId === 1 ? "default" : "secondary"}>
+                                                            {rent.statusId === 1 ? "Paid" : "Pending"}
                                                         </Badge>
                                                     </div>
                                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">

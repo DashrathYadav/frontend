@@ -9,9 +9,11 @@ import ListPageWrapper from '../../components/ListPageWrapper';
 import EntityCard, { EntityCardItem } from '../../components/EntityCard';
 import { useEnhancedPagination } from '../../hooks/useEnhancedPagination';
 import ErrorMessage from '../../components/ErrorMessage';
-import { RentStatus } from '../../constants/enums';
+import { useLookup } from '../../contexts/LookupContext';
+
 
 const RentsList: React.FC = () => {
+  const { lookups, getRentStatusName, getRentStatusBadgeClass } = useLookup();
   const [urlParams] = useSearchParams();
 
   // Use enhanced pagination hook
@@ -244,12 +246,10 @@ const RentsList: React.FC = () => {
     {
       key: 'status',
       label: 'Status',
-      options: [
-        { value: RentStatus.FullyPaid.toString(), label: 'Paid' },
-        { value: RentStatus.Pending.toString(), label: 'Pending' },
-        { value: RentStatus.PartiallyPaid.toString(), label: 'Partial' }
-      ],
-      placeholder: 'Select Status'
+      options: lookups.rentStatuses.map(status => ({
+        value: status.id.toString(),
+        label: status.value
+      })),      placeholder: 'Select Status'
     }
   ];
 
@@ -314,37 +314,21 @@ const RentsList: React.FC = () => {
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {rents.map((rent) => {
-          // Get rent status label from enum
-          const getRentStatusLabel = (status: number) => {
-            switch (status) {
-              case RentStatus.Pending:
-                return 'Pending';
-              case RentStatus.PartiallyPaid:
-                return 'Partial';
-              case RentStatus.FullyPaid:
-                return 'Paid';
-              default:
-                return 'Unknown';
-            }
-          };
-
-          const getRentStatusVariant = (status: number) => {
-            switch (status) {
-              case RentStatus.FullyPaid:
-                return 'default' as const;
-              case RentStatus.PartiallyPaid:
-                return 'secondary' as const;
-              case RentStatus.Pending:
-                return 'destructive' as const;
-              default:
-                return 'destructive' as const;
-            }
+          // Use dynamic lookup functions from context
+          const statusLabel = getRentStatusName(rent.statusId);
+          const badgeClass = getRentStatusBadgeClass(rent.statusId);
+          
+          const getVariantFromBadgeClass = (badgeClass: string) => {
+            if (badgeClass.includes('success')) return 'default' as const;
+            if (badgeClass.includes('warning')) return 'secondary' as const;
+            if (badgeClass.includes('error')) return 'destructive' as const;
+            return 'destructive' as const;
           };
 
           const cardItem: EntityCardItem = {
             id: rent.rentTrackId,
-            title: `Rent #${rent.rentTrackId}`,
-            subtitle: `Property: ${rent.propertyId}${rent.roomId ? ` • Room: ${rent.roomId}` : ''}`,
+            title: `${rent.tenantName}`,
+            subtitle: `Property: ${rent.propertyName}${rent.roomNo ? ` |  Room: ${rent.roomNo}` : ''}`,
             viewUrl: `/rents/${rent.rentTrackId}`,
             editUrl: `/rents/${rent.rentTrackId}/edit`,
             badges: [
@@ -371,11 +355,11 @@ const RentsList: React.FC = () => {
               }
             ],
             footerStatus: {
-              label: getRentStatusLabel(rent.status),
-              variant: getRentStatusVariant(rent.status)
+              label: statusLabel,
+              variant: getVariantFromBadgeClass(badgeClass)
             },
             footerAction: {
-              label: `Tenant #${rent.tenantId}`,
+              label: `View ${rent.tenantName}`,
               icon: <Eye className="w-3 h-3" />,
               url: `/tenants/${rent.tenantId}`
             }

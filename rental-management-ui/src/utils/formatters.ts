@@ -1,4 +1,19 @@
-import { CURRENCY_SYMBOLS, DATE_FORMAT, DATE_TIME_FORMAT } from '../constants';
+import { DATE_FORMAT, DATE_TIME_FORMAT } from '../constants';
+
+// Dynamic currency mapping function that can be overridden
+let getCurrencySymbol = (currencyId: string | number): string => {
+  // Default fallback mapping
+  const defaultSymbols: Record<string, string> = {
+    '1': '$', '2': '€', '3': '£', '4': 'A$', '5': 'C$',
+    '6': '¥', '7': '¥', '8': '₹', '9': '₽', '10': 'R$',
+  };
+  return defaultSymbols[currencyId.toString()] || '₹';
+};
+
+// Function to override the currency symbol resolver (for dynamic lookups)
+export const setCurrencySymbolResolver = (resolver: (id: string | number) => string) => {
+  getCurrencySymbol = resolver;
+};
 
 // Date formatting utilities
 export const formatDate = (date: string | Date | null | undefined, format: string = DATE_FORMAT): string => {
@@ -60,7 +75,7 @@ export const formatCurrency = (
     if (amount === null || amount === undefined) {
         return 'N/A';
     }
-    const symbol = CURRENCY_SYMBOLS[currencyId.toString()] || '₹';
+    const symbol = getCurrencySymbol(currencyId);
 
     try {
         return new Intl.NumberFormat(locale, {
@@ -82,7 +97,7 @@ export const formatCurrencyCompact = (
     if (amount === null || amount === undefined) {
         return 'N/A';
     }
-    const symbol = CURRENCY_SYMBOLS[currencyId.toString()] || '₹';
+    const symbol = getCurrencySymbol(currencyId);
 
     if (amount >= 10000000) {
         return `${symbol}${(amount / 10000000).toFixed(1)}Cr`;

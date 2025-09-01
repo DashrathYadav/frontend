@@ -17,11 +17,7 @@ import { propertyApi, roomApi, tenantApi } from '../../services/api';
 import { formatCurrency } from '../../utils';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
-import {
-    getPropertyTypeValue,
-    getAvailabilityStatusValue,
-    getCurrencyValue
-} from '../../constants/lookups';
+import { useLookup } from '../../contexts/LookupContext';
 import { StatusBadge, TypeBadge } from '../../components/ui/badge-system';
 
 // Import shadcn-ui components
@@ -33,6 +29,12 @@ const PropertyDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const propertyId = parseInt(id!);
+    const { 
+        getPropertyTypeName,
+        getAvailabilityStatusName,
+        getCurrencyName,
+        lookups
+    } = useLookup();
 
     // Fetch property details
     const { data: property, isLoading: propertyLoading, error: propertyError } = useQuery({
@@ -77,9 +79,14 @@ const PropertyDetail: React.FC = () => {
     }
 
     const rooms = roomsData?.data || [];
-    const propertyTypeName = getPropertyTypeValue(property.propertyType);
-    const statusName = getAvailabilityStatusValue(property.status);
-    const currencyName = property.currencyCode ? getCurrencyValue(property.currencyCode) : 'USD';
+    const propertyTypeName = getPropertyTypeName(property.propertyTypeId);
+    const statusName = getAvailabilityStatusName(property.statusId);
+    
+    // Use proper fallback for currency - default to first available currency or INR if available
+    const defaultCurrencyId = lookups.currencies.find(c => c.value === 'INR')?.id || 
+                             lookups.currencies[0]?.id || 
+                             '8'; // Final fallback to INR ID
+    const currencyName = getCurrencyName(property.currencyId || defaultCurrencyId);
 
     // Debug logging for property data
     console.log('Property data:', property);
@@ -99,8 +106,8 @@ const PropertyDetail: React.FC = () => {
         }
     };
 
-    const getStatusIcon = (status: number) => {
-        switch (status) {
+    const getStatusIcon = (statusId: number) => {
+        switch (statusId) {
             case 1: // Available
                 return <CheckCircle className="w-4 h-4 text-green-500" />;
             case 2: // Not Available
@@ -163,8 +170,8 @@ const PropertyDetail: React.FC = () => {
                         <CardHeader>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2">
-                                    <TypeBadge type={property.propertyType} category="property" />
-                                    <StatusBadge status={property.status} category="availability" />
+                                    <TypeBadge type={property.propertyTypeId} category="property" />
+                                    <StatusBadge status={property.statusId} category="availability" />
                                 </div>
                                 <Badge variant="outline" className="text-sm">
                                     {currencyName}
@@ -285,7 +292,7 @@ const PropertyDetail: React.FC = () => {
                                             <div>
                                                 <label className="text-sm font-medium text-gray-500">Status</label>
                                                 <div className="flex items-center space-x-2 mt-1">
-                                                    {getStatusIcon(property.status)}
+                                                    {getStatusIcon(property.statusId)}
                                                     <span className="text-lg text-gray-900">{statusName}</span>
                                                 </div>
                                             </div>
@@ -366,7 +373,7 @@ const PropertyDetail: React.FC = () => {
                                                 >
                                                     <div className="flex items-center justify-between mb-3">
                                                         <h4 className="font-semibold text-gray-900">Room #{room.roomNo}</h4>
-                                                        <StatusBadge status={room.status} category="availability" />
+                                                        <StatusBadge status={room.statusId} category="availability" />
                                                     </div>
                                                     <div className="space-y-2 text-sm">
                                                         <div className="flex justify-between">
@@ -509,7 +516,7 @@ const PropertyDetail: React.FC = () => {
                                                     </div>
                                                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                                         <span className="text-sm text-gray-600">State</span>
-                                                        <span className="font-medium text-sm">{property.address.state}</span>
+                                                        <span className="font-medium text-sm">{property.address.stateId}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center py-2">
                                                         <span className="text-sm text-gray-600">Pincode</span>
