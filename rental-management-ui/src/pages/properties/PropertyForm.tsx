@@ -10,13 +10,15 @@ import { CreatePropertyDto, UpdatePropertyDto } from '../../types';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import { formatErrorMessage } from '../../utils/errorHandler';
+import { useRoleAccess } from '../../hooks/useRoleAccess';
+import { useLookup } from '../../contexts/LookupContext';
 
 const schema = yup.object({
   propertyName: yup.string().required('Property name is required'),
-  propertyType: yup.number().required('Property type is required'),
+  propertyTypeId: yup.number().required('Property type is required'),
   propertySize: yup.string().required('Property size is required'),
   propertyRent: yup.number().required('Property rent is required').min(0),
-  status: yup.number().required('Status is required'),
+  statusId: yup.number().required('Status is required'),
   propertyDescription: yup.string().required('Description is required'),
   propertyFacility: yup.string().required('Facilities are required'),
   ownerId: yup.number().required('Owner is required').min(1),
@@ -36,35 +38,12 @@ const PropertyForm: React.FC = () => {
   const { id } = useParams();
   const queryClient = useQueryClient();
   const isEdit = Boolean(id);
+  const { isAdmin, isOwner, user } = useRoleAccess();
+  const { lookups, isLoading: lookupsLoading } = useLookup();
 
   const { data: owners } = useQuery({
     queryKey: ['owners-lookup'],
     queryFn: lookupApi.getOwners,
-  });
-
-  const { data: propertyTypes } = useQuery({
-    queryKey: ['property-types'],
-    queryFn: lookupApi.getPropertyTypes,
-  });
-
-  const { data: availabilityStatuses } = useQuery({
-    queryKey: ['availability-statuses'],
-    queryFn: lookupApi.getAvailabilityStatuses,
-  });
-
-  const { data: currencies } = useQuery({
-    queryKey: ['currencies'],
-    queryFn: lookupApi.getCurrencies,
-  });
-
-  const { data: states } = useQuery({
-    queryKey: ['states'],
-    queryFn: lookupApi.getStates,
-  });
-
-  const { data: countries } = useQuery({
-    queryKey: ['countries'],
-    queryFn: lookupApi.getCountries,
   });
 
   const { data: property, isLoading: propertyLoading } = useQuery({
@@ -73,6 +52,31 @@ const PropertyForm: React.FC = () => {
     enabled: isEdit,
   });
 
+  // Helper function to get smart default values
+  const getDefaultValues = () => {
+    // Find INR currency or use first available
+    const defaultCurrency = lookups.currencies.find(c => c.value === 'INR') || lookups.currencies[0];
+    
+    // Find Available status or use first available
+    const defaultStatus = lookups.availabilityStatuses.find(s => s.value === 'Available') || lookups.availabilityStatuses[0];
+    
+    // Find India as default country or use first available
+    const defaultCountry = lookups.countries.find(c => c.value === 'India') || lookups.countries[0];
+    
+    // Find Maharashtra as default state or use first available
+    const defaultState = lookups.states.find(s => s.value === 'Maharashtra') || lookups.states[0];
+
+    return {
+      currencyId: defaultCurrency?.id || undefined,
+      statusId: defaultStatus?.id || undefined,
+      ownerId: isOwner() ? user?.userId : undefined, // Default to current user if Owner
+      address: {
+        countryId: defaultCountry?.id || undefined,
+        stateId: defaultState?.id || undefined,
+      }
+    };
+  };
+
   const {
     register,
     handleSubmit,
@@ -80,25 +84,18 @@ const PropertyForm: React.FC = () => {
     reset
   } = useForm<CreatePropertyDto | UpdatePropertyDto>({
     resolver: yupResolver(schema),
-    defaultValues: {
-      currencyCode: 8, // INR = 8
-      status: 1, // Available = 1
-      address: {
-        countryId: 1,
-        stateId: 1,
-      }
-    }
+    defaultValues: getDefaultValues()
   });
 
   React.useEffect(() => {
     if (property && isEdit) {
       reset({
         propertyName: property.propertyName,
-        propertyType: property.propertyType,
+        propertyTypeId: property.propertyTypeId,
         propertySize: property.propertySize,
         propertyRent: property.propertyRent,
-        currencyCode: property.currencyCode,
-        status: property.status as number,
+        currencyId: property.currencyId,
+        statusId: property.statusId as number,
         propertyDescription: property.propertyDescription,
         propertyFacility: property.propertyFacility,
         ownerId: property.ownerId,
@@ -109,7 +106,7 @@ const PropertyForm: React.FC = () => {
           area: property.address.area,
           city: property.address.city,
           pincode: property.address.pincode,
-          stateId: 1, // Default to 1 since we don't have stateId in Address type
+          stateId: property.address.stateId,
           countryId: property.address.countryId,
         } : {
           street: '',
@@ -117,8 +114,8 @@ const PropertyForm: React.FC = () => {
           area: '',
           city: '',
           pincode: '',
-          stateId: 1,
-          countryId: 1,
+          stateId: lookups.states.find(s => s.value === 'Maharashtra')?.id || lookups.states[0]?.id || undefined,
+          countryId: lookups.countries.find(c => c.value === 'India')?.id || lookups.countries[0]?.id || undefined,
         }
       });
     }
@@ -201,16 +198,16 @@ const PropertyForm: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Property Type *
               </label>
-              <select {...register('propertyType')} className="input">
+              <select {...register('propertyTypeId')} className="input">
                 <option value="">Select Type</option>
-                {propertyTypes?.data.map((type) => (
+                {lookups.propertyTypes.map((type) => (
                   <option key={type.id} value={type.id}>
                     {type.value}
                   </option>
                 ))}
               </select>
-              {errors.propertyType && (
-                <p className="text-error-600 text-sm mt-1">{errors.propertyType.message}</p>
+              {errors.propertyTypeId && (
+                <p className="text-error-600 text-sm mt-1">{errors.propertyTypeId.message}</p>
               )}
             </div>
 
@@ -247,8 +244,8 @@ const PropertyForm: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Currency
               </label>
-              <select {...register('currencyCode')} className="input">
-                {currencies?.data.map((currency) => (
+              <select {...register('currencyId')} className="input">
+                {lookups.currencies.map((currency) => (
                   <option key={currency.id} value={currency.id}>
                     {currency.value}
                   </option>
@@ -260,44 +257,73 @@ const PropertyForm: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Status *
               </label>
-              <select {...register('status')} className="input">
+              <select {...register('statusId')} className="input">
                 <option value="">Select Status</option>
-                {availabilityStatuses?.data.map((status) => (
+                {lookups.availabilityStatuses.map((status) => (
                   <option key={status.id} value={status.id}>
                     {status.value}
                   </option>
                 ))}
               </select>
-              {errors.status && (
-                <p className="text-error-600 text-sm mt-1">{errors.status.message}</p>
+              {errors.statusId && (
+                <p className="text-error-600 text-sm mt-1">{errors.statusId.message}</p>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Owner *
-              </label>
-              <select
-                {...register('ownerId')}
-                className={`input ${isEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                disabled={isEdit}
-              >
-                <option value="">Select Owner</option>
-                {owners?.data.map((owner) => (
-                  <option key={owner.id} value={owner.id}>
-                    {owner.value}
-                  </option>
-                ))}
-              </select>
-              {errors.ownerId && (
-                <p className="text-error-600 text-sm mt-1">{errors.ownerId.message}</p>
-              )}
-              {isEdit && (
+            {/* Owner field - visibility and editability based on user role */}
+            {isAdmin() && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Owner *
+                </label>
+                <select
+                  {...register('ownerId')}
+                  className="input"
+                >
+                  <option value="">Select Owner</option>
+                  {owners?.data.map((owner) => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.value}
+                    </option>
+                  ))}
+                </select>
+                {errors.ownerId && (
+                  <p className="text-error-600 text-sm mt-1">{errors.ownerId.message}</p>
+                )}
+              </div>
+            )}
+
+            {/* For Owner users in add mode - show disabled field */}
+            {!isEdit && isOwner() && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Owner *
+                </label>
+                <select
+                  {...register('ownerId')}
+                  className="input bg-gray-100 cursor-not-allowed"
+                  disabled={true}
+                >
+                  <option value="">Select Owner</option>
+                  {owners?.data.map((owner) => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.value}
+                    </option>
+                  ))}
+                </select>
+                {errors.ownerId && (
+                  <p className="text-error-600 text-sm mt-1">{errors.ownerId.message}</p>
+                )}
                 <p className="text-gray-500 text-sm mt-1">
-                  Owner cannot be changed in edit mode
+                  You can only create properties for yourself
                 </p>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* For Owner users in edit mode - hide the field completely */}
+            {isEdit && isOwner() && (
+              <input type="hidden" {...register('ownerId')} />
+            )}
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -412,7 +438,7 @@ const PropertyForm: React.FC = () => {
               </label>
               <select {...register('address.stateId')} className="input">
                 <option value="">Select State</option>
-                {states?.data.map((state) => (
+                {lookups.states.map((state) => (
                   <option key={state.id} value={state.id}>
                     {state.value}
                   </option>
@@ -429,7 +455,7 @@ const PropertyForm: React.FC = () => {
               </label>
               <select {...register('address.countryId')} className="input">
                 <option value="">Select Country</option>
-                {countries?.data.map((country) => (
+                {lookups.countries.map((country) => (
                   <option key={country.id} value={country.id}>
                     {country.value}
                   </option>

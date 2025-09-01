@@ -63,6 +63,7 @@ build/
 out/
 
 # Environment variables
+# Ignore all env files containing sensitive information
 .env*
 .env.local
 .env.development.local

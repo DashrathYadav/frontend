@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import Layout from './components/Layout';
+import AuthenticatedLayout from './components/AuthenticatedLayout';
 import Dashboard from './pages/Dashboard';
 import LoginPage from './pages/LoginPage';
 import OwnersList from './pages/owners/OwnersList';
@@ -16,6 +16,7 @@ import RoomForm from './pages/rooms/RoomForm';
 import RoomDetail from './pages/rooms/RoomDetail';
 import TenantsList from './pages/tenants/TenantsList';
 import TenantForm from './pages/tenants/TenantForm';
+
 import TenantDetail from './pages/tenants/TenantDetail';
 import RentsList from './pages/rents/RentsList';
 import RentForm from './pages/rents/RentForm';
@@ -43,137 +44,161 @@ function App() {
             {/* Protected routes */}
             <Route path="/" element={
               <ProtectedRoute>
-                <Layout>
+                <AuthenticatedLayout>
                   <Dashboard />
-                </Layout>
+                </AuthenticatedLayout>
               </ProtectedRoute>
             } />
 
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <Layout>
+                <AuthenticatedLayout>
                   <Dashboard />
-                </Layout>
+                </AuthenticatedLayout>
               </ProtectedRoute>
             } />
 
             <Route path="/owners" element={
               <ProtectedRoute>
-                <Layout>
+                <AuthenticatedLayout>
                   <OwnersList />
-                </Layout>
+                </AuthenticatedLayout>
               </ProtectedRoute>
             } />
 
             <Route path="/owners/new" element={
               <ProtectedRoute>
-                <Layout>
+                <AuthenticatedLayout>
                   <OwnerForm />
-                </Layout>
+                </AuthenticatedLayout>
               </ProtectedRoute>
             } />
 
             <Route path="/properties" element={
               <ProtectedRoute>
-                <Layout>
+                <AuthenticatedLayout>
                   <PropertiesList />
-                </Layout>
+                </AuthenticatedLayout>
               </ProtectedRoute>
             } />
 
             <Route path="/properties/new" element={
               <ProtectedRoute>
-                <Layout>
+                <AuthenticatedLayout>
                   <PropertyForm />
-                </Layout>
+                </AuthenticatedLayout>
               </ProtectedRoute>
             } />
 
             <Route path="/properties/:id" element={
               <ProtectedRoute>
-                <Layout>
+                <AuthenticatedLayout>
                   <PropertyDetail />
-                </Layout>
+                </AuthenticatedLayout>
               </ProtectedRoute>
             } />
 
             <Route path="/properties/:id/edit" element={
               <ProtectedRoute>
-                <Layout>
+                <AuthenticatedLayout>
                   <PropertyForm />
-                </Layout>
+                </AuthenticatedLayout>
               </ProtectedRoute>
             } />
 
             <Route path="/rooms" element={
               <ProtectedRoute>
-                <Layout>
+                <AuthenticatedLayout>
                   <RoomsList />
-                </Layout>
+                </AuthenticatedLayout>
               </ProtectedRoute>
             } />
 
             <Route path="/rooms/new" element={
               <ProtectedRoute>
-                <Layout>
+                <AuthenticatedLayout>
                   <RoomForm />
-                </Layout>
+                </AuthenticatedLayout>
               </ProtectedRoute>
             } />
 
             <Route path="/rooms/:id" element={
               <ProtectedRoute>
-                <Layout>
+                <AuthenticatedLayout>
                   <RoomDetail />
-                </Layout>
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/rooms/:id/edit" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <RoomForm />
+                </AuthenticatedLayout>
               </ProtectedRoute>
             } />
 
             <Route path="/tenants" element={
               <ProtectedRoute>
-                <Layout>
+                <AuthenticatedLayout>
                   <TenantsList />
-                </Layout>
+                </AuthenticatedLayout>
               </ProtectedRoute>
             } />
 
             <Route path="/tenants/new" element={
               <ProtectedRoute>
-                <Layout>
+                <AuthenticatedLayout>
                   <TenantForm />
-                </Layout>
+                </AuthenticatedLayout>
               </ProtectedRoute>
             } />
 
             <Route path="/tenants/:id" element={
               <ProtectedRoute>
-                <Layout>
+                <AuthenticatedLayout>
                   <TenantDetail />
-                </Layout>
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/tenants/:id/edit" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <TenantForm />
+                </AuthenticatedLayout>
               </ProtectedRoute>
             } />
 
             <Route path="/rents" element={
               <ProtectedRoute>
-                <Layout>
+                <AuthenticatedLayout>
                   <RentsList />
-                </Layout>
+                </AuthenticatedLayout>
               </ProtectedRoute>
             } />
 
             <Route path="/rents/new" element={
               <ProtectedRoute>
-                <Layout>
+                <AuthenticatedLayout>
                   <RentForm />
-                </Layout>
+                </AuthenticatedLayout>
               </ProtectedRoute>
             } />
 
             <Route path="/rents/:id" element={
               <ProtectedRoute>
-                <Layout>
+                <AuthenticatedLayout>
                   <RentDetail />
-                </Layout>
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/rents/:id/edit" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <RentForm />
+                </AuthenticatedLayout>
               </ProtectedRoute>
             } />
 

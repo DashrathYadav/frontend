@@ -6,11 +6,13 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { ArrowLeft, Save } from 'lucide-react';
 import { rentTrackApi, lookupApi, tenantApi } from '../../services/api';
-import { CreateRentTrackDto } from '../../types';
-import { RentStatus, Currency } from '../../constants';
+import { CreateRentTrackDto, UpdateRentTrackDto } from '../../types';
+
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import { formatErrorMessage } from '../../utils/errorHandler';
+import { useRoleAccess } from '../../hooks/useRoleAccess';
+import { useLookup } from '../../contexts/LookupContext';
 
 const schema = yup.object({
   propertyId: yup.number().required('Property is required').min(1),
@@ -21,7 +23,10 @@ const schema = yup.object({
   pendingAmount: yup.number().min(0, 'Pending amount cannot be negative').optional(),
   rentPeriodStartDate: yup.string().required('Start date is required'),
   rentPeriodEndDate: yup.string().required('End date is required'),
-  status: yup.number().required('Status is required'),
+  statusId: yup.number().required('Status is required'),
+  roomId: yup.number().optional(),
+  currencyId: yup.number().optional(),
+  note: yup.string().optional(),
 });
 
 const RentForm: React.FC = () => {
@@ -31,6 +36,8 @@ const RentForm: React.FC = () => {
   const queryClient = useQueryClient();
   const isEdit = Boolean(id);
   const hasPreFilledRef = React.useRef(false);
+  const { isAdmin, isOwner, user } = useRoleAccess();
+  const { lookups } = useLookup();
 
   // Get tenantId from URL params for pre-filling
   const tenantIdFromUrl = searchParams.get('tenantId');
@@ -65,22 +72,25 @@ const RentForm: React.FC = () => {
     reset,
     watch,
     setValue
-  } = useForm<CreateRentTrackDto>({
+  } = useForm<any>({
     resolver: yupResolver(schema),
     defaultValues: {
-      currencyCode: Currency.INR,
-      status: RentStatus.Pending,
+      currencyId: Number(lookups.currencies[0]?.id) || undefined,
+      statusId: Number(lookups.rentStatuses[0]?.id) || undefined,
       rentPeriodStartDate: new Date().toISOString().split('T')[0],
       rentPeriodEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+      ownerId: isOwner() ? user?.userId : undefined, // Default to current user if Owner
     }
   });
 
   const selectedOwnerId = watch('ownerId');
   const selectedPropertyId = watch('propertyId');
+  const selectedRoomId = watch('roomId');
 
-  // Determine the effective owner and property IDs for queries
+  // Determine the effective owner, property, and room IDs for queries
   const effectiveOwnerId = selectedOwnerId || tenantData?.ownerId;
   const effectivePropertyId = selectedPropertyId || tenantData?.propertyId;
+  const effectiveRoomId = selectedRoomId || tenantData?.roomId;
 
   const { data: properties, isLoading: propertiesLoading } = useQuery({
     queryKey: ['properties-lookup', effectiveOwnerId],
@@ -95,9 +105,9 @@ const RentForm: React.FC = () => {
   });
 
   const { data: tenants, isLoading: tenantsLoading } = useQuery({
-    queryKey: ['tenants-lookup', effectiveOwnerId],
-    queryFn: () => lookupApi.getTenants(effectiveOwnerId),
-    enabled: Boolean(effectiveOwnerId),
+    queryKey: ['tenants-by-room', effectiveRoomId],
+    queryFn: () => lookupApi.getTenantsByRoom(effectiveRoomId!),
+    enabled: Boolean(effectiveRoomId),
   });
 
   // Check if form is pre-filled from tenant data
@@ -118,9 +128,9 @@ const RentForm: React.FC = () => {
       setValue('pendingAmount', 0);
       setValue('rentPeriodStartDate', new Date().toISOString().split('T')[0]);
       setValue('rentPeriodEndDate', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
-      setValue('status', 1); // Pending = 1
+      setValue('statusId', Number(lookups.rentStatuses[0]?.id)); // Default to first status
       setValue('note', '');
-      setValue('currencyCode', tenantData.currencyCode || 8); // INR = 8
+      setValue('currencyId', Number(tenantData.currencyId)); // Default to first currency
     }
   }, [tenantData, isEdit, setValue]);
 
@@ -137,12 +147,19 @@ const RentForm: React.FC = () => {
         pendingAmount: rent.pendingAmount,
         rentPeriodStartDate: rent.rentPeriodStartDate.split('T')[0],
         rentPeriodEndDate: rent.rentPeriodEndDate.split('T')[0],
-        status: rent.status,
+        statusId: rent.statusId,
         note: rent.note || '',
-        currencyCode: rent.currencyCode,
+        currencyId: rent.currencyId,
       });
     }
   }, [rent, isEdit, reset]);
+
+  // Clear tenant selection when room changes
+  React.useEffect(() => {
+    if (selectedRoomId && !isEdit && !hasPreFilledRef.current) {
+      setValue('tenantId', '');
+    }
+  }, [selectedRoomId, isEdit, setValue]);
 
   const createMutation = useMutation({
     mutationFn: rentTrackApi.create,
@@ -153,7 +170,7 @@ const RentForm: React.FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: CreateRentTrackDto) => rentTrackApi.update(Number(id), data),
+    mutationFn: (data: UpdateRentTrackDto) => rentTrackApi.update(Number(id), data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rents'] });
       queryClient.invalidateQueries({ queryKey: ['rent', id] });
@@ -161,11 +178,11 @@ const RentForm: React.FC = () => {
     },
   });
 
-  const onSubmit = (data: CreateRentTrackDto) => {
+  const onSubmit = (data: CreateRentTrackDto | UpdateRentTrackDto) => {
     if (isEdit) {
-      updateMutation.mutate(data);
+      updateMutation.mutate(data as UpdateRentTrackDto);
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(data as CreateRentTrackDto);
     }
   };
 
@@ -222,22 +239,60 @@ const RentForm: React.FC = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Property & Tenant Details</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Owner *
-              </label>
-              <select {...register('ownerId')} className="input">
-                <option value="">Select Owner</option>
-                {owners?.data.map((owner) => (
-                  <option key={owner.id} value={owner.id}>
-                    {owner.value}
-                  </option>
-                ))}
-              </select>
-              {errors.ownerId && (
-                <p className="text-error-600 text-sm mt-1">{errors.ownerId.message}</p>
-              )}
-            </div>
+            {/* Owner field - visibility and editability based on user role */}
+            {isAdmin() && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Owner *
+                </label>
+                <select
+                  {...register('ownerId')}
+                  className="input"
+                >
+                  <option value="">Select Owner</option>
+                  {owners?.data.map((owner) => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.value}
+                    </option>
+                  ))}
+                </select>
+                {errors.ownerId && (
+                  <p className="text-error-600 text-sm mt-1">{String(errors.ownerId?.message)}</p>
+                )}
+              </div>
+            )}
+
+            {/* For Owner users in add mode - show disabled field */}
+            {!isEdit && isOwner() && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Owner *
+                </label>
+                <select
+                  {...register('ownerId')}
+                  className="input bg-gray-100 cursor-not-allowed"
+                  disabled={true}
+                >
+                  <option value="">Select Owner</option>
+                  {owners?.data.map((owner) => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.value}
+                    </option>
+                  ))}
+                </select>
+                {errors.ownerId && (
+                  <p className="text-error-600 text-sm mt-1">{String(errors.ownerId?.message)}</p>
+                )}
+                <p className="text-gray-500 text-sm mt-1">
+                  You can only create rent records for yourself
+                </p>
+              </div>
+            )}
+
+            {/* For Owner users in edit mode - hide the field completely */}
+            {isEdit && isOwner() && (
+              <input type="hidden" {...register('ownerId')} />
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -245,8 +300,8 @@ const RentForm: React.FC = () => {
               </label>
               <select
                 {...register('propertyId')}
-                className="input"
-                disabled={!selectedOwnerId || propertiesLoading}
+                className={`input ${isEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                disabled={isEdit || !selectedOwnerId || propertiesLoading}
               >
                 <option value="">
                   {propertiesLoading ? 'Loading properties...' : 'Select Property'}
@@ -258,7 +313,12 @@ const RentForm: React.FC = () => {
                 ))}
               </select>
               {errors.propertyId && (
-                <p className="text-error-600 text-sm mt-1">{errors.propertyId.message}</p>
+                <p className="text-error-600 text-sm mt-1">{String(errors.propertyId?.message)}</p>
+              )}
+              {isEdit && (
+                <p className="text-gray-500 text-sm mt-1">
+                  Property cannot be changed in edit mode
+                </p>
               )}
             </div>
 
@@ -268,8 +328,8 @@ const RentForm: React.FC = () => {
               </label>
               <select
                 {...register('roomId')}
-                className="input"
-                disabled={!selectedPropertyId || roomsLoading}
+                className={`input ${isEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                disabled={isEdit || !selectedPropertyId || roomsLoading}
               >
                 <option value="">
                   {roomsLoading ? 'Loading rooms...' : 'Select Room (Optional)'}
@@ -280,6 +340,11 @@ const RentForm: React.FC = () => {
                   </option>
                 ))}
               </select>
+              {isEdit && (
+                <p className="text-gray-500 text-sm mt-1">
+                  Room cannot be changed in edit mode
+                </p>
+              )}
             </div>
 
             <div>
@@ -288,11 +353,13 @@ const RentForm: React.FC = () => {
               </label>
               <select
                 {...register('tenantId')}
-                className="input"
-                disabled={!selectedOwnerId || tenantsLoading}
+                className={`input ${isEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                disabled={isEdit || !selectedRoomId || tenantsLoading}
               >
                 <option value="">
-                  {tenantsLoading ? 'Loading tenants...' : 'Select Tenant'}
+                  {!selectedRoomId ? 'Select Room first' : 
+                   tenantsLoading ? 'Loading tenants...' : 
+                   'Select Tenant'}
                 </option>
                 {tenants?.data.map((tenant) => (
                   <option key={tenant.id} value={tenant.id}>
@@ -301,7 +368,12 @@ const RentForm: React.FC = () => {
                 ))}
               </select>
               {errors.tenantId && (
-                <p className="text-error-600 text-sm mt-1">{errors.tenantId.message}</p>
+                <p className="text-error-600 text-sm mt-1">{String(errors.tenantId?.message)}</p>
+              )}
+              {isEdit && (
+                <p className="text-gray-500 text-sm mt-1">
+                  Tenant cannot be changed in edit mode
+                </p>
               )}
             </div>
           </div>
@@ -323,7 +395,7 @@ const RentForm: React.FC = () => {
                 placeholder="Enter expected rent amount"
               />
               {errors.expectedRentValue && (
-                <p className="text-error-600 text-sm mt-1">{errors.expectedRentValue.message}</p>
+                <p className="text-error-600 text-sm mt-1">{String(errors.expectedRentValue?.message)}</p>
               )}
             </div>
 
@@ -338,7 +410,7 @@ const RentForm: React.FC = () => {
                 placeholder="Enter received rent amount"
               />
               {errors.receivedRentValue && (
-                <p className="text-error-600 text-sm mt-1">{errors.receivedRentValue.message}</p>
+                <p className="text-error-600 text-sm mt-1">{String(errors.receivedRentValue?.message)}</p>
               )}
             </div>
 
@@ -353,7 +425,7 @@ const RentForm: React.FC = () => {
                 placeholder="Enter pending amount"
               />
               {errors.pendingAmount && (
-                <p className="text-error-600 text-sm mt-1">{errors.pendingAmount.message}</p>
+                <p className="text-error-600 text-sm mt-1">{String(errors.pendingAmount?.message)}</p>
               )}
             </div>
 
@@ -361,7 +433,7 @@ const RentForm: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Currency
               </label>
-              <select {...register('currencyCode')} className="input">
+              <select {...register('currencyId')} className="input">
                 {currencies?.data.map((currency) => (
                   <option key={currency.id} value={currency.id}>
                     {currency.value}
@@ -374,14 +446,16 @@ const RentForm: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Payment Status *
               </label>
-              <select {...register('status')} className="input">
+              <select {...register('statusId')} className="input">
                 <option value="">Select Status</option>
-                <option value={1}>Pending</option>
-                <option value={2}>Partially Paid</option>
-                <option value={3}>Fully Paid</option>
+                {lookups.rentStatuses.map((status) => (
+                  <option key={status.id} value={status.id}>
+                    {status.value}
+                  </option>
+                ))}
               </select>
-              {errors.status && (
-                <p className="text-error-600 text-sm mt-1">{errors.status.message}</p>
+              {errors.statusId && (
+                <p className="text-error-600 text-sm mt-1">{String(errors.statusId?.message)}</p>
               )}
             </div>
           </div>
@@ -402,7 +476,7 @@ const RentForm: React.FC = () => {
                 className="input"
               />
               {errors.rentPeriodStartDate && (
-                <p className="text-error-600 text-sm mt-1">{errors.rentPeriodStartDate.message}</p>
+                <p className="text-error-600 text-sm mt-1">{String(errors.rentPeriodStartDate?.message)}</p>
               )}
             </div>
 
@@ -416,7 +490,7 @@ const RentForm: React.FC = () => {
                 className="input"
               />
               {errors.rentPeriodEndDate && (
-                <p className="text-error-600 text-sm mt-1">{errors.rentPeriodEndDate.message}</p>
+                <p className="text-error-600 text-sm mt-1">{String(errors.rentPeriodEndDate?.message)}</p>
               )}
             </div>
           </div>

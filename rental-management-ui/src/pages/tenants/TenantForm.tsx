@@ -6,20 +6,29 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { ArrowLeft, Save } from 'lucide-react';
 import { tenantApi, lookupApi } from '../../services/api';
-import { CreateTenantDto } from '../../types';
-import { Currency } from '../../constants';
+import { CreateTenantDto, UpdateTenantDto } from '../../types';
+
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import { formatErrorMessage } from '../../utils/errorHandler';
+import { useRoleAccess } from '../../hooks/useRoleAccess';
 
 const schema = yup.object({
   tenantName: yup.string().required('Tenant name is required'),
   tenantMobile: yup.string().required('Mobile number is required').matches(/^\d{10}$/, 'Mobile number must be 10 digits'),
   tenantEmail: yup.string().email('Invalid email format').optional(),
-  tenantAdharId: yup.string().required('Aadhar ID is required').matches(/^\d{12}$/, 'Aadhar ID must be 12 digits'),
+  tenantAdharId: yup.string().when('$isEdit', {
+    is: false,
+    then: (schema) => schema.required('Aadhar ID is required').matches(/^\d{12}$/, 'Aadhar ID must be 12 digits'),
+    otherwise: (schema) => schema.optional(),
+  }),
 
-  // Authentication fields
-  loginId: yup.string().required('Login ID is required').min(3, 'Login ID must be at least 3 characters').max(50, 'Login ID must not exceed 50 characters').matches(/^[a-zA-Z0-9_]+$/, 'Login ID can only contain letters, numbers, and underscores'),
+  // Authentication fields (only for create)
+  loginId: yup.string().when('$isEdit', {
+    is: false,
+    then: (schema) => schema.required('Login ID is required').min(3, 'Login ID must be at least 3 characters').max(50, 'Login ID must not exceed 50 characters').matches(/^[a-zA-Z0-9_]+$/, 'Login ID can only contain letters, numbers, and underscores'),
+    otherwise: (schema) => schema.optional(),
+  }),
   password: yup.string().when('$isEdit', {
     is: true,
     then: (schema) => schema.optional().min(6, 'Password must be at least 6 characters'),
@@ -28,23 +37,41 @@ const schema = yup.object({
 
   lockInPeriod: yup.string().required('Lock-in period is required'),
   deposited: yup.number().required('Deposit is required').min(0, 'Deposit cannot be negative'),
+  depositToReturn: yup.number().when('$isEdit', {
+    is: true,
+    then: (schema) => schema.required('Deposit to return is required').min(0, 'Deposit to return cannot be negative'),
+    otherwise: (schema) => schema.optional(),
+  }),
   presentRentValue: yup.number().min(0, 'Present rent value cannot be negative').optional(),
   pastRentValue: yup.number().min(0, 'Past rent value cannot be negative').optional(),
   currencyCode: yup.number().optional(),
-  boardingDate: yup.string().required('Boarding date is required'),
-  ownerId: yup.number().required('Owner is required').min(1),
-  propertyId: yup.number().required('Property is required').min(1),
-  roomId: yup.number().required('Room is required').min(1),
-  permanentAddress: yup.object({
-    street: yup.string().required('Street is required'),
-    landMark: yup.string().required('Landmark is required'),
-    area: yup.string().required('Area is required'),
-    city: yup.string().required('City is required'),
-    pincode: yup.string().required('Pincode is required').matches(/^\d{6}$/, 'Pincode must be 6 digits'),
-    stateId: yup.number().required('State is required').min(1),
-    countryId: yup.number().required('Country is required').min(1),
+  isActive: yup.boolean().when('$isEdit', {
+    is: true,
+    then: (schema) => schema.required('Active status is required'),
+    otherwise: (schema) => schema.optional(),
   }),
-  currentAddress: yup.object({
+  boardingDate: yup.string().when('$isEdit', {
+    is: false,
+    then: (schema) => schema.required('Boarding date is required'),
+    otherwise: (schema) => schema.optional(),
+  }),
+  leavingDate: yup.string().optional(),
+  ownerId: yup.number().when('$isEdit', {
+    is: false,
+    then: (schema) => schema.required('Owner is required').min(1),
+    otherwise: (schema) => schema.optional(),
+  }),
+  propertyId: yup.number().when('$isEdit', {
+    is: false,
+    then: (schema) => schema.required('Property is required').min(1),
+    otherwise: (schema) => schema.optional(),
+  }),
+  roomId: yup.number().when('$isEdit', {
+    is: false,
+    then: (schema) => schema.required('Room is required').min(1),
+    otherwise: (schema) => schema.optional(),
+  }),
+  permanentAddress: yup.object({
     street: yup.string().required('Street is required'),
     landMark: yup.string().required('Landmark is required'),
     area: yup.string().required('Area is required'),
@@ -60,6 +87,7 @@ const TenantForm: React.FC = () => {
   const { id } = useParams();
   const queryClient = useQueryClient();
   const isEdit = Boolean(id);
+  const { isAdmin, isOwner, user } = useRoleAccess();
 
   const { data: owners } = useQuery({
     queryKey: ['owners-lookup'],
@@ -92,22 +120,15 @@ const TenantForm: React.FC = () => {
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
-    watch,
-    setValue
-  } = useForm<CreateTenantDto>({
+    watch
+  } = useForm<any>({
     resolver: yupResolver(schema),
     context: { isEdit },
     defaultValues: {
       currencyCode: 8, // INR = 8
       boardingDate: new Date().toISOString().split('T')[0],
-      ownerId: 1, // Default owner
-      propertyId: 1, // Default property
-      roomId: 1, // Default room
+      ownerId: isOwner() ? user?.userId : undefined, // Default to current user if Owner
       permanentAddress: {
-        countryId: 1,
-        stateId: 1,
-      },
-      currentAddress: {
         countryId: 1,
         stateId: 1,
       }
@@ -130,11 +151,7 @@ const TenantForm: React.FC = () => {
     enabled: Boolean(selectedPropertyId),
   });
 
-  // Copy permanent address to current address
-  const copyAddress = () => {
-    const permanentAddress = watch('permanentAddress');
-    setValue('currentAddress', permanentAddress);
-  };
+
 
   React.useEffect(() => {
     if (isEdit && tenant) {
@@ -142,21 +159,22 @@ const TenantForm: React.FC = () => {
         tenantName: tenant.tenantName,
         tenantMobile: tenant.tenantMobile,
         tenantEmail: tenant.tenantEmail || '',
-        tenantAdharId: tenant.tenantAdharId,
         tenantProfilePic: tenant.tenantProfilePic || '',
         tenantDocument: tenant.tenantDocument || '',
+        loginId: tenant.loginId,
         lockInPeriod: tenant.lockInPeriod,
         deposited: tenant.deposited,
+        depositToReturn: tenant.depositToReturn || 0,
         presentRentValue: tenant.presentRentValue || undefined,
         pastRentValue: tenant.pastRentValue || undefined,
         currencyCode: tenant.currencyCode,
+        isActive: tenant.isActive,
         boardingDate: tenant.boardingDate.split('T')[0],
+        leavingDate: tenant.leavingDate ? tenant.leavingDate.split('T')[0] : '',
+        note: tenant.note || '',
         ownerId: tenant.ownerId,
         propertyId: tenant.propertyId,
-        roomId: tenant.roomId || undefined,
-        note: tenant.note || '',
-        loginId: tenant.loginId,
-        password: '', // Password is not returned from backend for security
+        roomId: tenant.roomId,
         permanentAddress: {
           street: tenant.permanentAddress.street,
           landMark: tenant.permanentAddress.landMark,
@@ -165,17 +183,8 @@ const TenantForm: React.FC = () => {
           pincode: tenant.permanentAddress.pincode,
           stateId: 1,
           countryId: tenant.permanentAddress.countryId,
-        },
-        currentAddress: {
-          street: tenant.currentAddress.street,
-          landMark: tenant.currentAddress.landMark,
-          area: tenant.currentAddress.area,
-          city: tenant.currentAddress.city,
-          pincode: tenant.currentAddress.pincode,
-          stateId: 1,
-          countryId: tenant.currentAddress.countryId,
         }
-      });
+      } as UpdateTenantDto);
     }
   }, [tenant, isEdit, reset]);
 
@@ -188,7 +197,7 @@ const TenantForm: React.FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: CreateTenantDto) => tenantApi.update(Number(id), data),
+    mutationFn: (data: UpdateTenantDto) => tenantApi.update(Number(id), data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenants'] });
       queryClient.invalidateQueries({ queryKey: ['tenant', id] });
@@ -196,11 +205,17 @@ const TenantForm: React.FC = () => {
     },
   });
 
-  const onSubmit = (data: CreateTenantDto) => {
+  const onSubmit = (data: any) => {
+    // Transform empty strings to null for nullable DateTime fields
+    const transformedData = {
+      ...data,
+      leavingDate: data.leavingDate === '' ? null : data.leavingDate,
+    };
+
     if (isEdit) {
-      updateMutation.mutate(data);
+      updateMutation.mutate(transformedData as UpdateTenantDto);
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(transformedData as CreateTenantDto);
     }
   };
 
@@ -248,7 +263,7 @@ const TenantForm: React.FC = () => {
                 placeholder="Enter full name"
               />
               {errors.tenantName && (
-                <p className="text-error-600 text-sm mt-1">{errors.tenantName.message}</p>
+                <p className="text-error-600 text-sm mt-1">{String(errors.tenantName?.message || '')}</p>
               )}
             </div>
 
@@ -262,7 +277,7 @@ const TenantForm: React.FC = () => {
                 placeholder="Enter 10-digit mobile number"
               />
               {errors.tenantMobile && (
-                <p className="text-error-600 text-sm mt-1">{errors.tenantMobile.message}</p>
+                <p className="text-error-600 text-sm mt-1">{String(errors.tenantMobile?.message || '')}</p>
               )}
             </div>
 
@@ -277,134 +292,294 @@ const TenantForm: React.FC = () => {
                 placeholder="Enter email address"
               />
               {errors.tenantEmail && (
-                <p className="text-error-600 text-sm mt-1">{errors.tenantEmail.message}</p>
+                <p className="text-error-600 text-sm mt-1">{String(errors.tenantEmail?.message || '')}</p>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Aadhar ID *
-              </label>
-              <input
-                {...register('tenantAdharId')}
-                className="input"
-                placeholder="Enter 12-digit Aadhar number"
-              />
-              {errors.tenantAdharId && (
-                <p className="text-error-600 text-sm mt-1">{errors.tenantAdharId.message}</p>
-              )}
-            </div>
+            {!isEdit && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Aadhar ID *
+                </label>
+                <input
+                  {...register('tenantAdharId')}
+                  className="input"
+                  placeholder="Enter 12-digit Aadhar number"
+                />
+                {(errors as any).tenantAdharId && (
+                  <p className="text-error-600 text-sm mt-1">{(errors as any).tenantAdharId?.message}</p>
+                )}
+              </div>
+            )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Login ID *
-              </label>
-              <input
-                {...register('loginId')}
-                className="input"
-                placeholder="Enter login ID (3-50 characters)"
-              />
-              {errors.loginId && (
-                <p className="text-error-600 text-sm mt-1">{errors.loginId.message}</p>
-              )}
-            </div>
+            {/* Login ID - Show in edit mode as non-editable */}
+            {isEdit && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Login ID
+                </label>
+                <input
+                  {...register('loginId')}
+                  className="input bg-gray-100 cursor-not-allowed"
+                  placeholder="Login ID"
+                  disabled={true}
+                />
+                <p className="text-gray-500 text-sm mt-1">
+                  Login ID cannot be changed
+                </p>
+              </div>
+            )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {isEdit ? 'New Password (leave blank to keep current)' : 'Password *'}
-              </label>
-              <input
-                type="password"
-                {...register('password')}
-                className="input"
-                placeholder={isEdit ? 'Enter new password (optional)' : 'Enter password (min 6 characters)'}
-              />
-              {errors.password && (
-                <p className="text-error-600 text-sm mt-1">{errors.password.message}</p>
-              )}
-            </div>
+            {!isEdit && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Login ID *
+                  </label>
+                  <input
+                    {...register('loginId')}
+                    className="input"
+                    placeholder="Enter login ID (3-50 characters)"
+                  />
+                  {(errors as any).loginId && (
+                    <p className="text-error-600 text-sm mt-1">{(errors as any).loginId?.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Password *
+                  </label>
+                  <input
+                    type="password"
+                    {...register('password')}
+                    className="input"
+                    placeholder="Enter password (min 6 characters)"
+                  />
+                  {(errors as any).password && (
+                    <p className="text-error-600 text-sm mt-1">{(errors as any).password?.message}</p>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Property Assignment */}
-        <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Property Assignment</h2>
+        {/* Property Assignment - Only show in create mode */}
+        {!isEdit && (
+          <div className="card p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Property Assignment</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Owner *
-              </label>
-              <select {...register('ownerId')} className="input">
-                <option value="">Select Owner</option>
-                {owners?.data.map((owner) => (
-                  <option key={owner.id} value={owner.id}>
-                    {owner.value}
-                  </option>
-                ))}
-              </select>
-              {errors.ownerId && (
-                <p className="text-error-600 text-sm mt-1">{errors.ownerId.message}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Owner field - visibility and editability based on user role */}
+              {isAdmin() && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Owner *
+                  </label>
+                  <select {...register('ownerId')} className="input">
+                    <option value="">Select Owner</option>
+                    {owners?.data.map((owner) => (
+                      <option key={owner.id} value={owner.id}>
+                        {owner.value}
+                      </option>
+                    ))}
+                  </select>
+                  {(errors as any).ownerId && (
+                    <p className="text-error-600 text-sm mt-1">{(errors as any).ownerId?.message}</p>
+                  )}
+                </div>
               )}
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Property *
-              </label>
-              <select
-                {...register('propertyId')}
-                className="input"
-                disabled={!selectedOwnerId}
-              >
-                <option value="">Select Property</option>
-                {properties?.data.map((property) => (
-                  <option key={property.id} value={property.id}>
-                    {property.value}
-                  </option>
-                ))}
-              </select>
-              {errors.propertyId && (
-                <p className="text-error-600 text-sm mt-1">{errors.propertyId.message}</p>
+              {/* For Owner users in add mode - show disabled field */}
+              {!isEdit && isOwner() && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Owner *
+                  </label>
+                  <select
+                    {...register('ownerId')}
+                    className="input bg-gray-100 cursor-not-allowed"
+                    disabled={true}
+                  >
+                    <option value="">Select Owner</option>
+                    {owners?.data.map((owner) => (
+                      <option key={owner.id} value={owner.id}>
+                        {owner.value}
+                      </option>
+                    ))}
+                  </select>
+                  {(errors as any).ownerId && (
+                    <p className="text-error-600 text-sm mt-1">{(errors as any).ownerId?.message}</p>
+                  )}
+                  <p className="text-gray-500 text-sm mt-1">
+                    You can only create tenants for yourself
+                  </p>
+                </div>
               )}
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Room *
-              </label>
-              <select
-                {...register('roomId')}
-                className="input"
-                disabled={!selectedPropertyId}
-              >
-                <option value="">Select Room</option>
-                {rooms?.data.map((room) => (
-                  <option key={room.id} value={room.id}>
-                    Room {room.value}
-                  </option>
-                ))}
-              </select>
-              {errors.roomId && (
-                <p className="text-error-600 text-sm mt-1">{errors.roomId.message}</p>
+              {/* For Owner users in edit mode - hide the field completely */}
+              {isEdit && isOwner() && (
+                <input type="hidden" {...register('ownerId')} />
               )}
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Boarding Date *
-              </label>
-              <input
-                type="date"
-                {...register('boardingDate')}
-                className="input"
-              />
-              {errors.boardingDate && (
-                <p className="text-error-600 text-sm mt-1">{errors.boardingDate.message}</p>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Property *
+                </label>
+                <select
+                  {...register('propertyId')}
+                  className="input"
+                  disabled={!selectedOwnerId}
+                >
+                  <option value="">Select Property</option>
+                  {properties?.data.map((property) => (
+                    <option key={property.id} value={property.id}>
+                      {property.value}
+                    </option>
+                  ))}
+                </select>
+                {(errors as any).propertyId && (
+                  <p className="text-error-600 text-sm mt-1">{(errors as any).propertyId?.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Room *
+                </label>
+                <select
+                  {...register('roomId')}
+                  className="input"
+                  disabled={!selectedPropertyId}
+                >
+                  <option value="">Select Room</option>
+                  {rooms?.data.map((room) => (
+                    <option key={room.id} value={room.id}>
+                      Room {room.value}
+                    </option>
+                  ))}
+                </select>
+                {(errors as any).roomId && (
+                  <p className="text-error-600 text-sm mt-1">{(errors as any).roomId?.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Boarding Date *
+                </label>
+                <input
+                  type="date"
+                  {...register('boardingDate')}
+                  className="input"
+                />
+                {errors.boardingDate && (
+                  <p className="text-error-600 text-sm mt-1">{String(errors.boardingDate?.message || '')}</p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Property Assignment - Show in edit mode */}
+        {isEdit && (
+          <div className="card p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Property Assignment</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Owner field - visibility and editability based on user role */}
+              {isAdmin() && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Owner *
+                  </label>
+                  <select {...register('ownerId')} className="input bg-gray-100 cursor-not-allowed" disabled={true}>
+                    <option value="">Select Owner</option>
+                    {owners?.data.map((owner) => (
+                      <option key={owner.id} value={owner.id}>
+                        {owner.value}
+                      </option>
+                    ))}
+                  </select>
+                  {(errors as any).ownerId && (
+                    <p className="text-error-600 text-sm mt-1">{(errors as any).ownerId?.message}</p>
+                  )}
+                  <p className="text-gray-500 text-sm mt-1">
+                    Owner cannot be changed in edit mode
+                  </p>
+                </div>
+              )}
+
+              {/* For Owner users in edit mode - hide the field completely */}
+              {isOwner() && (
+                <input type="hidden" {...register('ownerId')} />
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Property *
+                </label>
+                <select
+                  {...register('propertyId')}
+                  className="input bg-gray-100 cursor-not-allowed"
+                  disabled={true}
+                >
+                  <option value="">Select Property</option>
+                  {properties?.data.map((property) => (
+                    <option key={property.id} value={property.id}>
+                      {property.value}
+                    </option>
+                  ))}
+                </select>
+                {(errors as any).propertyId && (
+                  <p className="text-error-600 text-sm mt-1">{(errors as any).propertyId?.message}</p>
+                )}
+                <p className="text-gray-500 text-sm mt-1">
+                  Property cannot be changed in edit mode
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Room *
+                </label>
+                <select
+                  {...register('roomId')}
+                  className="input bg-gray-100 cursor-not-allowed"
+                  disabled={true}
+                >
+                  <option value="">Select Room</option>
+                  {rooms?.data.map((room) => (
+                    <option key={room.id} value={room.id}>
+                      Room {room.value}
+                    </option>
+                  ))}
+                </select>
+                {(errors as any).roomId && (
+                  <p className="text-error-600 text-sm mt-1">{(errors as any).roomId?.message}</p>
+                )}
+                <p className="text-gray-500 text-sm mt-1">
+                  Room cannot be changed in edit mode
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Boarding Date *
+                </label>
+                <input
+                  type="date"
+                  {...register('boardingDate')}
+                  className="input bg-gray-100 cursor-not-allowed"
+                  disabled={true}
+                />
+                <p className="text-gray-500 text-sm mt-1">
+                  Boarding date cannot be changed in edit mode
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Financial Information */}
         <div className="card p-6">
@@ -422,7 +597,7 @@ const TenantForm: React.FC = () => {
                 placeholder="Enter deposit amount"
               />
               {errors.deposited && (
-                <p className="text-error-600 text-sm mt-1">{errors.deposited.message}</p>
+                <p className="text-error-600 text-sm mt-1">{String(errors.deposited?.message || '')}</p>
               )}
             </div>
 
@@ -473,9 +648,55 @@ const TenantForm: React.FC = () => {
                 placeholder="e.g., 12 months"
               />
               {errors.lockInPeriod && (
-                <p className="text-error-600 text-sm mt-1">{errors.lockInPeriod.message}</p>
+                <p className="text-error-600 text-sm mt-1">{String(errors.lockInPeriod?.message || '')}</p>
               )}
             </div>
+
+            {isEdit && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Deposit to Return *
+                  </label>
+                  <input
+                    type="number"
+                    {...register('depositToReturn')}
+                    className="input"
+                    placeholder="Enter deposit to return"
+                  />
+                  {(errors as any).depositToReturn && (
+                    <p className="text-error-600 text-sm mt-1">{(errors as any).depositToReturn?.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Leaving Date
+                  </label>
+                  <input
+                    type="date"
+                    {...register('leavingDate')}
+                    className="input"
+                  />
+                  {(errors as any).leavingDate && (
+                    <p className="text-error-600 text-sm mt-1">{(errors as any).leavingDate?.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Active Status *
+                  </label>
+                  <select {...register('isActive')} className="input">
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                  </select>
+                  {(errors as any).isActive && (
+                    <p className="text-error-600 text-sm mt-1">{(errors as any).isActive?.message}</p>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -493,8 +714,8 @@ const TenantForm: React.FC = () => {
                 className="input"
                 placeholder="Enter street address"
               />
-              {errors.permanentAddress?.street && (
-                <p className="text-error-600 text-sm mt-1">{errors.permanentAddress.street.message}</p>
+              {(errors as any).permanentAddress?.street && (
+                <p className="text-error-600 text-sm mt-1">{(errors as any).permanentAddress.street?.message}</p>
               )}
             </div>
 
@@ -507,8 +728,8 @@ const TenantForm: React.FC = () => {
                 className="input"
                 placeholder="Enter landmark"
               />
-              {errors.permanentAddress?.landMark && (
-                <p className="text-error-600 text-sm mt-1">{errors.permanentAddress.landMark.message}</p>
+              {(errors as any).permanentAddress?.landMark && (
+                <p className="text-error-600 text-sm mt-1">{(errors as any).permanentAddress.landMark?.message}</p>
               )}
             </div>
 
@@ -521,8 +742,8 @@ const TenantForm: React.FC = () => {
                 className="input"
                 placeholder="Enter area"
               />
-              {errors.permanentAddress?.area && (
-                <p className="text-error-600 text-sm mt-1">{errors.permanentAddress.area.message}</p>
+              {(errors as any).permanentAddress?.area && (
+                <p className="text-error-600 text-sm mt-1">{(errors as any).permanentAddress.area?.message}</p>
               )}
             </div>
 
@@ -535,8 +756,8 @@ const TenantForm: React.FC = () => {
                 className="input"
                 placeholder="Enter city"
               />
-              {errors.permanentAddress?.city && (
-                <p className="text-error-600 text-sm mt-1">{errors.permanentAddress.city.message}</p>
+              {(errors as any).permanentAddress?.city && (
+                <p className="text-error-600 text-sm mt-1">{(errors as any).permanentAddress.city?.message}</p>
               )}
             </div>
 
@@ -549,8 +770,8 @@ const TenantForm: React.FC = () => {
                 className="input"
                 placeholder="Enter 6-digit pincode"
               />
-              {errors.permanentAddress?.pincode && (
-                <p className="text-error-600 text-sm mt-1">{errors.permanentAddress.pincode.message}</p>
+              {(errors as any).permanentAddress?.pincode && (
+                <p className="text-error-600 text-sm mt-1">{(errors as any).permanentAddress.pincode?.message}</p>
               )}
             </div>
 
@@ -566,8 +787,8 @@ const TenantForm: React.FC = () => {
                   </option>
                 ))}
               </select>
-              {errors.permanentAddress?.stateId && (
-                <p className="text-error-600 text-sm mt-1">{errors.permanentAddress.stateId.message}</p>
+              {(errors as any).permanentAddress?.stateId && (
+                <p className="text-error-600 text-sm mt-1">{(errors as any).permanentAddress.stateId?.message}</p>
               )}
             </div>
 
@@ -583,132 +804,14 @@ const TenantForm: React.FC = () => {
                   </option>
                 ))}
               </select>
-              {errors.permanentAddress?.countryId && (
-                <p className="text-error-600 text-sm mt-1">{errors.permanentAddress.countryId.message}</p>
+              {(errors as any).permanentAddress?.countryId && (
+                <p className="text-error-600 text-sm mt-1">{(errors as any).permanentAddress.countryId?.message}</p>
               )}
             </div>
           </div>
         </div>
 
-        {/* Current Address */}
-        <div className="card p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Current Address</h2>
-            <button
-              type="button"
-              onClick={copyAddress}
-              className="btn-secondary text-sm"
-            >
-              Copy from Permanent Address
-            </button>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Street Address *
-              </label>
-              <input
-                {...register('currentAddress.street')}
-                className="input"
-                placeholder="Enter street address"
-              />
-              {errors.currentAddress?.street && (
-                <p className="text-error-600 text-sm mt-1">{errors.currentAddress.street.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Landmark *
-              </label>
-              <input
-                {...register('currentAddress.landMark')}
-                className="input"
-                placeholder="Enter landmark"
-              />
-              {errors.currentAddress?.landMark && (
-                <p className="text-error-600 text-sm mt-1">{errors.currentAddress.landMark.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Area *
-              </label>
-              <input
-                {...register('currentAddress.area')}
-                className="input"
-                placeholder="Enter area"
-              />
-              {errors.currentAddress?.area && (
-                <p className="text-error-600 text-sm mt-1">{errors.currentAddress.area.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                City *
-              </label>
-              <input
-                {...register('currentAddress.city')}
-                className="input"
-                placeholder="Enter city"
-              />
-              {errors.currentAddress?.city && (
-                <p className="text-error-600 text-sm mt-1">{errors.currentAddress.city.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Pincode *
-              </label>
-              <input
-                {...register('currentAddress.pincode')}
-                className="input"
-                placeholder="Enter 6-digit pincode"
-              />
-              {errors.currentAddress?.pincode && (
-                <p className="text-error-600 text-sm mt-1">{errors.currentAddress.pincode.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                State *
-              </label>
-              <select {...register('currentAddress.stateId')} className="input">
-                <option value="">Select State</option>
-                {states?.data.map((state) => (
-                  <option key={state.id} value={state.id}>
-                    {state.value}
-                  </option>
-                ))}
-              </select>
-              {errors.currentAddress?.stateId && (
-                <p className="text-error-600 text-sm mt-1">{errors.currentAddress.stateId.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Country *
-              </label>
-              <select {...register('currentAddress.countryId')} className="input">
-                <option value="">Select Country</option>
-                {countries?.data.map((country) => (
-                  <option key={country.id} value={country.id}>
-                    {country.value}
-                  </option>
-                ))}
-              </select>
-              {errors.currentAddress?.countryId && (
-                <p className="text-error-600 text-sm mt-1">{errors.currentAddress.countryId.message}</p>
-              )}
-            </div>
-          </div>
-        </div>
 
         {/* Additional Information */}
         <div className="card p-6">

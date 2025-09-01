@@ -13,11 +13,14 @@ import type {
   RoomSearchRequest,
   Tenant,
   CreateTenantDto,
+  UpdateTenantDto,
   TenantSearchRequest,
   RentTrack,
   CreateRentTrackDto,
+  UpdateRentTrackDto,
   RentTrackSearchRequest,
   LookupResponse,
+  AllLookupsResponse,
   DashboardStats
 } from '../types';
 
@@ -182,7 +185,7 @@ export const roomApi = {
     return response.data.data;
   },
 
-  update: async (id: number, data: Partial<CreateRoomDto>): Promise<boolean> => {
+  update: async (id: number, data: UpdateRoomDto): Promise<boolean> => {
     const response = await api.put<ApiResponse<boolean>>(`/room/${id}`, data);
     return response.data.data;
   }
@@ -220,7 +223,7 @@ export const tenantApi = {
     return response.data.data;
   },
 
-  update: async (id: number, data: Partial<CreateTenantDto>): Promise<boolean> => {
+  update: async (id: number, data: UpdateTenantDto): Promise<boolean> => {
     const response = await api.put<ApiResponse<boolean>>(`/tenant/${id}`, data);
     return response.data.data;
   }
@@ -258,7 +261,7 @@ export const rentTrackApi = {
     return response.data.data;
   },
 
-  update: async (id: number, data: Partial<CreateRentTrackDto>): Promise<boolean> => {
+  update: async (id: number, data: UpdateRentTrackDto): Promise<boolean> => {
     const response = await api.put<ApiResponse<boolean>>(`/renttrack/${id}`, data);
     return response.data.data;
   }
@@ -306,6 +309,16 @@ export const lookupApi = {
       return response.data.data || { data: [], totalCount: 0, pageIndex: 1, pageSize: 1000 };
     } catch (error) {
       console.warn('Failed to fetch tenants lookup:', error);
+      return { data: [], totalCount: 0, pageIndex: 1, pageSize: 1000 };
+    }
+  },
+
+  getTenantsByRoom: async (roomId: number): Promise<LookupResponse> => {
+    try {
+      const response = await api.get<ApiResponse<LookupResponse>>(`/lookups/tenants-by-room?roomId=${roomId}&pageSize=1000`);
+      return response.data.data || { data: [], totalCount: 0, pageIndex: 1, pageSize: 1000 };
+    } catch (error) {
+      console.warn('Failed to fetch tenants by room lookup:', error);
       return { data: [], totalCount: 0, pageIndex: 1, pageSize: 1000 };
     }
   },
@@ -371,13 +384,45 @@ export const lookupApi = {
     }
   },
 
-  getAll: async () => {
+  getAll: async (): Promise<AllLookupsResponse> => {
     try {
-      const response = await api.get('/lookups/all');
-      return response.data.data;
+      const response = await api.get<ApiResponse<AllLookupsResponse>>('/lookups/all');
+      
+      const rawData = response.data.data;
+      if (!rawData) {
+        throw new Error('No data in response');
+      }
+
+      // Normalize the data to ensure IDs are strings and handle name/value property
+      const normalizeArray = (items: any[] = []) => 
+        items.map(item => ({
+          id: item.id?.toString() || '',
+          value: item.value || item.value || '',
+          description: item.description || ''
+        }));
+
+      return {
+        propertyTypes: normalizeArray(rawData.propertyTypes),
+        currencies: normalizeArray(rawData.currencies),
+        availabilityStatuses: normalizeArray(rawData.availabilityStatuses),
+        roomTypes: normalizeArray(rawData.roomTypes),
+        states: normalizeArray(rawData.states),
+        countries: normalizeArray(rawData.countries),
+        rentStatuses: normalizeArray(rawData.rentStatuses),
+        roles: normalizeArray(rawData.roles || [])
+      };
     } catch (error) {
       console.warn('Failed to fetch all lookups:', error);
-      return {};
+      return {
+        propertyTypes: [],
+        currencies: [],
+        availabilityStatuses: [],
+        roomTypes: [],
+        states: [],
+        countries: [],
+        rentStatuses: [],
+        roles: []
+      };
     }
   }
 };

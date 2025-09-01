@@ -31,7 +31,7 @@ export interface Address {
   area: string;
   city: string;
   pincode: string;
-  state: string;
+  stateId: number;
   countryId: number;
 }
 
@@ -94,12 +94,12 @@ export interface Property {
   ownerName: string;
   propertyRent: number;
   propertyValue: number;
-  currencyCode?: number;
-  status: number;
+  currencyId?: number;
+  statusId: number;
   propertyPic?: string;
   propertyDescription: string;
   propertyFacility: string;
-  propertyType: number;
+  propertyTypeId: number;
   address: Address;
   note?: string;
   creationDate: string;
@@ -119,11 +119,11 @@ export interface PropertyOwnerContact {
 
 export interface CreatePropertyDto {
   propertyName: string;
-  propertyType: number;
+  propertyTypeId: number;
   propertySize: string;
   propertyRent: number;
-  currencyCode?: number;
-  status: number;
+  currencyId?: number;
+  statusId: number;
   propertyPic?: string;
   propertyDescription: string;
   propertyFacility: string;
@@ -134,11 +134,11 @@ export interface CreatePropertyDto {
 
 export interface UpdatePropertyDto {
   propertyName: string;
-  propertyType: number;
+  propertyTypeId: number;
   propertySize: string;
   propertyRent: number;
-  currencyCode?: number;
-  status: number;
+  currencyId?: number;
+  statusId: number;
   propertyPic?: string;
   propertyDescription: string;
   propertyFacility: string;
@@ -154,19 +154,18 @@ export interface Room {
   propertyName: string;
   ownerId: number;
   ownerName: string;
-  roomType?: number;
+  roomTypeId?: number;
   roomTypeName: string;
   roomSize?: string;
   roomRent: number;
-  currencyCode?: number;
+  currencyId?: number;
   currencyName: string;
   currencySymbol: string;
-  status: number;
+  statusId: number;
   statusName: string;
   roomPic?: string;
   roomDescription?: string;
   roomFacility?: string;
-  address: Address;
   tenantLimit: number;
   currentTenantCount: number;
   note?: string;
@@ -178,30 +177,28 @@ export interface CreateRoomDto {
   roomNo: number;
   propertyId: number;
   ownerId: number;
-  roomType?: number;
+  roomTypeId?: number;
   roomSize?: string;
   roomRent: number;
-  currencyCode?: number;
-  status: number;
+  currencyId?: number;
+  statusId: number;
   roomPic?: string;
   roomDescription?: string;
   roomFacility?: string;
-  address: CreateAddressDto;
   tenantLimit: number;
   note?: string;
 }
 
 export interface UpdateRoomDto {
   roomNo: number;
-  roomType?: number;
+  roomTypeId?: number;
   roomSize?: string;
   roomRent: number;
-  currencyCode?: number;
-  status: number;
+  currencyId?: number;
+  statusId: number;
   roomPic?: string;
   roomDescription?: string;
   roomFacility?: string;
-  address?: UpdateAddressDto;
   tenantLimit: number;
   currentTenantCount: number;
   note?: string;
@@ -223,8 +220,6 @@ export interface Tenant {
 
   permanentAddressId: number;
   permanentAddress: Address;
-  addressId: number;
-  currentAddress: Address;
   isActive: boolean;
   lockInPeriod: string;
   note?: string;
@@ -232,7 +227,7 @@ export interface Tenant {
   depositToReturn: number;
   presentRentValue?: number;
   pastRentValue?: number;
-  currencyCode?: number;
+  currencyId?: number;
   boardingDate: string;
   leavingDate?: string;
   ownerId: number;
@@ -255,13 +250,12 @@ export interface CreateTenantDto {
   password: string;
 
   permanentAddress: CreateAddressDto;
-  currentAddress: CreateAddressDto;
   lockInPeriod: string;
   note?: string;
   deposited: number;
   presentRentValue?: number;
   pastRentValue?: number;
-  currencyCode?: number;
+  currencyId?: number;
   boardingDate: string;
   ownerId: number;
   propertyId: number;
@@ -277,28 +271,35 @@ export interface UpdateTenantDto {
   lockInPeriod: string;
   note?: string;
   isActive: boolean;
+  deposited: number;
   depositToReturn: number;
   presentRentValue?: number;
   pastRentValue?: number;
-  currencyCode?: number;
+  currencyId?: number;
+  boardingDate: string;
   leavingDate?: string;
+  permanentAddress?: UpdateAddressDto;
 }
 
-// RentTrack types
+// RentTrack types - matches API response structure
 export interface RentTrack {
   rentTrackId: number;
   propertyId: number;
   roomId?: number;
   tenantId: number;
   ownerId: number;
+  roomNo?: string;
+  propertyName: string;
+  tenantName: string;
   expectedRentValue?: number;
   receivedRentValue?: number;
   pendingAmount?: number;
   rentPeriodStartDate: string;
   rentPeriodEndDate: string;
-  status: number;
+  paymentReceivedDate?: string;
+  statusId: number;
   note?: string;
-  currencyCode?: number;
+  currencyId?: number;
   createdDate: string;
   lastModifiedDate: string;
 }
@@ -313,19 +314,32 @@ export interface CreateRentTrackDto {
   pendingAmount?: number;
   rentPeriodStartDate: string;
   rentPeriodEndDate: string;
-  status: number;
+  paymentReceivedDate?: string;
+  statusId: number;
   note?: string;
-  currencyCode?: number;
+  currencyId?: number;
+}
+
+export interface UpdateRentTrackDto {
+  expectedRentValue?: number;
+  receivedRentValue?: number;
+  pendingAmount?: number;
+  rentPeriodStartDate: string;
+  rentPeriodEndDate: string;
+  paymentReceivedDate?: string;
+  statusId: number;
+  note?: string;
+  currencyId?: number;
 }
 
 // Search request types
 export interface PropertySearchRequest {
   searchTerm?: string;
-  propertyType?: number;
+  propertyTypeId?: number;
   city?: string;
   minRent?: number;
   maxRent?: number;
-  status?: number;
+  statusId?: number;
   ownerId?: number;
   pageNumber: number;
   pageSize: number;
@@ -335,10 +349,10 @@ export interface PropertySearchRequest {
 
 export interface RoomSearchRequest {
   searchTerm?: string;
-  roomType?: number;
+  roomTypeId?: number;
   minRent?: number;
   maxRent?: number;
-  status?: number;
+  statusId?: number;
   propertyId?: number;
   ownerId?: number;
   minSize?: number;
@@ -385,19 +399,19 @@ export interface RentTrackSearchRequest {
   rentPeriodStartTo?: string;
   rentPeriodEndFrom?: string;
   rentPeriodEndTo?: string;
-  status?: number;
-  currencyCode?: string;
+  statusId?: number;
+  currencyId?: number;
   pageNumber: number;
   pageSize: number;
   sortBy?: string;
   sortDirection?: string;
 }
 
-// Lookup types
+// Lookup types - matches API response structure
 export interface LookupData {
   id: string;
   value: string;
-  description: string;
+  description?: string;
 }
 
 export interface LookupResponse {
@@ -405,6 +419,18 @@ export interface LookupResponse {
   totalCount: number;
   pageIndex: number;
   pageSize: number;
+}
+
+// All lookups response interface for /lookups/all endpoint
+export interface AllLookupsResponse {
+  propertyTypes: LookupData[];
+  currencies: LookupData[];
+  availabilityStatuses: LookupData[];
+  roomTypes: LookupData[];
+  states: LookupData[];
+  countries: LookupData[];
+  rentStatuses: LookupData[];
+  roles: LookupData[];
 }
 
 // Dashboard stats

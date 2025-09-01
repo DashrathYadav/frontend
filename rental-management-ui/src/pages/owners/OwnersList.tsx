@@ -5,8 +5,11 @@ import { ownerApi } from '../../services/api';
 import ListPageWrapper from '../../components/ListPageWrapper';
 import EntityCard, { EntityCardItem } from '../../components/EntityCard';
 import { useEnhancedPagination } from '../../hooks/useEnhancedPagination';
+import { useLookup } from '../../contexts/LookupContext';
 
 const OwnersList: React.FC = () => {
+  const { getStateName } = useLookup();
+  
   // Use enhanced pagination hook
   const {
     pagination,
@@ -128,7 +131,7 @@ const OwnersList: React.FC = () => {
               {
                 icon: <MapPin className="w-4 h-4" />,
                 label: 'Location',
-                value: owner.address ? `${owner.address.city}, ${owner.address.state}` : 'No address'
+                value: owner.address ? `${owner.address.city}, ${getStateName(owner.address.stateId)}` : 'No address'
               }
             ]
           };

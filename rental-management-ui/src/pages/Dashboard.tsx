@@ -13,35 +13,26 @@ import {
 import { Link } from 'react-router-dom';
 import StatsCard from '../components/StatsCard';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { dashboardApi, propertyApi, rentTrackApi } from '../services/api';
+import { dashboardApi, rentTrackApi } from '../services/api';
 import { useRoleAccess } from '../hooks';
-import {
-  USER_ROLES,
-  getAvailabilityStatusValue,
-  getAvailabilityStatusBadgeClass,
-  AvailabilityStatus,
-  RentStatus,
-  getRentStatusValue,
-  getRentStatusBadgeClass
-} from '../constants';
+import { useLookup } from '../contexts/LookupContext';
 import { formatDate, formatCurrency } from '../utils';
 import { AdminOnly, AdminOrOwner } from '../components/RoleBasedRender';
 
 const Dashboard: React.FC = () => {
+  const { isAdmin, isOwner } = useRoleAccess();
+  const { 
+    getRentStatusName, 
+    getRentStatusBadgeClass,
+    isLoading: lookupsLoading,
+    error: lookupsError,
+    retryLookups
+  } = useLookup();
+
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: dashboardApi.getStats,
-  });
-
-  // Fetch recent properties
-  const { data: recentProperties, isLoading: propertiesLoading } = useQuery({
-    queryKey: ['recent-properties'],
-    queryFn: () => propertyApi.search({
-      pageNumber: 1,
-      pageSize: 3,
-      sortBy: 'creationDate',
-      sortDirection: 'desc'
-    }),
+    enabled: !lookupsLoading, // Wait for lookups to load first
   });
 
   // Fetch recent rent tracks
@@ -49,15 +40,14 @@ const Dashboard: React.FC = () => {
     queryKey: ['recent-rents'],
     queryFn: () => rentTrackApi.search({
       pageNumber: 1,
-      pageSize: 5,
+      pageSize: 8,
       sortBy: 'createdDate',
       sortDirection: 'desc'
     }),
+    enabled: !lookupsLoading, // Wait for lookups to load first
   });
 
-  const { isAdmin, isOwner } = useRoleAccess();
-
-  if (isLoading) {
+  if (isLoading || lookupsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner size="lg" />
@@ -72,6 +62,9 @@ const Dashboard: React.FC = () => {
       </div>
     );
   }
+
+  // Show warning if lookup data has issues but allow page to render
+  const hasLookupIssues = lookupsError && lookupsError.includes('cached data');
 
   // Define quick actions for different roles
   const adminActions = [
@@ -91,6 +84,28 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      {/* Warning banner for lookup issues */}
+      {hasLookupIssues && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <TrendingUp className="h-5 w-5 text-yellow-400" />
+            </div>
+            <div className="ml-3 flex-1">
+              <p className="text-sm text-yellow-700">
+                {lookupsError}
+                <button 
+                  onClick={retryLookups}
+                  className="ml-2 text-yellow-800 underline hover:text-yellow-900"
+                >
+                  Retry
+                </button>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
@@ -157,50 +172,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Properties</h2>
-          {propertiesLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <LoadingSpinner size="md" />
-            </div>
-          ) : recentProperties?.data && recentProperties.data.length > 0 ? (
-            <div className="space-y-3">
-              {recentProperties.data.map((property) => (
-                <div key={property.propertyId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900">{property.propertyName}</p>
-                    <p className="text-sm text-gray-600">
-                      {property.address?.area && property.address?.city
-                        ? `${property.address.area}, ${property.address.city}`
-                        : property.address?.area || property.address?.city || 'Location not specified'
-                      }
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {property.propertySize} • {formatCurrency(property.propertyRent, property.currencyCode)}
-                    </p>
-                  </div>
-                  <span className={`badge-${getAvailabilityStatusBadgeClass(property.status)}`}>
-                    {getAvailabilityStatusValue(property.status)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <p>No properties found</p>
-            </div>
-          )}
-          <Link
-            to="/properties"
-            className="inline-flex items-center text-primary-600 hover:text-primary-700 mt-4 text-sm font-medium"
-          >
-            View all properties
-            <ArrowRight className="w-4 h-4 ml-1" />
-          </Link>
-        </div>
-
-        <div className="card p-6">
+      <div className="card p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Rents</h2>
           {rentsLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -209,22 +181,22 @@ const Dashboard: React.FC = () => {
           ) : recentRents?.data && recentRents.data.length > 0 ? (
             <div className="space-y-3">
               {recentRents.data.map((rent) => (
-                <div key={rent.rentTrackId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900">Rent #{rent.rentTrackId}</p>
-                    <p className="text-sm text-gray-600">
-                      {formatDate(rent.rentPeriodStartDate)} - {formatDate(rent.rentPeriodEndDate)}
-                    </p>
+                  <div key={rent.rentTrackId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">{rent.tenantName}</p>
+                      <p className="text-sm text-gray-600">
+                        {formatDate(rent.rentPeriodStartDate)} - {formatDate(rent.rentPeriodEndDate)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`badge-${getRentStatusBadgeClass(rent.statusId)}`}>
+                        {getRentStatusName(rent.statusId)}
+                      </span>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {formatCurrency(rent.expectedRentValue || 0)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className={`badge-${getRentStatusBadgeClass(rent.status)}`}>
-                      {getRentStatusValue(rent.status)}
-                    </span>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {formatCurrency(rent.expectedRentValue || 0)}
-                    </p>
-                  </div>
-                </div>
               ))}
             </div>
           ) : (
@@ -236,10 +208,9 @@ const Dashboard: React.FC = () => {
             to="/rents"
             className="inline-flex items-center text-primary-600 hover:text-primary-700 mt-4 text-sm font-medium"
           >
-            View all rent track
+            View all rent records
             <ArrowRight className="w-4 h-4 ml-1" />
           </Link>
-        </div>
       </div>
     </div>
   );
