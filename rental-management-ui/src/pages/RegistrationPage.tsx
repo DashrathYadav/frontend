@@ -6,9 +6,28 @@ import * as yup from 'yup';
 import { useMutation } from '@tanstack/react-query';
 import { ArrowLeft, UserPlus, Eye, EyeOff } from 'lucide-react';
 import { authApi, lookupApi } from '../services/api';
-import { RegisterOwnerDto } from '../types';
 import { formatErrorMessage } from '../utils/errorHandler';
 import { useQuery } from '@tanstack/react-query';
+
+// Registration form type matching API requirements
+interface RegistrationFormData {
+  loginId: string;
+  password: string;
+  fullName: string;
+  mobileNumber: string;
+  email?: string;
+  aadharNumber?: string;
+  note: string;
+  address: {
+    street: string;
+    landMark: string;
+    area: string;
+    city: string;
+    pincode: string;
+    stateId: number;
+    countryId: number;
+  };
+}
 
 const schema = yup.object({
   loginId: yup.string().required('Login ID is required').max(50),
@@ -38,7 +57,7 @@ const RegistrationPage: React.FC = () => {
     handleSubmit,
     formState: { errors },
     setError
-  } = useForm<RegisterOwnerDto>({
+  } = useForm<RegistrationFormData>({
     resolver: yupResolver(schema),
   });
 
@@ -71,8 +90,12 @@ const RegistrationPage: React.FC = () => {
     },
   });
 
-  const onSubmit = (data: RegisterOwnerDto) => {
-    registrationMutation.mutate(data);
+  const onSubmit = (data: RegistrationFormData) => {
+    // Log the request body before sending
+    console.log('Registration form data being sent:', JSON.stringify(data, null, 2));
+    
+    // Data already matches API requirements, send directly
+    registrationMutation.mutate(data as any);
   };
 
   return (

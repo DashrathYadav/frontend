@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Eye, EyeOff } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Button } from "./Button";
 import { Input } from "./Input";
 import { Label } from "./Label";
@@ -150,9 +150,9 @@ export function LoginForm() {
             <CardFooter className="flex flex-col space-y-2">
                 <div className="text-sm text-center text-gray-600">
                     Don't have an account?{" "}
-                    <a href="#" className="text-primary hover:underline">
+                    <Link to="/register" className="text-primary hover:underline">
                         Sign up
-                    </a>
+                    </Link>
                 </div>
             </CardFooter>
         </Card>

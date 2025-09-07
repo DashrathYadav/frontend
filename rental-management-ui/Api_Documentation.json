@@ -8,7 +8,7 @@
     "endpoints": {
       "authentication": {
         "register": {
-          "description": "Owner registration endpoint",
+          "description": "Owner registration endpoint - Note: Files (profile pictures, documents) are now uploaded separately via the File Upload API after registration",
           "method": "POST",
           "url": "{base_url}/auth/register",
           "request_body": {
@@ -18,8 +18,6 @@
             "mobileNumber": "string (required - 10-15 digits, unique)",
             "email": "string (optional)",
             "aadharNumber": "string (optional)",
-            "profilePic": "string (optional)",
-            "document": "string (optional)",
             "address": {
               "street": "string (required)",
               "landMark": "string (required)",
@@ -75,7 +73,7 @@
   
       "owner": {
         "create_owner": {
-          "description": "Create a new owner",
+          "description": "Create a new owner - Note: Files (profile pictures, documents) are uploaded separately via File Upload API",
           "method": "POST",
           "url": "{base_url}/owner/create",
           "request_body": {
@@ -85,8 +83,6 @@
             "mobileNumber": "string (required - 10-15 digits, unique)",
             "email": "string (optional)",
             "aadharNumber": "string (optional)",
-            "profilePic": "string (optional)",
-            "document": "string (optional)",
             "address": {
               "street": "string (required)",
               "landMark": "string (required)",
@@ -129,7 +125,6 @@
               "phoneNumber": "string (nullable)",
               "email": "string (nullable)",
               "aadharNumber": "string (nullable)",
-              "profilePic": "string (nullable)",
               "addressId": "number",
               "address": {
                 "addressId": "number",
@@ -158,7 +153,7 @@
   
       "property": {
         "create_property": {
-          "description": "Create a new property",
+          "description": "Create a new property - Note: Property images are uploaded separately via File Upload API",
           "method": "POST",
           "url": "{base_url}/property/create",
           "request_body": {
@@ -168,7 +163,6 @@
             "propertyRent": "decimal (required)",
             "currencyId": "number (optional)",
             "statusId": "number (required)",
-            "propertyPic": "string (optional)",
             "propertyDescription": "string (required)",
             "propertyFacility": "string (required)",
             "ownerId": "number (required)",
@@ -210,7 +204,6 @@
               "propertyValue": "decimal",
               "currencyId": "number (nullable)",
               "statusId": "number",
-              "propertyPic": "string (nullable)",
               "propertyDescription": "string",
               "propertyFacility": "string",
               "propertyTypeId": "number",
@@ -303,7 +296,6 @@
               "mobileNumber": "string",
               "phoneNumber": "string (nullable)",
               "email": "string (nullable)",
-              "profilePic": "string (nullable)",
               "isActive": "boolean",
               "note": "string (nullable)"
             },
@@ -324,7 +316,6 @@
             "propertyRent": "decimal (required)",
             "currencyId": "number (optional)",
             "statusId": "number (required)",
-            "propertyPic": "string (optional)",
             "propertyDescription": "string (required)",
             "propertyFacility": "string (required)",
             "ownerId": "number (required)",
@@ -351,7 +342,7 @@
   
       "tenant": {
         "create_tenant": {
-          "description": "Create a new tenant",
+          "description": "Create a new tenant - Note: Tenant files (profile pictures, documents) are uploaded separately via File Upload API",
           "method": "POST",
           "url": "{base_url}/tenant/create",
           "request_body": {
@@ -359,8 +350,6 @@
             "tenantMobile": "string (required)",
             "tenantEmail": "string (optional)",
             "tenantAdharId": "string (required)",
-            "tenantProfilePic": "string (optional)",
-            "tenantDocument": "string (optional)",
             "loginId": "string (required)",
             "password": "string (required)",
             "permanentAddress": {
@@ -406,8 +395,6 @@
               "tenantMobile": "string",
               "tenantEmail": "string (nullable)",
               "tenantAdharId": "string",
-              "tenantProfilePic": "string (nullable)",
-              "tenantDocument": "string (nullable)",
               "loginId": "string",
               "roleId": "number",
               "permanentAddressId": "number",
@@ -530,8 +517,6 @@
             "tenantName": "string (required)",
             "tenantMobile": "string (required)",
             "tenantEmail": "string (optional)",
-            "tenantProfilePic": "string (optional)",
-            "tenantDocument": "string (optional)",
             "lockInPeriod": "string (required)",
             "note": "string (optional)",
             "isActive": "boolean (required)",
@@ -563,7 +548,7 @@
   
       "room": {
         "create_room": {
-          "description": "Create a new room",
+          "description": "Create a new room - Note: Room images are uploaded separately via File Upload API",
           "method": "POST",
           "url": "{base_url}/room/create",
           "request_body": {
@@ -575,7 +560,6 @@
             "roomRent": "decimal (required)",
             "currencyId": "number (optional)",
             "statusId": "number (required)",
-            "roomPic": "string (optional)",
             "roomDescription": "string (optional)",
             "roomFacility": "string (optional)",
             "tenantLimit": "number (required)",
@@ -749,7 +733,6 @@
             "roomRent": "decimal (required)",
             "currencyId": "number (optional)",
             "statusId": "number (required)",
-            "roomPic": "string (optional)",
             "roomDescription": "string (optional)",
             "roomFacility": "string (optional)",
             "tenantLimit": "number (required)",
@@ -936,6 +919,285 @@
             "message": "Rent track updated successfully",
             "data": true,
             "errors": []
+          }
+        }
+      },
+  
+      "file_upload": {
+        "request_upload_url": {
+          "description": "Request a presigned URL for direct file upload to AWS S3 - supports Tenant/Owner profile pictures, documents, and Property images",
+          "method": "POST",
+          "url": "{base_url}/files/request-upload",
+          "authorization": "Bearer JWT token required",
+          "rate_limiting": "5 uploads per minute per user",
+          "request_body": {
+            "entityType": "string (required - 'Tenant', 'Owner', 'Property', 'Room')",
+            "entityId": "number (required - ID of the entity)",
+            "fileCategory": "string (required - 'PropertyImage', 'TenantImage', 'RoomImage', 'OwnerImage', 'TenantDocument')",
+            "documentType": "string (optional - 'Agreement', 'PermanentAddressProof', 'IdentityProof' - for document categories only)",
+            "fileName": "string (required - max 255 chars)",
+            "fileSize": "number (required - max 10MB = 10485760 bytes)",
+            "contentType": "string (required - MIME type, max 100 chars)"
+          },
+          "response_body_success": {
+            "status": true,
+            "responseCode": 200,
+            "message": "Upload URL generated successfully",
+            "data": {
+              "uploadUrl": "string (presigned S3 URL valid for 15 minutes)",
+              "uploadToken": "string (UUID token for upload confirmation)",
+              "s3Key": "string (S3 object key path)",
+              "expiresAt": "string (ISO date - URL expiration time)",
+              "maxFileSizeBytes": "number (file size limit in bytes)",
+              "allowedContentTypes": ["string array of allowed MIME types"]
+            },
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "responseCode": "400|401|403|429|500",
+            "message": "Validation failed | Unauthorized | Access denied | Too many requests | Internal server error",
+            "data": null,
+            "errors": ["Validation error messages"]
+          },
+          "file_constraints": {
+            "max_file_size": "10MB (configurable)",
+            "allowed_images": [".jpg", ".jpeg", ".png", ".gif", ".webp"],
+            "allowed_documents": [".pdf", ".doc", ".docx", ".txt"]
+          }
+        },
+        "confirm_upload": {
+          "description": "Confirm successful file upload to S3 and create FileMetadata record",
+          "method": "POST",
+          "url": "{base_url}/files/confirm-upload",
+          "authorization": "Bearer JWT token required",
+          "request_body": {
+            "uploadToken": "string (required - token from request-upload response)",
+            "s3Key": "string (required - S3 key from request-upload response)",
+            "eTag": "string (optional - S3 ETag for validation)"
+          },
+          "response_body_success": {
+            "status": true,
+            "responseCode": 201,
+            "message": "File uploaded successfully",
+            "data": {
+              "fileId": "number (FileMetadata ID)",
+              "cloudFrontUrl": "string (CDN URL for file access)",
+              "fileName": "string",
+              "fileSize": "number (bytes)",
+              "uploadedAt": "string (ISO date)",
+              "message": "string (success message)"
+            },
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "responseCode": "400|401|403|404|500",
+            "message": "Invalid or expired upload token | File not found in storage | Unauthorized | Access denied",
+            "data": null,
+            "errors": []
+          }
+        },
+        "cancel_upload": {
+          "description": "Cancel a pending file upload",
+          "method": "POST",
+          "url": "{base_url}/files/cancel-upload",
+          "authorization": "Bearer JWT token required",
+          "request_body": {
+            "uploadToken": "string (required - token from request-upload response)",
+            "reason": "string (optional - cancellation reason)"
+          },
+          "response_body_success": {
+            "status": true,
+            "responseCode": 200,
+            "message": "Upload cancelled successfully",
+            "data": true,
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "responseCode": "403|404|500",
+            "message": "Upload token not found | Unauthorized to cancel this upload | Internal server error",
+            "data": null,
+            "errors": []
+          }
+        },
+        "get_entity_files": {
+          "description": "Get all files for a specific entity (tenant/owner/property)",
+          "method": "GET",
+          "url": "{base_url}/files/{entityType}/{entityId}",
+          "authorization": "Bearer JWT token required - Admin sees all, Owners see their own entities only",
+          "path_parameters": {
+            "entityType": "string (required - 'Tenant', 'Owner', 'Property', 'Room')",
+            "entityId": "number (required - entity ID)"
+          },
+          "response_body_success": {
+            "status": true,
+            "responseCode": 200,
+            "message": "Files retrieved successfully",
+            "data": {
+              "entityType": "string",
+              "entityId": "number",
+              "files": [
+                {
+                  "id": "number (FileMetadata ID)",
+                  "entityType": "string",
+                  "entityId": "number", 
+                  "fileCategory": "string (PropertyImage|TenantImage|RoomImage|OwnerImage|TenantDocument)",
+                  "documentType": "string (nullable - for documents)",
+                  "fileName": "string",
+                  "fileSize": "number (bytes)",
+                  "contentType": "string (MIME type)",
+                  "cloudFrontUrl": "string (CDN URL)",
+                  "uploadedAt": "string (ISO date)",
+                  "uploadedBy": "number (user ID)",
+                  "uploadedByName": "string (nullable - user name)"
+                }
+              ],
+              "totalFileSize": "number (total bytes of all files)",
+              "totalFileCount": "number (count of files)"
+            },
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "responseCode": "403|500",
+            "message": "Access denied | Internal server error",
+            "data": null,
+            "errors": []
+          }
+        },
+        "get_file_by_id": {
+          "description": "Get file metadata by file ID",
+          "method": "GET", 
+          "url": "{base_url}/files/file/{fileId}",
+          "authorization": "Bearer JWT token required - Admin sees all, Owners see their own files only",
+          "path_parameters": {
+            "fileId": "number (required - FileMetadata ID)"
+          },
+          "response_body_success": {
+            "status": true,
+            "responseCode": 200,
+            "message": "File retrieved successfully",
+            "data": {
+              "id": "number",
+              "entityType": "string",
+              "entityId": "number",
+              "fileCategory": "string", 
+              "documentType": "string (nullable)",
+              "fileName": "string",
+              "fileSize": "number",
+              "contentType": "string",
+              "cloudFrontUrl": "string",
+              "uploadedAt": "string (ISO date)",
+              "uploadedBy": "number",
+              "uploadedByName": "string (nullable)"
+            },
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "responseCode": "403|404|500",
+            "message": "Access denied | File not found | Internal server error",
+            "data": null,
+            "errors": []
+          }
+        },
+        "get_latest_file": {
+          "description": "Get the latest file for an entity by category",
+          "method": "GET",
+          "url": "{base_url}/files/{entityType}/{entityId}/latest/{fileCategory}",
+          "authorization": "Bearer JWT token required",
+          "path_parameters": {
+            "entityType": "string (required - 'Tenant', 'Owner', 'Property', 'Room')",
+            "entityId": "number (required - entity ID)",
+            "fileCategory": "string (required - 'PropertyImage', 'TenantImage', 'RoomImage', 'OwnerImage', 'TenantDocument')"
+          },
+          "response_body_success": {
+            "status": true,
+            "responseCode": 200,
+            "message": "File retrieved successfully",
+            "data": "FileMetadataResponseDto (same as get_file_by_id)",
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "responseCode": "403|404|500", 
+            "message": "Access denied | No files found for this entity and category | Internal server error",
+            "data": null,
+            "errors": []
+          }
+        },
+        "get_user_files": {
+          "description": "Get all files uploaded by a specific user - Admin only",
+          "method": "GET",
+          "url": "{base_url}/files/user/{userId}",
+          "authorization": "Bearer JWT token required - Admin role only",
+          "path_parameters": {
+            "userId": "number (required - user ID)"
+          },
+          "response_body_success": {
+            "status": true,
+            "responseCode": 200,
+            "message": "Files retrieved successfully", 
+            "data": ["FileMetadataResponseDto array"],
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "responseCode": "403|500",
+            "message": "Access denied (Admin only) | Internal server error",
+            "data": null,
+            "errors": []
+          }
+        },
+        "delete_file": {
+          "description": "Delete a file (soft delete in database, removes from S3)",
+          "method": "DELETE",
+          "url": "{base_url}/files/file/{fileId}",
+          "authorization": "Bearer JWT token required - Admin or file owner only", 
+          "path_parameters": {
+            "fileId": "number (required - FileMetadata ID)"
+          },
+          "response_body_success": {
+            "status": true,
+            "responseCode": 200,
+            "message": "File deleted successfully",
+            "data": true,
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "responseCode": "403|404|500",
+            "message": "Access denied | File not found | Internal server error",
+            "data": null,
+            "errors": []
+          }
+        },
+        "file_upload_workflow": {
+          "description": "Complete file upload workflow",
+          "steps": [
+            "1. Frontend calls POST /files/request-upload with file details",
+            "2. Backend validates request and returns presigned S3 URL + upload token",
+            "3. Frontend uploads file directly to S3 using presigned URL",
+            "4. Frontend calls POST /files/confirm-upload with upload token and S3 key",
+            "5. Backend verifies S3 upload, creates FileMetadata record, returns CDN URL",
+            "6. Frontend can now use the CDN URL to display/access the file"
+          ],
+          "security_features": [
+            "Rate limiting: 5 uploads per minute per user",
+            "File size validation (max 10MB configurable)",
+            "File type validation (images and documents only)",
+            "Presigned URL expiry (15 minutes)", 
+            "JWT authentication on all endpoints",
+            "Role-based access control",
+            "Orphan file cleanup (background service)"
+          ],
+          "cdn_integration": {
+            "description": "Files are served via AWS CloudFront CDN for optimal performance",
+            "cache_expiry": "24 hours (configurable)",
+            "https_support": true,
+            "global_distribution": true
           }
         }
       },
@@ -1442,7 +1704,6 @@
           "roomRent": "decimal",
           "currencyId": "number (nullable)",
           "statusId": "number (room status)",
-          "roomPic": "string (nullable)",
           "roomDescription": "string (nullable)",
           "roomFacility": "string (nullable)",
           "tenantLimit": "number",
@@ -1453,6 +1714,58 @@
         },
         "enhancements": {
           "v1.2": "Added currentTenantCount field populated via separate tenant count query for accurate active tenant count"
+        }
+      },
+      "FileMetadataResponseDto": {
+        "description": "File metadata response with complete file information",
+        "properties": {
+          "id": "number (FileMetadata ID)",
+          "entityType": "string (Tenant|Owner|Property|Room - the entity this file belongs to)",
+          "entityId": "number (ID of the entity)",
+          "fileCategory": "string (PropertyImage|TenantImage|RoomImage|OwnerImage|TenantDocument - type of file)",
+          "documentType": "string (nullable - Agreement|PermanentAddressProof|IdentityProof - sub-type for documents)",
+          "fileName": "string (original file name)",
+          "fileSize": "number (file size in bytes)",
+          "contentType": "string (MIME type)",
+          "cloudFrontUrl": "string (CDN URL for accessing the file)",
+          "uploadedAt": "string (ISO date when file was uploaded)",
+          "uploadedBy": "number (user ID who uploaded the file)",
+          "uploadedByName": "string (nullable - name of user who uploaded the file)"
+        },
+        "enhancements": {
+          "current": "File management system with centralized FileMetadata table, AWS S3 storage, CloudFront CDN delivery, presigned URLs, rate limiting, and comprehensive audit trail"
+        }
+      },
+      "EntityFilesResponseDto": {
+        "description": "Response containing all files for a specific entity",
+        "properties": {
+          "entityType": "string (Tenant|Owner|Property|Room)",
+          "entityId": "number (entity ID)",
+          "files": ["FileMetadataResponseDto array"],
+          "totalFileSize": "number (total size of all files in bytes)",
+          "totalFileCount": "number (count of files)"
+        }
+      },
+      "FileUploadUrlResponseDto": {
+        "description": "Response from file upload URL request containing presigned S3 URL",
+        "properties": {
+          "uploadUrl": "string (presigned S3 URL valid for 15 minutes)",
+          "uploadToken": "string (UUID token for upload confirmation)",
+          "s3Key": "string (S3 object key path)",
+          "expiresAt": "string (ISO date - URL expiration time)",
+          "maxFileSizeBytes": "number (file size limit in bytes)",
+          "allowedContentTypes": ["string array of allowed MIME types"]
+        }
+      },
+      "FileUploadConfirmationDto": {
+        "description": "Response from successful file upload confirmation",
+        "properties": {
+          "fileId": "number (FileMetadata ID)",
+          "cloudFrontUrl": "string (CDN URL for file access)",
+          "fileName": "string (original file name)",
+          "fileSize": "number (file size in bytes)",
+          "uploadedAt": "string (ISO date)",
+          "message": "string (success message)"
         }
       },
       "property_types": {
@@ -1493,9 +1806,27 @@
       "All monetary values are decimal type.",
       "Standard response wrapper has status, message, data, errors unless otherwise noted.",
       "Some endpoints are [AllowAnonymous] during development.",
+      "File Upload System: File management system using AWS S3 and CloudFront CDN:",
+      "  - Files are managed through centralized FileMetadata table",
+      "  - Supported entities: tenant, owner, property, room",
+      "  - File categories: PropertyImage, TenantImage, RoomImage, OwnerImage, TenantDocument",
+      "  - Three-step upload process: request presigned URL → upload to S3 → confirm upload",
+      "  - Rate limiting: 5 uploads per minute per user",
+      "  - File size limit: 10MB (configurable)",
+      "  - Supported file types: Images (.jpg, .jpeg, .png, .gif, .webp) and Documents (.pdf, .doc, .docx, .txt)",
+      "  - JWT authentication required for all file operations",
+      "  - Role-based access control: Admin sees all files, Owners see their own entities only",
+      "  - Background cleanup service removes orphaned files hourly",
+      "  - Files served via CloudFront CDN for optimal global performance",
       "RentTrack API endpoints enhanced (v1.1): All RentTrack endpoints now return additional fields (propertyName, tenantName, roomNo) populated via optimized database JOINs with NOLOCK hints.",
       "SearchRentTracks: Enhanced search functionality now includes property names, tenant names, and room numbers in search terms, with expanded sorting options.",
-      "Performance optimization: Database queries use NOLOCK hints for improved read performance."
+      "Performance optimization: Database queries use NOLOCK hints for improved read performance.",
+      "  - Update frontend to integrate with new file upload workflow",
+      "Entity-specific file usage examples:",
+      "  - Tenant: ProfilePicture (photos), Document (Aadhar/PAN)",
+      "  - Owner: ProfilePicture (photos), Document (Aadhar/PAN)", 
+      "  - Property: PropertyImage (exterior/interior), Document (agreements)",
+      "  - Room: RoomImage (room photos), Document (inspection reports)"
     ]
   }
   

@@ -33,6 +33,15 @@ const api = axios.create({
   },
 });
 
+// Auth API
+export const authApi = {
+  register: async (data: any): Promise<ApiResponse<null>> => {
+    console.log('API register - sending request body:', JSON.stringify(data, null, 2));
+    const response = await api.post<ApiResponse<null>>('/auth/register', data);
+    return response.data;
+  },
+};
+
 // Request interceptor for auth token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('authToken');

@@ -6,6 +6,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import AuthenticatedLayout from './components/AuthenticatedLayout';
 import Dashboard from './pages/Dashboard';
 import LoginPage from './pages/LoginPage';
+import RegistrationPage from './pages/RegistrationPage';
 import OwnersList from './pages/owners/OwnersList';
 import OwnerForm from './pages/owners/OwnerForm';
 import PropertiesList from './pages/properties/PropertiesList';
@@ -16,8 +17,8 @@ import RoomForm from './pages/rooms/RoomForm';
 import RoomDetail from './pages/rooms/RoomDetail';
 import TenantsList from './pages/tenants/TenantsList';
 import TenantForm from './pages/tenants/TenantForm';
-
 import TenantDetail from './pages/tenants/TenantDetail';
+import TenantDocuments from './pages/tenants/TenantDocuments';
 import RentsList from './pages/rents/RentsList';
 import RentForm from './pages/rents/RentForm';
 import RentDetail from './pages/rents/RentDetail';
@@ -40,6 +41,7 @@ function App() {
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegistrationPage />} />
 
             {/* Protected routes */}
             <Route path="/" element={
@@ -166,6 +168,14 @@ function App() {
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <TenantForm />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/tenants/:id/documents" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <TenantDocuments />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             } />

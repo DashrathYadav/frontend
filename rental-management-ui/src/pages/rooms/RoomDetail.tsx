@@ -19,6 +19,9 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import { useLookup } from '../../contexts/LookupContext';
 import { StatusBadge, TypeBadge } from '../../components/ui/badge-system';
+import { getLatestFile } from '../../services/fileUploadApi';
+import { EntityType, FileCategory } from '../../constants/fileUpload';
+import ProfilePictureUpload from '../../components/ProfilePictureUpload';
 
 // Import shadcn-ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -63,6 +66,13 @@ const RoomDetail: React.FC = () => {
         queryKey: ['property-owner-contact', room?.propertyId],
         queryFn: () => propertyApi.getOwnerContact(room!.propertyId),
         enabled: !!room?.propertyId,
+    });
+
+    // Fetch room image
+    const { data: roomImage } = useQuery({
+        queryKey: ['room-image', roomId],
+        queryFn: () => getLatestFile(EntityType.Room, roomId, FileCategory.RoomImage),
+        enabled: !!roomId,
     });
 
     if (roomLoading) {
@@ -130,9 +140,9 @@ const RoomDetail: React.FC = () => {
                     {/* Room Image */}
                     <Card>
                         <CardContent className="p-0">
-                            {room.roomPic ? (
+                            {roomImage?.cloudFrontUrl ? (
                                 <img
-                                    src={room.roomPic}
+                                    src={roomImage.cloudFrontUrl}
                                     alt={`Room ${room.roomNo}`}
                                     className="w-full h-64 object-cover rounded-t-lg"
                                 />
@@ -258,9 +268,10 @@ const RoomDetail: React.FC = () => {
                 {/* Right Column - Detailed Information */}
                 <div className="lg:col-span-2">
                     <Tabs defaultValue="overview" className="w-full">
-                        <TabsList className="grid w-full grid-cols-4">
+                        <TabsList className="grid w-full grid-cols-5">
                             <TabsTrigger value="overview">Overview</TabsTrigger>
                             <TabsTrigger value="tenants">Tenants</TabsTrigger>
+                            <TabsTrigger value="images">Images</TabsTrigger>
                             <TabsTrigger value="location">Location</TabsTrigger>
                             <TabsTrigger value="details">Details</TabsTrigger>
                         </TabsList>
@@ -434,6 +445,23 @@ const RoomDetail: React.FC = () => {
                                             ))}
                                         </div>
                                     )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        {/* Images Tab */}
+                        <TabsContent value="images" className="space-y-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Room Images</CardTitle>
+                                    <CardDescription>Manage images for this room</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <ProfilePictureUpload
+                                        entityType={EntityType.Room}
+                                        entityId={roomId}
+                                        entityName={`Room ${room.roomNo}`}
+                                    />
                                 </CardContent>
                             </Card>
                         </TabsContent>

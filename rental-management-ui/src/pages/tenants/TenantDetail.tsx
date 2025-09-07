@@ -9,13 +9,19 @@ import {
     Image as ImageIcon,
     Home,
     DollarSign,
-    Building2
+    Building2,
+    User,
+    FileText,
+    Download
 } from 'lucide-react';
 import { tenantApi, propertyApi, roomApi, rentTrackApi } from '../../services/api';
 import { formatCurrency } from '../../utils';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import { StatusBadge } from '../../components/ui/badge-system';
+import { getLatestFile, getEntityFiles } from '../../services/fileUploadApi';
+import { EntityType, FileCategory, DocumentType } from '../../constants/fileUpload';
+import ProfilePictureUpload from '../../components/ProfilePictureUpload';
 
 // Import shadcn-ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -52,6 +58,20 @@ const TenantDetail: React.FC = () => {
     const { data: rentHistory } = useQuery({
         queryKey: ['rent-history', tenantId],
         queryFn: () => rentTrackApi.getByTenantId(tenantId),
+        enabled: !!tenantId,
+    });
+
+    // Fetch tenant profile picture
+    const { data: profilePicture } = useQuery({
+        queryKey: ['tenant-profile-picture', tenantId],
+        queryFn: () => getLatestFile(EntityType.Tenant, tenantId, FileCategory.TenantImage),
+        enabled: !!tenantId,
+    });
+
+    // Fetch tenant documents
+    const { data: tenantFiles } = useQuery({
+        queryKey: ['tenant-files', tenantId],
+        queryFn: () => getEntityFiles(EntityType.Tenant, tenantId, FileCategory.TenantDocument),
         enabled: !!tenantId,
     });
 
@@ -120,9 +140,9 @@ const TenantDetail: React.FC = () => {
                     {/* Tenant Image */}
                     <Card>
                         <CardContent className="p-0">
-                            {tenant.tenantProfilePic ? (
+                            {profilePicture?.cloudFrontUrl ? (
                                 <img
-                                    src={tenant.tenantProfilePic}
+                                    src={profilePicture.cloudFrontUrl}
                                     alt={tenant.tenantName}
                                     className="w-full h-64 object-cover rounded-t-lg"
                                 />
@@ -222,9 +242,11 @@ const TenantDetail: React.FC = () => {
                 {/* Right Column - Detailed Information */}
                 <div className="lg:col-span-2">
                     <Tabs defaultValue="overview" className="w-full">
-                        <TabsList className="grid w-full grid-cols-3">
+                        <TabsList className="grid w-full grid-cols-5">
                             <TabsTrigger value="overview">Overview</TabsTrigger>
                             <TabsTrigger value="rent-history">Rent History</TabsTrigger>
+                            <TabsTrigger value="documents">Documents</TabsTrigger>
+                            <TabsTrigger value="profile-picture">Profile Picture</TabsTrigger>
                             <TabsTrigger value="details">Details</TabsTrigger>
                         </TabsList>
 
@@ -375,6 +397,111 @@ const TenantDetail: React.FC = () => {
                                             ))}
                                         </div>
                                     )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        {/* Documents Tab */}
+                        <TabsContent value="documents" className="space-y-6">
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <div>
+                                        <CardTitle>Documents</CardTitle>
+                                        <CardDescription>
+                                            Uploaded documents for verification
+                                        </CardDescription>
+                                    </div>
+                                    <Link
+                                        to={`/tenants/${tenantId}/documents`}
+                                        className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                    >
+                                        <FileText className="w-4 h-4 mr-2" />
+                                        Manage Documents
+                                    </Link>
+                                </CardHeader>
+                                <CardContent>
+                                    {tenantFiles?.files && tenantFiles.files.length > 0 ? (
+                                        <div className="space-y-4">
+                                            {[
+                                                { type: DocumentType.Agreement, label: 'Rental Agreement', icon: FileText },
+                                                { type: DocumentType.PermanentAddressProof, label: 'Address Proof', icon: Home },
+                                                { type: DocumentType.IdentityProof, label: 'Aadhaar Card', icon: User }
+                                            ].map(({ type, label, icon: Icon }) => {
+                                                const document = tenantFiles.files.find(f => f.documentType === type);
+                                                return (
+                                                    <div key={type} className="flex items-center justify-between p-4 border rounded-lg">
+                                                        <div className="flex items-center space-x-3">
+                                                            <Icon className="w-5 h-5 text-gray-400" />
+                                                            <div>
+                                                                <p className="text-sm font-medium text-gray-900">{label}</p>
+                                                                {document ? (
+                                                                    <div className="flex items-center space-x-4">
+                                                                        <p className="text-xs text-gray-500">{document.fileName}</p>
+                                                                        <Badge variant="default" className="text-xs">
+                                                                            <CheckCircle className="w-3 h-3 mr-1" />
+                                                                            Uploaded
+                                                                        </Badge>
+                                                                    </div>
+                                                                ) : (
+                                                                    <Badge variant="secondary" className="text-xs">
+                                                                        <AlertCircle className="w-3 h-3 mr-1" />
+                                                                        Not uploaded
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        {document && (
+                                                            <button
+                                                                onClick={() => window.open(document.cloudFrontUrl, '_blank')}
+                                                                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                                            >
+                                                                <Download className="w-3 h-3 mr-1" />
+                                                                Download
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                                                <p className="text-xs text-gray-600">
+                                                    Total files: {tenantFiles.totalFileCount} • 
+                                                    Total size: {Math.round(tenantFiles.totalFileSize / 1024 / 1024 * 100) / 100} MB
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8">
+                                            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                            <h3 className="text-sm font-medium text-gray-900 mb-2">No documents uploaded</h3>
+                                            <p className="text-sm text-gray-500 mb-4">
+                                                Upload important documents like rental agreement, address proof, and Aadhaar card.
+                                            </p>
+                                            <Link
+                                                to={`/tenants/${tenantId}/documents`}
+                                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
+                                            >
+                                                <FileText className="w-4 h-4 mr-2" />
+                                                Upload Documents
+                                            </Link>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        {/* Profile Picture Tab */}
+                        <TabsContent value="profile-picture" className="space-y-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Profile Picture</CardTitle>
+                                    <CardDescription>Manage tenant profile picture</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <ProfilePictureUpload
+                                        entityType={EntityType.Tenant}
+                                        entityId={tenantId}
+                                        entityName={tenant?.tenantName}
+                                    />
                                 </CardContent>
                             </Card>
                         </TabsContent>

@@ -1,16 +1,17 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, FileText } from 'lucide-react';
 import { tenantApi, lookupApi } from '../../services/api';
 import { CreateTenantDto, UpdateTenantDto } from '../../types';
 
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import { formatErrorMessage } from '../../utils/errorHandler';
+import { EntityType } from '../../constants/fileUpload';
 import { useRoleAccess } from '../../hooks/useRoleAccess';
 
 const schema = yup.object({
@@ -810,6 +811,8 @@ const TenantForm: React.FC = () => {
             </div>
           </div>
         </div>
+
+
 
 
 
