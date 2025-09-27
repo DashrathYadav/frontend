@@ -10,7 +10,8 @@ import { CreateTenantDto, UpdateTenantDto } from '../../types';
 
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
-import { formatErrorMessage } from '../../utils/errorHandler';
+import { extractErrorMessage } from '../../utils/errorHandler';
+import { formToast } from '../../utils/toast';
 import { EntityType } from '../../constants/fileUpload';
 import { useRoleAccess } from '../../hooks/useRoleAccess';
 
@@ -168,7 +169,7 @@ const TenantForm: React.FC = () => {
         depositToReturn: tenant.depositToReturn || 0,
         presentRentValue: tenant.presentRentValue || undefined,
         pastRentValue: tenant.pastRentValue || undefined,
-        currencyCode: tenant.currencyCode,
+        currencyCode: tenant.currencyId,
         isActive: tenant.isActive,
         boardingDate: tenant.boardingDate.split('T')[0],
         leavingDate: tenant.leavingDate ? tenant.leavingDate.split('T')[0] : '',
@@ -193,7 +194,14 @@ const TenantForm: React.FC = () => {
     mutationFn: tenantApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenants'] });
+      formToast.created('Tenant');
       navigate('/tenants');
+    },
+    onError: (error) => {
+      const apiError = extractErrorMessage(error);
+      if (apiError.errors && apiError.errors.length > 0) {
+        formToast.validationError();
+      }
     },
   });
 
@@ -202,7 +210,14 @@ const TenantForm: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenants'] });
       queryClient.invalidateQueries({ queryKey: ['tenant', id] });
+      formToast.updated('Tenant');
       navigate('/tenants');
+    },
+    onError: (error) => {
+      const apiError = extractErrorMessage(error);
+      if (apiError.errors && apiError.errors.length > 0) {
+        formToast.validationError();
+      }
     },
   });
 
@@ -860,7 +875,7 @@ const TenantForm: React.FC = () => {
       {/* Error Display */}
       {(createMutation.error || updateMutation.error) && (
         <ErrorMessage
-          message={formatErrorMessage(createMutation.error || updateMutation.error)}
+          error={createMutation.error || updateMutation.error}
         />
       )}
     </div>

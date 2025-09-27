@@ -9,7 +9,8 @@ import { propertyApi, lookupApi } from '../../services/api';
 import { CreatePropertyDto, UpdatePropertyDto } from '../../types';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
-import { formatErrorMessage } from '../../utils/errorHandler';
+import { extractErrorMessage } from '../../utils/errorHandler';
+import { formToast } from '../../utils/toast';
 import { useRoleAccess } from '../../hooks/useRoleAccess';
 import { useLookup } from '../../contexts/LookupContext';
 
@@ -125,7 +126,14 @@ const PropertyForm: React.FC = () => {
     mutationFn: propertyApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });
+      formToast.created('Property');
       navigate('/properties');
+    },
+    onError: (error) => {
+      const apiError = extractErrorMessage(error);
+      if (apiError.errors && apiError.errors.length > 0) {
+        formToast.validationError();
+      }
     },
   });
 
@@ -134,7 +142,14 @@ const PropertyForm: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       queryClient.invalidateQueries({ queryKey: ['property', id] });
+      formToast.updated('Property');
       navigate('/properties');
+    },
+    onError: (error) => {
+      const apiError = extractErrorMessage(error);
+      if (apiError.errors && apiError.errors.length > 0) {
+        formToast.validationError();
+      }
     },
   });
 
@@ -512,7 +527,7 @@ const PropertyForm: React.FC = () => {
       {/* Error Display */}
       {(createMutation.error || updateMutation.error) && (
         <ErrorMessage
-          message={formatErrorMessage(createMutation.error || updateMutation.error)}
+          error={createMutation.error || updateMutation.error}
         />
       )}
     </div>

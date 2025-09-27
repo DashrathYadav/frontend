@@ -27,7 +27,7 @@
               "stateId": "number (required)",
               "countryId": "number (required)"
             },
-            "note": "string (required)"
+            "note": "string (optional)"
           },
           "response_body_success": {
             "status": true,
@@ -37,7 +37,8 @@
           },
           "response_body_error": {
             "status": false,
-            "message": "Failed to register owner | Validation errors | Mobile number already exists",
+            "responseCode": 400,
+            "message": "Validation failed for the provided data | Failed to register owner | Mobile number already exists",
             "data": null,
             "errors": ["Mobile number is required", "Invalid mobile number format", "Mobile number must be between 10 and 15 digits", "Mobile number already exists"]
           }
@@ -92,7 +93,7 @@
               "stateId": "number (required)",
               "countryId": "number (required)"
             },
-            "note": "string (required)"
+            "note": "string (optional)"
           },
           "response_body_success": {
             "status": true,
@@ -102,7 +103,8 @@
           },
           "response_body_error": {
             "status": false,
-            "message": "Validation failed | LoginId is already in use | Mobile number already exists | Failed to create address",
+            "responseCode": 400,
+            "message": "Validation failed for the provided data | LoginId is already in use | Mobile number already exists | Failed to create address",
             "data": null,
             "errors": ["Mobile number is required", "Invalid mobile number format", "Mobile number must be between 10 and 15 digits", "Mobile number already exists", "string array of other validation errors"]
           }
@@ -1632,7 +1634,8 @@
     "common_error_responses": {
       "400_bad_request": {
         "status": false,
-        "message": "Validation failed",
+        "responseCode": 400,
+        "message": "Validation failed for the provided data",
         "data": null,
         "errors": ["Field validation error messages"]
       },
@@ -1798,7 +1801,49 @@
         "3": "Tenant"
       }
     },
-  
+
+    "validation_response_examples": {
+      "description": "Validation error response format examples (Updated v1.2)",
+      "consistent_format": {
+        "description": "All FluentValidation failures now return this consistent format",
+        "example": {
+          "status": false,
+          "responseCode": 400,
+          "message": "Validation failed for the provided data",
+          "errors": [
+            "Login ID is required.",
+            "Password is required.",
+            "Full name is required.",
+            "Mobile number is required.",
+            "Invalid email format.",
+            "Address is required."
+          ],
+          "data": null
+        }
+      },
+      "previous_format": {
+        "description": "Old format (no longer used) - kept for reference",
+        "example": {
+          "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+          "title": "One or more validation errors occurred.",
+          "status": 400,
+          "errors": {
+            "LoginId": ["Login ID is required."],
+            "Password": ["Password is required."],
+            "FullName": ["Full name is required."]
+          },
+          "traceId": "0HMEABC123"
+        }
+      },
+      "benefits": [
+        "Consistent error format across all API endpoints",
+        "Simplified client-side error handling",
+        "Flat array of error messages (easier to display)",
+        "Matches existing business logic error responses",
+        "Improved performance with early request termination"
+      ]
+    },
+
     "notes": [
       "JSON uses camelCase naming.",
       "Pagination is 1-based.",
@@ -1806,6 +1851,14 @@
       "All monetary values are decimal type.",
       "Standard response wrapper has status, message, data, errors unless otherwise noted.",
       "Some endpoints are [AllowAnonymous] during development.",
+      "Validation System (Updated v1.2): All FluentValidation errors now return consistent response format:",
+      "  - Custom ValidationFilter intercepts model validation failures",
+      "  - All validation errors return unified format with responseCode: 400",
+      "  - Message: 'Validation failed for the provided data'",
+      "  - Errors array contains all validation messages in flat string array",
+      "  - No longer uses default ASP.NET Core ValidationProblemDetails format",
+      "  - Early termination prevents unnecessary processing on invalid requests",
+      "  - Maintains existing FluentValidation rules and custom validation messages",
       "File Upload System: File management system using AWS S3 and CloudFront CDN:",
       "  - Files are managed through centralized FileMetadata table",
       "  - Supported entities: tenant, owner, property, room",

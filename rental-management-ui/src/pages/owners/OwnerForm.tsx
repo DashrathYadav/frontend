@@ -9,6 +9,8 @@ import { ownerApi, lookupApi } from '../../services/api';
 import { CreateOwnerDto } from '../../types';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
+import { extractErrorMessage } from '../../utils/errorHandler';
+import { formToast } from '../../utils/toast';
 
 const schema = yup.object({
   loginId: yup.string().required('Login ID is required').max(50),
@@ -16,8 +18,9 @@ const schema = yup.object({
   fullName: yup.string().required('Full name is required').max(100),
   mobileNumber: yup.string().required('Mobile number is required').matches(/^\d{10}$/, 'Mobile number must be 10 digits'),
   email: yup.string().email('Invalid email format').optional(),
-  aadharNumber: yup.string().matches(/^\d{12}$/, 'Aadhar number must be 12 digits').optional(),
+  aadharNumber: yup.string().optional().test('aadhar-format', 'Aadhar number must be 12 digits', (value) => !value || /^\d{12}$/.test(value)),
   roleId: yup.string().required('Role is required'),
+  note: yup.string().optional(),
   address: yup.object({
     street: yup.string().required('Street is required'),
     landMark: yup.string().required('Landmark is required'),
@@ -93,7 +96,14 @@ const OwnerForm: React.FC = () => {
     mutationFn: ownerApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['owners'] });
+      formToast.created('Owner');
       navigate('/owners');
+    },
+    onError: (error) => {
+      const apiError = extractErrorMessage(error);
+      if (apiError.errors && apiError.errors.length > 0) {
+        formToast.validationError();
+      }
     },
   });
 
@@ -102,7 +112,14 @@ const OwnerForm: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['owners'] });
       queryClient.invalidateQueries({ queryKey: ['owner', id] });
+      formToast.updated('Owner');
       navigate('/owners');
+    },
+    onError: (error) => {
+      const apiError = extractErrorMessage(error);
+      if (apiError.errors && apiError.errors.length > 0) {
+        formToast.validationError();
+      }
     },
   });
 
@@ -390,8 +407,8 @@ const OwnerForm: React.FC = () => {
 
       {/* Error Display */}
       {(createMutation.error || updateMutation.error) && (
-        <ErrorMessage 
-          message={createMutation.error?.message || updateMutation.error?.message || 'An error occurred'} 
+        <ErrorMessage
+          error={createMutation.error || updateMutation.error}
         />
       )}
     </div>

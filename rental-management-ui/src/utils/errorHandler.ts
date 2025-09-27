@@ -1,5 +1,4 @@
 import { AxiosError } from 'axios';
-import { ApiResponse } from '../types';
 
 export interface ApiError {
     statusCode: number;
@@ -15,6 +14,15 @@ export const extractErrorMessage = (error: unknown): ApiError => {
         if (error.response?.data) {
             const responseData = error.response.data as any;
 
+            // Handle new consistent API response format
+            if (responseData.status !== undefined) {
+                return {
+                    statusCode: responseData.responseCode || statusCode,
+                    message: responseData.message || 'An error occurred',
+                    errors: responseData.errors || []
+                };
+            }
+
             // Check if it's our standard API response format
             if (responseData.message && typeof responseData.message === 'string') {
                 return {
@@ -24,7 +32,7 @@ export const extractErrorMessage = (error: unknown): ApiError => {
                 };
             }
 
-            // Check if it's a validation error response
+            // Check if it's a validation error response (array format)
             if (responseData.errors && Array.isArray(responseData.errors)) {
                 return {
                     statusCode,
@@ -83,11 +91,7 @@ export const extractErrorMessage = (error: unknown): ApiError => {
 export const formatErrorMessage = (error: unknown): string => {
     const apiError = extractErrorMessage(error);
 
-    let message = `Request failed with status code ${apiError.statusCode}`;
-
-    if (apiError.message) {
-        message += `\n${apiError.message}`;
-    }
+    let message = apiError.message;
 
     if (apiError.errors && apiError.errors.length > 0) {
         message += `\n\nDetails:\n${apiError.errors.map(err => `• ${err}`).join('\n')}`;

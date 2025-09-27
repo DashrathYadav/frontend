@@ -83,7 +83,7 @@ export interface CreateOwnerDto {
   document?: string;
   address: CreateAddressDto;
   roleId: number;
-  note: string;
+  note?: string;
 }
 
 export interface Property {

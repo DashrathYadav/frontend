@@ -6,7 +6,8 @@ import * as yup from 'yup';
 import { useMutation } from '@tanstack/react-query';
 import { ArrowLeft, UserPlus, Eye, EyeOff } from 'lucide-react';
 import { authApi, lookupApi } from '../services/api';
-import { formatErrorMessage } from '../utils/errorHandler';
+import { extractErrorMessage } from '../utils/errorHandler';
+import { showSuccess } from '../utils/toast';
 import { useQuery } from '@tanstack/react-query';
 
 // Registration form type matching API requirements
@@ -17,7 +18,7 @@ interface RegistrationFormData {
   mobileNumber: string;
   email?: string;
   aadharNumber?: string;
-  note: string;
+  note?: string;
   address: {
     street: string;
     landMark: string;
@@ -35,8 +36,8 @@ const schema = yup.object({
   fullName: yup.string().required('Full name is required').max(100),
   mobileNumber: yup.string().required('Mobile number is required').matches(/^\d{10,15}$/, 'Mobile number must be between 10 and 15 digits'),
   email: yup.string().email('Invalid email format').optional(),
-  aadharNumber: yup.string().matches(/^\d{12}$/, 'Aadhar number must be 12 digits').optional(),
-  note: yup.string().required('Note is required').max(500),
+  aadharNumber: yup.string().optional().test('aadhar-format', 'Aadhar number must be 12 digits', (value) => !value || /^\d{12}$/.test(value)),
+  note: yup.string().optional().max(500),
   address: yup.object({
     street: yup.string().required('Street is required').max(100),
     landMark: yup.string().required('Landmark is required').max(100),
@@ -77,7 +78,7 @@ const RegistrationPage: React.FC = () => {
     onSuccess: (data) => {
       if (data.status) {
         // Show success message and redirect to login
-        alert('Registration successful! Please login with your credentials.');
+        showSuccess('Registration successful! Please login with your credentials.');
         navigate('/login');
       } else {
         setError('root', { message: data.message || 'Registration failed' });
@@ -85,8 +86,8 @@ const RegistrationPage: React.FC = () => {
     },
     onError: (error: any) => {
       console.error('Registration error:', error);
-      const errorMessage = formatErrorMessage(error);
-      setError('root', { message: errorMessage });
+      const apiError = extractErrorMessage(error);
+      setError('root', { message: apiError.message });
     },
   });
 
@@ -367,7 +368,7 @@ const RegistrationPage: React.FC = () => {
             {/* Note */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Note *
+                Note
               </label>
               <textarea
                 {...register('note')}
