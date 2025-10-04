@@ -12,7 +12,7 @@ const TenantDocuments: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const tenantId = parseInt(id!);
-  const [uploadedCount, setUploadedCount] = useState(0);
+  const [, setUploadedCount] = useState(0);
 
   // Fetch tenant details
   const { data: tenant, isLoading, error } = useQuery({

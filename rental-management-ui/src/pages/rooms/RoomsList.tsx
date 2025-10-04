@@ -66,7 +66,7 @@ const RoomsList: React.FC = () => {
 
 
   // Fetch lookup data with error handling
-  const { data: owners, isLoading: ownersLoading, error: ownersError } = useQuery({
+  const { data: owners } = useQuery({
     queryKey: ['owners-lookup'],
     queryFn: async () => {
       try {
@@ -82,7 +82,7 @@ const RoomsList: React.FC = () => {
     retryDelay: 1000,
   });
 
-  const { data: properties, isLoading: propertiesLoading, error: propertiesError } = useQuery({
+  const { data: properties } = useQuery({
     queryKey: ['properties-lookup', urlParams.get('ownerId'), filters.filterValues.ownerId],
     queryFn: async () => {
       try {

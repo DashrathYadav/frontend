@@ -7,8 +7,6 @@ import {
     CheckCircle,
     AlertCircle,
     Clock,
-    DollarSign,
-    Calendar,
     Building2,
     Home,
     Users,
@@ -23,7 +21,6 @@ import { StatusBadge } from '../../components/ui/badge-system';
 
 // Import shadcn-ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
 const RentDetail: React.FC = () => {
@@ -114,19 +111,6 @@ const RentDetail: React.FC = () => {
                 return 'Overdue';
             default:
                 return 'Unknown';
-        }
-    };
-
-    const getStatusVariant = (status: number) => {
-        switch (status) {
-            case 1:
-                return 'default' as const;
-            case 2:
-                return 'secondary' as const;
-            case 3:
-                return 'destructive' as const;
-            default:
-                return 'outline' as const;
         }
     };
 
@@ -230,7 +214,6 @@ const RentDetail: React.FC = () => {
                                     </div>
                                     <div>
                                         <p className="font-medium text-gray-900">{property.propertyName}</p>
-                                        <p className="text-sm text-gray-600">Property ID: #{property.propertyId}</p>
                                         <Link
                                             to={`/properties/${property.propertyId}`}
                                             className="text-sm text-blue-600 hover:text-blue-700 transition-colors duration-200"
@@ -247,7 +230,6 @@ const RentDetail: React.FC = () => {
                                     </div>
                                     <div>
                                         <p className="font-medium text-gray-900">Room #{room.roomNo}</p>
-                                        <p className="text-sm text-gray-600">Room ID: #{room.roomId}</p>
                                         <Link
                                             to={`/rooms/${room.roomId}`}
                                             className="text-sm text-blue-600 hover:text-blue-700 transition-colors duration-200"

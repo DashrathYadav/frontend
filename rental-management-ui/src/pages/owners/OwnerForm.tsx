@@ -19,7 +19,7 @@ const schema = yup.object({
   mobileNumber: yup.string().required('Mobile number is required').matches(/^\d{10}$/, 'Mobile number must be 10 digits'),
   email: yup.string().email('Invalid email format').optional(),
   aadharNumber: yup.string().optional().test('aadhar-format', 'Aadhar number must be 12 digits', (value) => !value || /^\d{12}$/.test(value)),
-  roleId: yup.string().required('Role is required'),
+  roleId: yup.number().required('Role is required').min(1),
   note: yup.string().optional(),
   address: yup.object({
     street: yup.string().required('Street is required'),
@@ -62,7 +62,7 @@ const OwnerForm: React.FC = () => {
   } = useForm<CreateOwnerDto>({
     resolver: yupResolver(schema),
     defaultValues: {
-      roleId: '2', // Default to Owner role
+      roleId: 2, // Default to Owner role
       address: {
         countryId: 1, // Default to India
         stateId: 1, // Default to Maharashtra
@@ -78,7 +78,7 @@ const OwnerForm: React.FC = () => {
         mobileNumber: owner.mobileNumber,
         email: owner.email || '',
         aadharNumber: owner.aadharNumber || '',
-        roleId: owner.roleId.toString(),
+        roleId: owner.roleId,
         address: {
           street: owner.address.street,
           landMark: owner.address.landMark,

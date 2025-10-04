@@ -4,7 +4,7 @@ import {
     DEFAULT_PAGE_SIZES,
     MAX_PAGE_SIZES
 } from '../constants/pagination';
-import { PaginationParams, PaginationConfig } from '../types/pagination';
+import { PaginationConfig } from '../types/pagination';
 
 /**
  * Normalizes pagination parameters based on the pagination type
@@ -13,7 +13,7 @@ import { PaginationParams, PaginationConfig } from '../types/pagination';
 export function normalizePagination(
     pageNumber?: number,
     pageSize?: number,
-    type: keyof typeof PAGINATION_TYPES = PAGINATION_TYPES.SEARCH
+    type: typeof PAGINATION_TYPES[keyof typeof PAGINATION_TYPES] = PAGINATION_TYPES.SEARCH
 ): { pageNumber: number; pageSize: number } {
     const normalizedPageNumber = pageNumber ?? PAGINATION_CONFIG.DEFAULT_PAGE_INDEX;
     const defaultPageSize = DEFAULT_PAGE_SIZES[type];
@@ -42,7 +42,7 @@ export function normalizePagination(
 export function validatePagination(
     pageNumber: number,
     pageSize: number,
-    type: keyof typeof PAGINATION_TYPES = PAGINATION_TYPES.SEARCH
+    type: typeof PAGINATION_TYPES[keyof typeof PAGINATION_TYPES] = PAGINATION_TYPES.SEARCH
 ): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
     const maxPageSize = MAX_PAGE_SIZES[type];
@@ -97,7 +97,7 @@ export function calculatePaginationMeta(
 /**
  * Gets page size options for a specific pagination type
  */
-export function getPageSizeOptions(type: keyof typeof PAGINATION_TYPES): number[] {
+export function getPageSizeOptions(type: typeof PAGINATION_TYPES[keyof typeof PAGINATION_TYPES]): number[] {
     const options = {
         [PAGINATION_TYPES.LOOKUP]: [10, 25, 50, 100, 500, 1000],
         [PAGINATION_TYPES.SEARCH]: [10, 25, 50, 100],
@@ -112,7 +112,7 @@ export function getPageSizeOptions(type: keyof typeof PAGINATION_TYPES): number[
  * Creates a pagination configuration object
  */
 export function createPaginationConfig(
-    type: keyof typeof PAGINATION_TYPES,
+    type: typeof PAGINATION_TYPES[keyof typeof PAGINATION_TYPES],
     overrides?: Partial<PaginationConfig>
 ): PaginationConfig {
     return {

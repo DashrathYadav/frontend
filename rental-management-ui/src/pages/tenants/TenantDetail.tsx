@@ -8,14 +8,13 @@ import {
     AlertCircle,
     Image as ImageIcon,
     Home,
-    DollarSign,
-    Building2,
     User,
     FileText,
-    Download
+    Download,
+    Plus,
+    MapPin
 } from 'lucide-react';
-import { tenantApi, propertyApi, roomApi, rentTrackApi } from '../../services/api';
-import { formatCurrency } from '../../utils';
+import { tenantApi, roomTenantMappingApi } from '../../services/api';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import { StatusBadge } from '../../components/ui/badge-system';
@@ -40,24 +39,10 @@ const TenantDetail: React.FC = () => {
         enabled: !!tenantId,
     });
 
-    // Fetch property details for this tenant
-    const { data: property } = useQuery({
-        queryKey: ['property', tenant?.propertyId],
-        queryFn: () => propertyApi.getById(tenant!.propertyId),
-        enabled: !!tenant?.propertyId,
-    });
-
-    // Fetch room details for this tenant
-    const { data: room } = useQuery({
-        queryKey: ['room', tenant?.roomId],
-        queryFn: () => roomApi.getById(tenant!.roomId!),
-        enabled: !!tenant?.roomId,
-    });
-
-    // Fetch rent history for this tenant
-    const { data: rentHistory } = useQuery({
-        queryKey: ['rent-history', tenantId],
-        queryFn: () => rentTrackApi.getByTenantId(tenantId),
+    // Fetch room-tenant mappings for this tenant
+    const { data: roomMappings, isLoading: mappingsLoading } = useQuery({
+        queryKey: ['room-tenant-mappings', tenantId],
+        queryFn: () => roomTenantMappingApi.getByTenant(tenantId),
         enabled: !!tenantId,
     });
 
@@ -171,70 +156,21 @@ const TenantDetail: React.FC = () => {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">Present Rent</span>
-                                <span className="font-semibold text-lg text-green-600">
-                                    {formatCurrency(tenant.presentRentValue || 0)}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">Deposited Amount</span>
-                                <span className="font-semibold text-lg text-blue-600">
-                                    {formatCurrency(tenant.deposited)}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">Deposit to Return</span>
-                                <span className="font-semibold text-lg text-orange-600">
-                                    {formatCurrency(tenant.depositToReturn)}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-600">Lock-in Period</span>
                                 <span className="font-semibold text-lg">{tenant.lockInPeriod}</span>
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Property & Room Information */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Property & Room</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            {property && (
-                                <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <Building2 className="w-5 h-5 text-blue-600" />
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-gray-900">{property.propertyName}</p>
-                                        <p className="text-sm text-gray-600">Property ID: #{property.propertyId}</p>
-                                        <Link
-                                            to={`/properties/${property.propertyId}`}
-                                            className="text-sm text-blue-600 hover:text-blue-700 transition-colors duration-200"
-                                        >
-                                            View Property →
-                                        </Link>
-                                    </div>
-                                </div>
-                            )}
-                            {room && (
-                                <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                                        <Home className="w-5 h-5 text-green-600" />
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-gray-900">Room #{room.roomNo}</p>
-                                        <p className="text-sm text-gray-600">Room ID: #{room.roomId}</p>
-                                        <Link
-                                            to={`/rooms/${room.roomId}`}
-                                            className="text-sm text-blue-600 hover:text-blue-700 transition-colors duration-200"
-                                        >
-                                            View Room →
-                                        </Link>
-                                    </div>
-                                </div>
-                            )}
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-600">Room Mappings</span>
+                                <span className="font-semibold text-lg text-blue-600">
+                                    {roomMappings?.length || 0}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-600">Active Mappings</span>
+                                <span className="font-semibold text-lg text-green-600">
+                                    {roomMappings?.filter(m => m.isActive).length || 0}
+                                </span>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
@@ -244,7 +180,7 @@ const TenantDetail: React.FC = () => {
                     <Tabs defaultValue="overview" className="w-full">
                         <TabsList className="grid w-full grid-cols-5">
                             <TabsTrigger value="overview">Overview</TabsTrigger>
-                            <TabsTrigger value="rent-history">Rent History</TabsTrigger>
+                            <TabsTrigger value="room-mappings">Room Mappings</TabsTrigger>
                             <TabsTrigger value="documents">Documents</TabsTrigger>
                             <TabsTrigger value="profile-picture">Profile Picture</TabsTrigger>
                             <TabsTrigger value="details">Details</TabsTrigger>
@@ -289,18 +225,12 @@ const TenantDetail: React.FC = () => {
                                                 </div>
                                             </div>
                                             <div>
-                                                <label className="text-sm font-medium text-gray-500">Boarding Date</label>
-                                                <p className="text-lg text-gray-900">{formatDate(tenant.boardingDate)}</p>
-                                            </div>
-                                            {tenant.leavingDate && (
-                                                <div>
-                                                    <label className="text-sm font-medium text-gray-500">Leaving Date</label>
-                                                    <p className="text-lg text-gray-900">{formatDate(tenant.leavingDate)}</p>
-                                                </div>
-                                            )}
-                                            <div>
                                                 <label className="text-sm font-medium text-gray-500">Login ID</label>
                                                 <p className="text-lg text-gray-900">{tenant.loginId}</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-500">Lock-in Period</label>
+                                                <p className="text-lg text-gray-900">{tenant.lockInPeriod}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -337,62 +267,87 @@ const TenantDetail: React.FC = () => {
                             </Card>
                         </TabsContent>
 
-                        {/* Rent History Tab */}
-                        <TabsContent value="rent-history" className="space-y-6">
+                        {/* Room Mappings Tab */}
+                        <TabsContent value="room-mappings" className="space-y-6">
                             <Card>
-                                <CardHeader>
-                                    <CardTitle>Rent History</CardTitle>
-                                    <CardDescription>Payment and rent tracking information</CardDescription>
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <div>
+                                        <CardTitle>Room Mappings</CardTitle>
+                                        <CardDescription>
+                                            Rooms currently or previously occupied by this tenant
+                                        </CardDescription>
+                                    </div>
+                                    <Link
+                                        to={`/board-tenants/new?tenantId=${tenantId}`}
+                                        className="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    >
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Board to Room
+                                    </Link>
                                 </CardHeader>
                                 <CardContent>
-                                    {!rentHistory || rentHistory.length === 0 ? (
+                                    {mappingsLoading ? (
+                                        <div className="flex justify-center py-8">
+                                            <LoadingSpinner size="md" />
+                                        </div>
+                                    ) : !roomMappings || roomMappings.length === 0 ? (
                                         <div className="text-center py-8">
-                                            <DollarSign className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                            <h3 className="text-lg font-medium text-gray-900 mb-2">No rent history found</h3>
-                                            <p className="text-gray-600">This tenant doesn't have any rent payment records yet.</p>
+                                            <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                            <h3 className="text-lg font-medium text-gray-900 mb-2">No room mappings found</h3>
+                                            <p className="text-gray-600 mb-4">This tenant is not currently boarded to any room.</p>
+                                            <Link
+                                                to={`/board-tenants/new?tenantId=${tenantId}`}
+                                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
+                                            >
+                                                <Plus className="w-4 h-4 mr-2" />
+                                                Board to Room
+                                            </Link>
                                         </div>
                                     ) : (
                                         <div className="space-y-4">
-                                            {rentHistory.map((rent) => (
+                                            {roomMappings.map((mapping) => (
                                                 <div
-                                                    key={rent.rentTrackId}
+                                                    key={mapping.roomTenantMappingId}
                                                     className="border rounded-lg p-4 hover:shadow-md transition-shadow duration-200"
                                                 >
                                                     <div className="flex items-center justify-between mb-3">
                                                         <h4 className="font-semibold text-gray-900">
-                                                            Rent Period: {formatDate(rent.rentPeriodStartDate)} - {formatDate(rent.rentPeriodEndDate)}
+                                                            Room ID: {mapping.roomId}
                                                         </h4>
-                                                        <Badge variant={rent.statusId === 1 ? "default" : "secondary"}>
-                                                            {rent.statusId === 1 ? "Paid" : "Pending"}
+                                                        <Badge variant={mapping.isActive ? "default" : "secondary"}>
+                                                            {mapping.isActive ? "Active" : "Inactive"}
                                                         </Badge>
                                                     </div>
-                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                                         <div>
-                                                            <span className="text-gray-600">Expected:</span>
-                                                            <span className="ml-2 font-medium text-green-600">
-                                                                {formatCurrency(rent.expectedRentValue || 0)}
+                                                            <span className="text-gray-600">Boarding Date:</span>
+                                                            <span className="ml-2 font-medium text-gray-900">
+                                                                {formatDate(mapping.boardingDate)}
                                                             </span>
                                                         </div>
-                                                        <div>
-                                                            <span className="text-gray-600">Received:</span>
-                                                            <span className="ml-2 font-medium text-blue-600">
-                                                                {formatCurrency(rent.receivedRentValue || 0)}
-                                                            </span>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-gray-600">Pending:</span>
-                                                            <span className="ml-2 font-medium text-red-600">
-                                                                {formatCurrency(rent.pendingAmount || 0)}
-                                                            </span>
-                                                        </div>
+                                                        {mapping.leavingDate && (
+                                                            <div>
+                                                                <span className="text-gray-600">Leaving Date:</span>
+                                                                <span className="ml-2 font-medium text-gray-900">
+                                                                    {formatDate(mapping.leavingDate)}
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    {rent.note && (
-                                                        <div className="mt-3 pt-3 border-t">
-                                                            <p className="text-sm text-gray-600">
-                                                                <span className="font-medium">Note:</span> {rent.note}
-                                                            </p>
-                                                        </div>
-                                                    )}
+                                                    <div className="mt-3 pt-3 border-t flex items-center justify-end space-x-2">
+                                                        <Link
+                                                            to={`/board-tenants/${mapping.roomTenantMappingId}`}
+                                                            className="text-sm text-blue-600 hover:text-blue-700"
+                                                        >
+                                                            View Details →
+                                                        </Link>
+                                                        <Link
+                                                            to={`/board-tenants/${mapping.roomTenantMappingId}/edit`}
+                                                            className="text-sm text-blue-600 hover:text-blue-700"
+                                                        >
+                                                            Edit →
+                                                        </Link>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -464,7 +419,7 @@ const TenantDetail: React.FC = () => {
                                             })}
                                             <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                                                 <p className="text-xs text-gray-600">
-                                                    Total files: {tenantFiles.totalFileCount} • 
+                                                    Total files: {tenantFiles.totalFileCount} •
                                                     Total size: {Math.round(tenantFiles.totalFileSize / 1024 / 1024 * 100) / 100} MB
                                                 </p>
                                             </div>
@@ -546,4 +501,4 @@ const TenantDetail: React.FC = () => {
     );
 };
 
-export default TenantDetail; 
+export default TenantDetail;

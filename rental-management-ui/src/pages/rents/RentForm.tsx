@@ -53,10 +53,12 @@ const RentForm: React.FC = () => {
   });
 
   // Fetch tenant data if tenantId is provided in URL
+  // Note: Tenant pre-fill is currently disabled as tenant no longer contains room/property/rent info
+  // This should be updated to use RoomTenantMapping and TenantRentSetting instead
   const { data: tenantData, isLoading: tenantLoading } = useQuery({
     queryKey: ['tenant', tenantIdFromUrl],
     queryFn: () => tenantApi.getById(Number(tenantIdFromUrl)),
-    enabled: Boolean(tenantIdFromUrl) && !isEdit,
+    enabled: false, // Disabled until refactored to use mapping-based pre-fill
   });
 
   const { data: rent, isLoading: rentLoading } = useQuery({
@@ -88,9 +90,9 @@ const RentForm: React.FC = () => {
   const selectedRoomId = watch('roomId');
 
   // Determine the effective owner, property, and room IDs for queries
-  const effectiveOwnerId = selectedOwnerId || tenantData?.ownerId;
-  const effectivePropertyId = selectedPropertyId || tenantData?.propertyId;
-  const effectiveRoomId = selectedRoomId || tenantData?.roomId;
+  const effectiveOwnerId = selectedOwnerId;
+  const effectivePropertyId = selectedPropertyId;
+  const effectiveRoomId = selectedRoomId;
 
   const { data: properties, isLoading: propertiesLoading } = useQuery({
     queryKey: ['properties-lookup', effectiveOwnerId],
@@ -114,25 +116,14 @@ const RentForm: React.FC = () => {
   const isPreFilled = Boolean(tenantData && !isEdit);
 
   // Pre-fill form when tenant data is available
-  React.useEffect(() => {
-    if (tenantData && !isEdit && !hasPreFilledRef.current) {
-      hasPreFilledRef.current = true;
-
-      // Use setValue to ensure immediate form state update
-      setValue('propertyId', tenantData.propertyId);
-      setValue('roomId', tenantData.roomId);
-      setValue('tenantId', tenantData.tenantId);
-      setValue('ownerId', tenantData.ownerId);
-      setValue('expectedRentValue', tenantData.presentRentValue || 0);
-      setValue('receivedRentValue', 0);
-      setValue('pendingAmount', 0);
-      setValue('rentPeriodStartDate', new Date().toISOString().split('T')[0]);
-      setValue('rentPeriodEndDate', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
-      setValue('statusId', Number(lookups.rentStatuses[0]?.id)); // Default to first status
-      setValue('note', '');
-      setValue('currencyId', Number(tenantData.currencyId)); // Default to first currency
-    }
-  }, [tenantData, isEdit, setValue]);
+  // DISABLED: Tenant no longer contains room/property/rent info
+  // This should be refactored to use RoomTenantMapping and TenantRentSetting
+  // React.useEffect(() => {
+  //   if (tenantData && !isEdit && !hasPreFilledRef.current) {
+  //     hasPreFilledRef.current = true;
+  //     // ... pre-fill logic removed
+  //   }
+  // }, [tenantData, isEdit, setValue]);
 
   // Reset form for edit mode
   React.useEffect(() => {

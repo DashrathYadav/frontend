@@ -1,8 +1,8 @@
   {
     "api_name": "Rentwiz Property Management API",
-    "version": "v1",
+    "version": "v1.4.0",
     "base_url": "http://localhost:5268/api/v1",
-    "description": "Comprehensive API documentation for Rentwiz Property Management System",
+    "description": "Comprehensive API documentation for Rentwiz Property Management System - Now includes Many-to-Many Room-Tenant relationship support with enhanced DTOs featuring joined entity data to minimize frontend API calls",
     "authentication": "JWT Bearer Token (configured; many endpoints currently marked [AllowAnonymous] for development)",
     "content_type": "application/json",
     "endpoints": {
@@ -103,8 +103,8 @@
           },
           "response_body_error": {
             "status": false,
-            "responseCode": 400,
-            "message": "Validation failed for the provided data | LoginId is already in use | Mobile number already exists | Failed to create address",
+            "responseCode": "400|409",
+            "message": "Validation failed for the provided data | LoginId already exists (globally unique constraint) | Mobile number already exists | Failed to create address",
             "data": null,
             "errors": ["Mobile number is required", "Invalid mobile number format", "Mobile number must be between 10 and 15 digits", "Mobile number already exists", "string array of other validation errors"]
           }
@@ -351,9 +351,9 @@
             "tenantName": "string (required)",
             "tenantMobile": "string (required)",
             "tenantEmail": "string (optional)",
-            "tenantAdharId": "string (required)",
-            "loginId": "string (required)",
-            "password": "string (required)",
+            "tenantAdharId": "string (required - exactly 12 digits)",
+            "loginId": "string (required - must be globally unique across all users)",
+            "password": "string (required - minimum 6 characters)",
             "permanentAddress": {
               "street": "string (required)",
               "landMark": "string (required)",
@@ -429,20 +429,6 @@
             "errors": []
           }
         },
-        "get_tenants_by_property": {
-          "description": "Get all tenants for a specific property",
-          "method": "GET",
-          "url": "{base_url}/tenant/property/{propertyId}",
-          "path_parameters": {
-            "propertyId": "number (required - propertyId)"
-          },
-          "response_body_success": {
-            "status": true,
-            "message": "Tenants retrieved successfully",
-            "data": ["TenantResponseDto"],
-            "errors": []
-          }
-        },
         "get_tenants_by_owner": {
           "description": "Get all tenants for a specific owner",
           "method": "GET",
@@ -457,54 +443,47 @@
             "errors": []
           }
         },
-        "get_tenants_by_room": {
-          "description": "Get all tenants for a specific room",
-          "method": "GET",
-          "url": "{base_url}/tenant/room/{roomId}",
-          "path_parameters": {
-            "roomId": "number (required - roomId)"
-          },
-          "response_body_success": {
-            "status": true,
-            "message": "Tenants retrieved successfully",
-            "data": ["TenantResponseDto"],
-            "errors": []
-          }
-        },
         "search_tenants": {
-          "description": "Search tenants with filters and pagination",
+          "description": "Search tenants with filters and pagination - Role-based access control: Admin sees all tenants, Owner sees only their tenants (ownerId auto-set), Tenant sees only their own record (all filters ignored)",
           "method": "GET",
           "url": "{base_url}/tenant/search",
+          "authorization": "Required - AdminOrOwnerOrTenantPolicy",
           "query_parameters": {
-            "searchTerm": "string (optional)",
+            "searchTerm": "string (optional - searches across name, email, mobile, aadhar)",
             "tenantName": "string (optional)",
             "email": "string (optional)",
             "mobileNumber": "string (optional)",
-            "propertyId": "number (optional)",
-            "roomNumber": "number (optional)",
-            "ownerId": "number (optional)",
+            "propertyId": "number (optional - filters tenants who rent rooms in this property)",
+            "roomId": "number (optional - filters tenants who have rented this room)",
+            "ownerId": "number (optional - Admin only; Owner role auto-overrides to their own ID; Tenant role ignores)",
             "isActive": "boolean (optional)",
-            "minRent": "decimal (optional)",
-            "maxRent": "decimal (optional)",
-            "boardingDateFrom": "string (ISO date - optional)",
-            "boardingDateTo": "string (ISO date - optional)",
-            "leavingDateFrom": "string (ISO date - optional)",
-            "leavingDateTo": "string (ISO date - optional)",
             "pageNumber": "number (optional - default 1)",
             "pageSize": "number (optional - default 10)",
-            "sortBy": "string (optional)",
+            "sortBy": "string (optional - TenantName, TenantEmail, TenantMobile, OwnerId, IsActive, CreationDate)",
             "sortDirection": "string (optional - asc|desc)"
+          },
+          "role_based_filtering": {
+            "Admin": "Can search all tenants with any filters",
+            "Owner": "Can only search their own tenants - ownerId parameter is automatically overridden to logged-in Owner's ID",
+            "Tenant": "Can only see themselves - all search filters are ignored and tenantId is forced to logged-in Tenant's ID"
           },
           "response_body_success": {
             "status": true,
             "message": "Tenants retrieved successfully",
             "data": {
-              "items": ["TenantResponseDto"],
-              "totalCount": "number",
+              "data": ["TenantResponseDto"],
+              "totalRecords": "number",
               "pageNumber": "number",
               "pageSize": "number",
               "totalPages": "number"
             },
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "responseCode": 404,
+            "message": "Owner not found (when Admin searches for non-existent ownerId)",
+            "data": null,
             "errors": []
           }
         },
@@ -749,7 +728,396 @@
           }
         }
       },
-  
+
+      "room_tenant_mapping": {
+        "create_mapping": {
+          "description": "Create a new room-tenant mapping (Many-to-Many relationship)",
+          "method": "POST",
+          "url": "{base_url}/roomtenantmapping/create",
+          "authorization": "AdminOrOwnerPolicy",
+          "request_body": {
+            "roomId": "number (required)",
+            "tenantId": "number (required)",
+            "boardingDate": "string (ISO date - required)",
+            "leavingDate": "string (ISO date - optional)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Room-tenant mapping created successfully",
+            "data": "number (mappingId)",
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "responseCode": "400|403|404",
+            "message": "Validation failed | Room and tenant must belong to the same owner | Room or tenant not found | Active mapping already exists",
+            "data": null,
+            "errors": []
+          }
+        },
+        "get_mapping_by_id": {
+          "description": "Get room-tenant mapping by ID - Enhanced with joined tenant, room, and property data",
+          "method": "GET",
+          "url": "{base_url}/roomtenantmapping/{id}",
+          "authorization": "AdminOrOwnerOrTenantPolicy + ResourceAuthorize(RoomTenantMapping)",
+          "path_parameters": {
+            "id": "number (required - mappingId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Mapping retrieved successfully",
+            "data": {
+              "roomTenantMappingId": "number",
+              "roomId": "number",
+              "tenantId": "number",
+              "isActive": "boolean",
+              "boardingDate": "string (ISO date)",
+              "leavingDate": "string (ISO date - nullable)",
+              "tenantName": "string (from joined Tenant table)",
+              "tenantMobile": "string (from joined Tenant table)",
+              "tenantEmail": "string (nullable - from joined Tenant table)",
+              "roomNo": "number (from joined Room table)",
+              "propertyId": "number (from joined Property table via Room)",
+              "propertyName": "string (from joined Property table via Room)",
+              "createdBy": "number",
+              "lastModifiedBy": "number",
+              "creationDate": "string (ISO date)",
+              "lastModificationDate": "string (ISO date - nullable)"
+            },
+            "errors": []
+          }
+        },
+        "get_mappings_by_room": {
+          "description": "Get all mappings for a specific room - Enhanced with joined tenant, room, and property data",
+          "method": "GET",
+          "url": "{base_url}/roomtenantmapping/room/{roomId}",
+          "authorization": "AdminOrOwnerOrTenantPolicy + ResourceAuthorize(Room)",
+          "path_parameters": {
+            "roomId": "number (required)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Mappings retrieved successfully",
+            "data": ["RoomTenantMappingResponseDto (with tenantName, tenantMobile, tenantEmail, roomNo, propertyId, propertyName)"],
+            "errors": []
+          }
+        },
+        "get_mappings_by_tenant": {
+          "description": "Get all mappings for a specific tenant - Enhanced with joined tenant, room, and property data",
+          "method": "GET",
+          "url": "{base_url}/roomtenantmapping/tenant/{tenantId}",
+          "authorization": "AdminOrOwnerOrTenantPolicy + ResourceAuthorize(Tenant)",
+          "path_parameters": {
+            "tenantId": "number (required)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Mappings retrieved successfully",
+            "data": ["RoomTenantMappingResponseDto (with tenantName, tenantMobile, tenantEmail, roomNo, propertyId, propertyName)"],
+            "errors": []
+          }
+        },
+        "get_mappings_by_owner": {
+          "description": "Get all mappings for a specific owner - Enhanced with joined tenant, room, and property data",
+          "method": "GET",
+          "url": "{base_url}/roomtenantmapping/owner/{ownerId}",
+          "authorization": "AdminOrOwnerOrTenantPolicy + ResourceAuthorize(Owner)",
+          "path_parameters": {
+            "ownerId": "number (required)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Mappings retrieved successfully",
+            "data": ["RoomTenantMappingResponseDto (with tenantName, tenantMobile, tenantEmail, roomNo, propertyId, propertyName)"],
+            "errors": []
+          }
+        },
+        "update_mapping": {
+          "description": "Update an existing room-tenant mapping",
+          "method": "PUT",
+          "url": "{base_url}/roomtenantmapping/{id}",
+          "authorization": "AdminOrOwnerPolicy + ResourceAuthorize(RoomTenantMapping)",
+          "path_parameters": {
+            "id": "number (required - mappingId)"
+          },
+          "request_body": {
+            "roomTenantMappingId": "number (required)",
+            "isActive": "boolean (required)",
+            "boardingDate": "string (ISO date - required)",
+            "leavingDate": "string (ISO date - optional)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Mapping updated successfully",
+            "data": true,
+            "errors": []
+          },
+          "notes": ["RoomId and TenantId are immutable and cannot be changed"]
+        },
+        "deactivate_mapping": {
+          "description": "Deactivate (soft delete) a room-tenant mapping",
+          "method": "DELETE",
+          "url": "{base_url}/roomtenantmapping/{id}/deactivate",
+          "authorization": "AdminOrOwnerPolicy + ResourceAuthorize(RoomTenantMapping)",
+          "path_parameters": {
+            "id": "number (required - mappingId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Mapping deactivated successfully",
+            "data": true,
+            "errors": []
+          }
+        },
+        "check_active_mapping": {
+          "description": "Check if an active mapping exists between a room and tenant",
+          "method": "GET",
+          "url": "{base_url}/roomtenantmapping/check/{roomId}/{tenantId}",
+          "authorization": "AdminOrOwnerOrTenantPolicy (with service-level authorization checks)",
+          "path_parameters": {
+            "roomId": "number (required)",
+            "tenantId": "number (required)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Success",
+            "data": "boolean (true if active mapping exists, false otherwise)",
+            "errors": []
+          },
+          "security_notes": "User must have access to both the room AND tenant to check mapping existence"
+        },
+        "search_mappings": {
+          "description": "Search room-tenant mappings with filters and pagination - Enhanced with joined tenant, room, and property data",
+          "method": "POST",
+          "url": "{base_url}/roomtenantmapping/search",
+          "authorization": "AdminOrOwnerOrTenantPolicy (with automatic role-based scoping)",
+          "request_body": {
+            "searchTerm": "string (optional - searches tenant name, tenant mobile, tenant email, room number, property name)",
+            "ownerId": "number (optional - Admin only, auto-set for Owners)",
+            "propertyId": "number (optional)",
+            "roomId": "number (optional)",
+            "tenantId": "number (optional - auto-set for Tenants)",
+            "boardingDateFrom": "string (ISO date - optional)",
+            "boardingDateTo": "string (ISO date - optional)",
+            "isActive": "boolean (optional - filter by active status)",
+            "pageNumber": "number (default: 1, min: 1)",
+            "pageSize": "number (default: 10, min: 1, max: 100)",
+            "sortBy": "string (optional - 'BoardingDate', 'LeavingDate', 'RoomNo', 'TenantName', 'PropertyName', 'TenantMobile', 'CreationDate')",
+            "sortDirection": "string (optional - 'asc' or 'desc', default: 'asc')"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Success",
+            "data": {
+              "data": ["RoomTenantMappingResponseDto (with tenantName, tenantMobile, tenantEmail, roomNo, propertyId, propertyName)"],
+              "totalRecords": "number",
+              "pageNumber": "number",
+              "pageSize": "number",
+              "totalPages": "number",
+              "hasNextPage": "boolean",
+              "hasPreviousPage": "boolean"
+            },
+            "errors": []
+          },
+          "security_notes": [
+            "Admin: Can search all mappings",
+            "Owner: Automatically filtered to own mappings (ownerId override)",
+            "Tenant: Automatically filtered to own mappings (tenantId override)"
+          ],
+          "performance_notes": {
+            "database_optimization": "Uses optimized INNER JOIN queries with Tenant, Room, and Property tables",
+            "n_plus_1_prevention": "All related data fetched in single query to avoid multiple round-trips"
+          }
+        }
+      },
+
+      "tenant_rent_setting": {
+        "create_setting": {
+          "description": "Create rent settings for a room-tenant mapping",
+          "method": "POST",
+          "url": "{base_url}/tenantRentSetting/create",
+          "authorization": "AdminOrOwnerPolicy",
+          "request_body": {
+            "roomTenantMappingId": "number (required)",
+            "rentRecurringPeriodInDays": "number (optional - 1=daily, 7=weekly, 30=monthly, 365=yearly)",
+            "rentingCycleStartPeriod": "string (ISO date - optional)",
+            "lockInPeriod": "string (optional)",
+            "deposited": "decimal (required)",
+            "depositToReturn": "decimal (required)",
+            "presentRentValue": "decimal (optional)",
+            "pastRentValue": "decimal (optional)",
+            "currencyId": "number (optional)",
+            "mobileNo": "string (optional - override tenant mobile for rent notifications)",
+            "email": "string (optional - override tenant email for rent notifications)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Tenant rent setting created successfully",
+            "data": "number (settingId)",
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "responseCode": "400|403|404",
+            "message": "Validation failed | Access denied | Mapping not found | Setting already exists for this mapping",
+            "data": null,
+            "errors": []
+          }
+        },
+        "get_setting_by_id": {
+          "description": "Get rent setting by ID - Enhanced with joined tenant, room, and property data",
+          "method": "GET",
+          "url": "{base_url}/tenantRentSetting/{id}",
+          "authorization": "AdminOrOwnerOrTenantPolicy + ResourceAuthorize(TenantRentSetting)",
+          "path_parameters": {
+            "id": "number (required - settingId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Rent setting retrieved successfully",
+            "data": {
+              "tenantRentSettingId": "number",
+              "roomTenantMappingId": "number",
+              "rentRecurringPeriodInDays": "number (nullable)",
+              "rentingCycleStartPeriod": "string (ISO date - nullable)",
+              "lockInPeriod": "string (nullable)",
+              "deposited": "decimal",
+              "depositToReturn": "decimal",
+              "presentRentValue": "decimal (nullable)",
+              "pastRentValue": "decimal (nullable)",
+              "currencyId": "number (nullable)",
+              "mobileNo": "string (nullable)",
+              "email": "string (nullable)",
+              "tenantName": "string (from joined Tenant table via RoomTenantMapping)",
+              "tenantMobile": "string (from joined Tenant table via RoomTenantMapping)",
+              "tenantEmail": "string (nullable - from joined Tenant table via RoomTenantMapping)",
+              "roomNo": "number (from joined Room table via RoomTenantMapping)",
+              "roomId": "number (from RoomTenantMapping)",
+              "tenantId": "number (from RoomTenantMapping)",
+              "propertyId": "number (from joined Property table via Room)",
+              "propertyName": "string (from joined Property table via Room)",
+              "createdBy": "number",
+              "lastModifiedBy": "number",
+              "creationDate": "string (ISO date)",
+              "lastModificationDate": "string (ISO date - nullable)"
+            },
+            "errors": []
+          }
+        },
+        "get_setting_by_mapping": {
+          "description": "Get rent setting for a specific room-tenant mapping - Enhanced with joined tenant, room, and property data",
+          "method": "GET",
+          "url": "{base_url}/tenantRentSetting/mapping/{mappingId}",
+          "authorization": "AdminOrOwnerOrTenantPolicy + ResourceAuthorize(RoomTenantMapping)",
+          "path_parameters": {
+            "mappingId": "number (required - roomTenantMappingId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Rent setting retrieved successfully",
+            "data": "TenantRentSettingResponseDto (with tenantName, tenantMobile, tenantEmail, roomNo, roomId, tenantId, propertyId, propertyName)",
+            "errors": []
+          },
+          "response_body_error": {
+            "status": false,
+            "responseCode": "404",
+            "message": "No rent setting found for this mapping",
+            "data": null,
+            "errors": []
+          }
+        },
+        "update_setting": {
+          "description": "Update an existing rent setting",
+          "method": "PUT",
+          "url": "{base_url}/tenantRentSetting/{id}",
+          "authorization": "AdminOrOwnerPolicy + ResourceAuthorize(TenantRentSetting)",
+          "path_parameters": {
+            "id": "number (required - settingId)"
+          },
+          "request_body": {
+            "tenantRentSettingId": "number (required)",
+            "rentRecurringPeriodInDays": "number (optional)",
+            "rentingCycleStartPeriod": "string (ISO date - optional)",
+            "lockInPeriod": "string (optional)",
+            "deposited": "decimal (required)",
+            "depositToReturn": "decimal (required)",
+            "presentRentValue": "decimal (optional)",
+            "pastRentValue": "decimal (optional)",
+            "currencyId": "number (optional)",
+            "mobileNo": "string (optional)",
+            "email": "string (optional)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Rent setting updated successfully",
+            "data": true,
+            "errors": []
+          },
+          "notes": ["RoomTenantMappingId is immutable and cannot be changed"]
+        },
+        "delete_setting": {
+          "description": "Delete (soft delete) a rent setting",
+          "method": "DELETE",
+          "url": "{base_url}/tenantRentSetting/{id}",
+          "authorization": "AdminOrOwnerPolicy + ResourceAuthorize(TenantRentSetting)",
+          "path_parameters": {
+            "id": "number (required - settingId)"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Rent setting deactivated successfully",
+            "data": true,
+            "errors": []
+          },
+          "notes": ["This performs a soft delete by setting IsActive=false, does not physically delete from database"]
+        },
+        "search_settings": {
+          "description": "Search tenant rent settings with filters and pagination - Enhanced with joined tenant, room, and property data",
+          "method": "POST",
+          "url": "{base_url}/tenantRentSetting/search",
+          "authorization": "AdminOrOwnerOrTenantPolicy (with automatic role-based scoping)",
+          "request_body": {
+            "searchTerm": "string (optional - searches tenant name, tenant mobile, tenant email, room number, property name, setting mobile, setting email)",
+            "ownerId": "number (optional - Admin only, auto-set for Owners)",
+            "propertyId": "number (optional)",
+            "roomId": "number (optional)",
+            "tenantId": "number (optional - auto-set for Tenants)",
+            "minPresentRent": "decimal (optional - minimum present rent value)",
+            "maxPresentRent": "decimal (optional - maximum present rent value)",
+            "minDeposit": "decimal (optional - minimum deposit amount)",
+            "maxDeposit": "decimal (optional - maximum deposit amount)",
+            "isActive": "boolean (optional - filter by active status)",
+            "pageNumber": "number (default: 1, min: 1)",
+            "pageSize": "number (default: 10, min: 1, max: 100)",
+            "sortBy": "string (optional - 'PresentRentValue', 'Deposited', 'RentingCycleStartPeriod', 'TenantName', 'RoomNo', 'PropertyName', 'CreationDate')",
+            "sortDirection": "string (optional - 'asc' or 'desc', default: 'asc')"
+          },
+          "response_body_success": {
+            "status": true,
+            "message": "Success",
+            "data": {
+              "data": ["TenantRentSettingResponseDto (with tenantName, tenantMobile, tenantEmail, roomNo, roomId, tenantId, propertyId, propertyName)"],
+              "totalRecords": "number",
+              "pageNumber": "number",
+              "pageSize": "number",
+              "totalPages": "number",
+              "hasNextPage": "boolean",
+              "hasPreviousPage": "boolean"
+            },
+            "errors": []
+          },
+          "security_notes": [
+            "Admin: Can search all settings",
+            "Owner: Automatically filtered to own settings (ownerId override)",
+            "Tenant: Automatically filtered to own settings (tenantId override)"
+          ],
+          "performance_notes": {
+            "database_optimization": "Uses optimized 4-table JOIN queries (TenantRentSettings→RoomTenantMapping→Tenant, Room→Property)",
+            "n_plus_1_prevention": "All related data fetched in single query to avoid multiple round-trips"
+          }
+        }
+      },
+
       "renttrack": {
         "create_rent_track": {
           "description": "Create a new rent track record",
@@ -837,6 +1205,12 @@
           "description": "Search rent tracks with filters (paginated) - Enhanced with property name, tenant name, and room number search and display",
           "method": "POST",
           "url": "{base_url}/renttrack/search",
+          "authorization": "AdminOrOwnerOrTenantPolicy (with automatic role-based scoping)",
+          "security_notes": [
+            "Admin: Can search all rent tracks in the system",
+            "Owner: Automatically scoped to own rent tracks only (ownerId override in service)",
+            "Tenant: Automatically scoped to own rent tracks only (tenantId override in service)"
+          ],
           "request_body": {
             "searchTerm": "string (optional - searches across note, rent values, property name, tenant name, and room number)",
             "propertyId": "number (optional)",
@@ -1666,11 +2040,77 @@
     },
   
     "data_types_reference": {
+      "RoomTenantMappingResponseDto": {
+        "description": "Enhanced room-tenant mapping response with related entity data (v1.4.0)",
+        "properties": {
+          "roomTenantMappingId": "number",
+          "roomId": "number",
+          "tenantId": "number",
+          "isActive": "boolean",
+          "boardingDate": "string (ISO date)",
+          "leavingDate": "string (ISO date - nullable)",
+          "tenantName": "string (from joined Tenant table)",
+          "tenantMobile": "string (from joined Tenant table)",
+          "tenantEmail": "string (nullable - from joined Tenant table)",
+          "roomNo": "number (from joined Room table)",
+          "propertyId": "number (from joined Property table via Room)",
+          "propertyName": "string (from joined Property table via Room)",
+          "createdBy": "number",
+          "lastModifiedBy": "number",
+          "creationDate": "string (ISO date)",
+          "lastModificationDate": "string (ISO date - nullable)"
+        },
+        "enhancements": {
+          "v1.4.0": "Added tenantName, tenantMobile, tenantEmail, roomNo, propertyId, and propertyName fields populated via optimized INNER JOIN queries to eliminate N+1 queries"
+        },
+        "performance_benefits": [
+          "Reduces frontend API calls from 4 to 1 (previously needed separate calls for tenant, room, and property details)",
+          "Single database query with JOINs instead of multiple round-trips",
+          "Improves page load time and reduces network overhead"
+        ]
+      },
+      "TenantRentSettingResponseDto": {
+        "description": "Enhanced tenant rent setting response with related entity data (v1.4.0)",
+        "properties": {
+          "tenantRentSettingId": "number",
+          "roomTenantMappingId": "number",
+          "rentRecurringPeriodInDays": "number (nullable)",
+          "rentingCycleStartPeriod": "string (ISO date - nullable)",
+          "lockInPeriod": "string (nullable)",
+          "deposited": "decimal",
+          "depositToReturn": "decimal",
+          "presentRentValue": "decimal (nullable)",
+          "pastRentValue": "decimal (nullable)",
+          "currencyId": "number (nullable)",
+          "mobileNo": "string (nullable - override contact for rent notifications)",
+          "email": "string (nullable - override contact for rent notifications)",
+          "tenantName": "string (from joined Tenant table via RoomTenantMapping)",
+          "tenantMobile": "string (from joined Tenant table via RoomTenantMapping)",
+          "tenantEmail": "string (nullable - from joined Tenant table via RoomTenantMapping)",
+          "roomNo": "number (from joined Room table via RoomTenantMapping)",
+          "roomId": "number (from RoomTenantMapping)",
+          "tenantId": "number (from RoomTenantMapping)",
+          "propertyId": "number (from joined Property table via Room)",
+          "propertyName": "string (from joined Property table via Room)",
+          "createdBy": "number",
+          "lastModifiedBy": "number",
+          "creationDate": "string (ISO date)",
+          "lastModificationDate": "string (ISO date - nullable)"
+        },
+        "enhancements": {
+          "v1.4.0": "Added tenantName, tenantMobile, tenantEmail, roomNo, roomId, tenantId, propertyId, and propertyName fields populated via optimized 4-table JOIN queries (TenantRentSettings→RoomTenantMapping→Tenant, Room→Property)"
+        },
+        "performance_benefits": [
+          "Reduces frontend API calls from 5 to 1 (previously needed separate calls for mapping, tenant, room, and property details)",
+          "Single database query with 4-table JOINs instead of multiple sequential queries",
+          "Significantly improves response time for rent setting displays and lists"
+        ]
+      },
       "RentTrackResponseDto": {
         "description": "Enhanced rent track response with related entity data",
         "properties": {
           "rentTrackId": "number",
-          "propertyId": "number", 
+          "propertyId": "number",
           "roomId": "number (nullable)",
           "tenantId": "number",
           "ownerId": "number",
@@ -1851,6 +2291,32 @@
       "All monetary values are decimal type.",
       "Standard response wrapper has status, message, data, errors unless otherwise noted.",
       "Some endpoints are [AllowAnonymous] during development.",
+      "Enhanced Response DTOs (v1.4.0):",
+      "  - RoomTenantMappingResponseDto now includes joined fields: tenantName, tenantMobile, tenantEmail, roomNo, propertyId, propertyName",
+      "  - TenantRentSettingResponseDto now includes joined fields: tenantName, tenantMobile, tenantEmail, roomNo, roomId, tenantId, propertyId, propertyName",
+      "  - All RoomTenantMapping endpoints (GetById, GetByRoom, GetByTenant, GetByOwner, Search) return enhanced DTOs",
+      "  - All TenantRentSetting endpoints (GetById, GetByMapping, Search) return enhanced DTOs",
+      "  - Performance optimization: Single database query with JOINs eliminates N+1 query problem",
+      "  - Frontend benefits: Reduces API calls from 4-5 to 1 per entity, improving page load times",
+      "  - Database optimization: Uses INNER JOIN queries on Tenant, Room, and Property tables",
+      "  - Search functionality enhanced: Can now search by tenant name/mobile/email and property name",
+      "  - Sorting options expanded: Can now sort by joined fields like TenantName, PropertyName",
+      "  - Currency display: Frontend should still use lookup endpoints to get currency symbols/names (not embedded in responses)",
+      "Tenant Search Endpoint Updates (v1.3.1):",
+      "  - Removed deprecated parameters: roomNumber, minRent, maxRent, boardingDateFrom, boardingDateTo, leavingDateFrom, leavingDateTo",
+      "  - Added roomId parameter to filter tenants by specific room (replaces roomNumber)",
+      "  - Added propertyId filter to find all unique tenants who rent rooms in a property",
+      "  - Enhanced role-based access control: Tenant role can now access search endpoint but only sees their own record",
+      "  - Role-based filtering behavior: Admin (all tenants), Owner (own tenants only), Tenant (self only - all filters ignored)",
+      "  - Security: Tenant role search automatically forces tenantId=userId to prevent unauthorized access",
+      "  - Endpoint now requires AdminOrOwnerOrTenantPolicy authorization (previously AdminOrOwnerPolicy)",
+      "Many-to-Many Relationship Implementation (Added v1.3):",
+      "  - RoomTenantMapping: Junction table enabling one room to have multiple tenants and one tenant to occupy multiple rooms",
+      "  - TenantRentSetting: Rent configuration per room-tenant mapping (replaces tenant-level rent fields)",
+      "  - Room and Tenant entities are now independent - tenants are not directly assigned to rooms",
+      "  - Create RoomTenantMapping to assign tenant to room, then create TenantRentSetting for rent details",
+      "  - All endpoints include proper authorization checks - user must have access to both room AND tenant",
+      "  - Soft delete pattern used (IsActive flag) - no hard deletes on mappings or settings",
       "Validation System (Updated v1.2): All FluentValidation errors now return consistent response format:",
       "  - Custom ValidationFilter intercepts model validation failures",
       "  - All validation errors return unified format with responseCode: 400",

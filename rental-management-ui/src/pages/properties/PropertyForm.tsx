@@ -40,7 +40,7 @@ const PropertyForm: React.FC = () => {
   const queryClient = useQueryClient();
   const isEdit = Boolean(id);
   const { isAdmin, isOwner, user } = useRoleAccess();
-  const { lookups, isLoading: lookupsLoading } = useLookup();
+  const { lookups } = useLookup();
 
   const { data: owners } = useQuery({
     queryKey: ['owners-lookup'],
@@ -68,12 +68,12 @@ const PropertyForm: React.FC = () => {
     const defaultState = lookups.states.find(s => s.value === 'Maharashtra') || lookups.states[0];
 
     return {
-      currencyId: defaultCurrency?.id || undefined,
-      statusId: defaultStatus?.id || undefined,
+      currencyId: defaultCurrency?.id ? Number(defaultCurrency.id) : undefined,
+      statusId: defaultStatus?.id ? Number(defaultStatus.id) : undefined,
       ownerId: isOwner() ? user?.userId : undefined, // Default to current user if Owner
       address: {
-        countryId: defaultCountry?.id || undefined,
-        stateId: defaultState?.id || undefined,
+        countryId: defaultCountry?.id ? Number(defaultCountry.id) : undefined,
+        stateId: defaultState?.id ? Number(defaultState.id) : undefined,
       }
     };
   };
@@ -84,7 +84,7 @@ const PropertyForm: React.FC = () => {
     formState: { errors, isSubmitting },
     reset
   } = useForm<CreatePropertyDto | UpdatePropertyDto>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema) as any,
     defaultValues: getDefaultValues()
   });
 
@@ -115,8 +115,14 @@ const PropertyForm: React.FC = () => {
           area: '',
           city: '',
           pincode: '',
-          stateId: lookups.states.find(s => s.value === 'Maharashtra')?.id || lookups.states[0]?.id || undefined,
-          countryId: lookups.countries.find(c => c.value === 'India')?.id || lookups.countries[0]?.id || undefined,
+          stateId: (() => {
+            const id = lookups.states.find(s => s.value === 'Maharashtra')?.id || lookups.states[0]?.id;
+            return id ? Number(id) : undefined;
+          })(),
+          countryId: (() => {
+            const id = lookups.countries.find(c => c.value === 'India')?.id || lookups.countries[0]?.id;
+            return id ? Number(id) : undefined;
+          })(),
         }
       });
     }

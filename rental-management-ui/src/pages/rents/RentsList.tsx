@@ -68,7 +68,7 @@ const RentsList: React.FC = () => {
   }, [urlParams, handleFilterChange]);
 
   // Fetch lookup data with error handling
-  const { data: owners, isLoading: ownersLoading, error: ownersError } = useQuery({
+  const { data: owners } = useQuery({
     queryKey: ['owners-lookup'],
     queryFn: async () => {
       try {
@@ -84,7 +84,7 @@ const RentsList: React.FC = () => {
     retryDelay: 1000,
   });
 
-  const { data: properties, isLoading: propertiesLoading, error: propertiesError } = useQuery({
+  const { data: properties } = useQuery({
     queryKey: ['properties-lookup', urlParams.get('ownerId'), filters.filterValues.ownerId],
     queryFn: async () => {
       try {
@@ -108,7 +108,7 @@ const RentsList: React.FC = () => {
     enabled: true, // Always enable this query
   });
 
-  const { data: rooms, isLoading: roomsLoading, error: roomsError } = useQuery({
+  const { data: rooms } = useQuery({
     queryKey: ['rooms-lookup', urlParams.get('propertyId'), filters.filterValues.propertyId],
     queryFn: async () => {
       try {
@@ -132,7 +132,7 @@ const RentsList: React.FC = () => {
     enabled: true, // Always enable this query
   });
 
-  const { data: tenants, isLoading: tenantsLoading, error: tenantsError } = useQuery({
+  const { data: tenants } = useQuery({
     queryKey: ['tenants-lookup', urlParams.get('ownerId'), filters.filterValues.ownerId],
     queryFn: async () => {
       try {

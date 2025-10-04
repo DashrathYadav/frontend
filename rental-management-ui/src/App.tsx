@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
@@ -21,6 +20,12 @@ import TenantsList from './pages/tenants/TenantsList';
 import TenantForm from './pages/tenants/TenantForm';
 import TenantDetail from './pages/tenants/TenantDetail';
 import TenantDocuments from './pages/tenants/TenantDocuments';
+import BoardTenantList from './pages/board-tenants/BoardTenantList';
+import BoardTenantForm from './pages/board-tenants/BoardTenantForm';
+import BoardTenantDetail from './pages/board-tenants/BoardTenantDetail';
+import TenantRentSettingsList from './pages/rent-settings/TenantRentSettingsList';
+import TenantRentSettingsForm from './pages/rent-settings/TenantRentSettingsForm';
+import TenantRentSettingsDetail from './pages/rent-settings/TenantRentSettingsDetail';
 import RentsList from './pages/rents/RentsList';
 import RentForm from './pages/rents/RentForm';
 import RentDetail from './pages/rents/RentDetail';
@@ -180,6 +185,70 @@ function App() {
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <TenantDocuments />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/board-tenants" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <BoardTenantList />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/board-tenants/new" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <BoardTenantForm />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/board-tenants/:id" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <BoardTenantDetail />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/board-tenants/:id/edit" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <BoardTenantForm />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/rent-settings" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <TenantRentSettingsList />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/rent-settings/new" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <TenantRentSettingsForm />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/rent-settings/:id" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <TenantRentSettingsDetail />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/rent-settings/:id/edit" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <TenantRentSettingsForm />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             } />

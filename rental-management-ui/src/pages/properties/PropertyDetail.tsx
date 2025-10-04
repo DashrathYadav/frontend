@@ -465,16 +465,8 @@ const PropertyDetail: React.FC = () => {
                                                             <span className="ml-2 font-medium">{tenant.tenantEmail || "N/A"}</span>
                                                         </div>
                                                         <div>
-                                                            <span className="text-gray-600">Rent:</span>
-                                                            <span className="ml-2 font-medium text-green-600">
-                                                                {formatCurrency(tenant.presentRentValue || 0)}
-                                                            </span>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-gray-600">Boarding Date:</span>
-                                                            <span className="ml-2 font-medium">
-                                                                {new Date(tenant.boardingDate).toLocaleDateString()}
-                                                            </span>
+                                                            <span className="text-gray-600">Aadhar ID:</span>
+                                                            <span className="ml-2 font-medium">{tenant.tenantAdharId || "N/A"}</span>
                                                         </div>
                                                     </div>
                                                     <div className="mt-3 pt-3 border-t">

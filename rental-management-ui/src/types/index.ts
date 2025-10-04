@@ -204,15 +204,13 @@ export interface UpdateRoomDto {
   note?: string;
 }
 
-// Tenant types
+// Tenant types - Updated for new API structure (basic tenant info only)
 export interface Tenant {
   tenantId: number;
   tenantName: string;
   tenantMobile: string;
   tenantEmail?: string;
   tenantAdharId: string;
-  tenantProfilePic?: string;
-  tenantDocument?: string;
 
   // Authentication fields (excluding Password for security)
   loginId: string;
@@ -223,16 +221,6 @@ export interface Tenant {
   isActive: boolean;
   lockInPeriod: string;
   note?: string;
-  deposited: number;
-  depositToReturn: number;
-  presentRentValue?: number;
-  pastRentValue?: number;
-  currencyId?: number;
-  boardingDate: string;
-  leavingDate?: string;
-  ownerId: number;
-  propertyId: number;
-  roomId?: number;
   creationDate: string;
   lastModificationDate?: string;
 }
@@ -242,8 +230,6 @@ export interface CreateTenantDto {
   tenantMobile: string;
   tenantEmail?: string;
   tenantAdharId: string;
-  tenantProfilePic?: string;
-  tenantDocument?: string;
 
   // Authentication fields
   loginId: string;
@@ -252,33 +238,112 @@ export interface CreateTenantDto {
   permanentAddress: CreateAddressDto;
   lockInPeriod: string;
   note?: string;
-  deposited: number;
-  presentRentValue?: number;
-  pastRentValue?: number;
-  currencyId?: number;
-  boardingDate: string;
-  ownerId: number;
-  propertyId: number;
-  roomId: number;
 }
 
 export interface UpdateTenantDto {
   tenantName: string;
   tenantMobile: string;
   tenantEmail?: string;
-  tenantProfilePic?: string;
-  tenantDocument?: string;
   lockInPeriod: string;
   note?: string;
   isActive: boolean;
+  permanentAddress?: UpdateAddressDto;
+}
+
+// Room-Tenant Mapping types - New Many-to-Many relationship
+export interface RoomTenantMapping {
+  roomTenantMappingId: number;
+  roomId: number;
+  tenantId: number;
+
+  // Joined fields from related tables (from API enhancement)
+  tenantName: string;
+  tenantMobile: string;
+  tenantEmail?: string;
+  roomNo: number;
+  propertyId: number;
+  propertyName: string;
+
+  isActive: boolean;
+  boardingDate: string;
+  leavingDate?: string;
+  createdBy: number;
+  lastModifiedBy: number;
+  creationDate: string;
+  lastModificationDate?: string;
+}
+
+export interface CreateRoomTenantMappingDto {
+  roomId: number;
+  tenantId: number;
+  boardingDate: string;
+  leavingDate?: string;
+}
+
+export interface UpdateRoomTenantMappingDto {
+  roomTenantMappingId: number;
+  isActive: boolean;
+  boardingDate: string;
+  leavingDate?: string;
+}
+
+// Tenant Rent Settings types - Rent configuration per room-tenant mapping
+export interface TenantRentSetting {
+  tenantRentSettingId: number;
+  roomTenantMappingId: number;
+
+  // Joined fields from related tables (from API enhancement)
+  tenantName: string;
+  tenantMobile: string;
+  tenantEmail?: string;
+  roomNo: number;
+  roomId: number;
+  tenantId: number;
+  propertyId: number;
+  propertyName: string;
+
+  rentRecurringPeriodInDays?: number;
+  rentingCycleStartPeriod?: string;
+  lockInPeriod?: string;
   deposited: number;
   depositToReturn: number;
   presentRentValue?: number;
   pastRentValue?: number;
   currencyId?: number;
-  boardingDate: string;
-  leavingDate?: string;
-  permanentAddress?: UpdateAddressDto;
+  mobileNo?: string;
+  email?: string;
+  createdBy: number;
+  lastModifiedBy: number;
+  creationDate: string;
+  lastModificationDate?: string;
+}
+
+export interface CreateTenantRentSettingDto {
+  roomTenantMappingId: number;
+  rentRecurringPeriodInDays?: number;
+  rentingCycleStartPeriod?: string;
+  lockInPeriod?: string;
+  deposited: number;
+  depositToReturn: number;
+  presentRentValue?: number;
+  pastRentValue?: number;
+  currencyId?: number;
+  mobileNo?: string;
+  email?: string;
+}
+
+export interface UpdateTenantRentSettingDto {
+  tenantRentSettingId: number;
+  rentRecurringPeriodInDays?: number;
+  rentingCycleStartPeriod?: string;
+  lockInPeriod?: string;
+  deposited: number;
+  depositToReturn: number;
+  presentRentValue?: number;
+  pastRentValue?: number;
+  currencyId?: number;
+  mobileNo?: string;
+  email?: string;
 }
 
 // RentTrack types - matches API response structure
@@ -370,15 +435,41 @@ export interface TenantSearchRequest {
   email?: string;
   mobileNumber?: string;
   propertyId?: number;
-  roomNumber?: number;
+  roomId?: number;
   ownerId?: number;
   isActive?: boolean;
-  minRent?: number;
-  maxRent?: number;
+  pageNumber: number;
+  pageSize: number;
+  sortBy?: string;
+  sortDirection?: string;
+}
+
+export interface RoomTenantMappingSearchRequest {
+  searchTerm?: string;
+  ownerId?: number;
+  propertyId?: number;
+  roomId?: number;
+  tenantId?: number;
   boardingDateFrom?: string;
   boardingDateTo?: string;
-  leavingDateFrom?: string;
-  leavingDateTo?: string;
+  isActive?: boolean;
+  pageNumber: number;
+  pageSize: number;
+  sortBy?: string;
+  sortDirection?: string;
+}
+
+export interface TenantRentSettingSearchRequest {
+  searchTerm?: string;
+  ownerId?: number;
+  propertyId?: number;
+  roomId?: number;
+  tenantId?: number;
+  minPresentRent?: number;
+  maxPresentRent?: number;
+  minDeposit?: number;
+  maxDeposit?: number;
+  isActive?: boolean;
   pageNumber: number;
   pageSize: number;
   sortBy?: string;

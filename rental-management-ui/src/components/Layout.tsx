@@ -8,7 +8,9 @@ import {
   TrendingUp,
   DollarSign,
   LogOut,
-  User
+  User,
+  MapPin,
+  Settings
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRoleAccess } from '../hooks';
@@ -26,6 +28,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     { name: 'Properties', href: '/properties', icon: Building2, roles: [USER_ROLES.ADMIN, USER_ROLES.OWNER] },
     { name: 'Rooms', href: '/rooms', icon: DoorOpen, roles: [USER_ROLES.ADMIN, USER_ROLES.OWNER] },
     { name: 'Tenants', href: '/tenants', icon: UserCheck, roles: [USER_ROLES.ADMIN, USER_ROLES.OWNER] },
+    { name: 'Board Tenants', href: '/board-tenants', icon: MapPin, roles: [USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.TENANT] },
+    { name: 'Rent Settings', href: '/rent-settings', icon: Settings, roles: [USER_ROLES.ADMIN, USER_ROLES.OWNER] },
     { name: 'Rent Track', href: '/rents', icon: DollarSign, roles: [USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.TENANT] },
   ];
 

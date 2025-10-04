@@ -8,9 +8,7 @@ import {
     getRentStatusBadgeClass,
     getPropertyTypeValue,
     getRoomTypeValue,
-    getCurrencyValue,
-    AvailabilityStatus,
-    RentStatus
+    getCurrencyValue
 } from "../../constants"
 
 // Badge variants for different use cases
@@ -130,5 +128,4 @@ export const TypeBadge: React.FC<{
     )
 }
 
-export { Badge, badgeVariants }
-export type { BadgeProps } 
+export { Badge, badgeVariants } 

@@ -12,7 +12,7 @@ interface PaginationEnhancedProps {
     showFirstLast?: boolean;
     className?: string;
     pageSizeOptions?: number[];
-    paginationType?: keyof typeof PAGINATION_TYPES;
+    paginationType?: typeof PAGINATION_TYPES[keyof typeof PAGINATION_TYPES];
 }
 
 const PaginationEnhanced: React.FC<PaginationEnhancedProps> = ({

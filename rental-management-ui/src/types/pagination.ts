@@ -25,7 +25,7 @@ export interface PaginationResponse<T> {
 
 // Pagination configuration interface
 export interface PaginationConfig {
-    type: keyof typeof PAGINATION_TYPES;
+    type: typeof PAGINATION_TYPES[keyof typeof PAGINATION_TYPES];
     defaultPageSize?: number;
     maxPageSize?: number;
     pageSizeOptions?: number[];

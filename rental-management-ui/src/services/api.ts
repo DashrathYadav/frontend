@@ -10,11 +10,20 @@ import type {
   PropertyOwnerContact,
   Room,
   CreateRoomDto,
+  UpdateRoomDto,
   RoomSearchRequest,
   Tenant,
   CreateTenantDto,
   UpdateTenantDto,
   TenantSearchRequest,
+  RoomTenantMapping,
+  CreateRoomTenantMappingDto,
+  UpdateRoomTenantMappingDto,
+  RoomTenantMappingSearchRequest,
+  TenantRentSetting,
+  CreateTenantRentSettingDto,
+  UpdateTenantRentSettingDto,
+  TenantRentSettingSearchRequest,
   RentTrack,
   CreateRentTrackDto,
   UpdateRentTrackDto,
@@ -272,6 +281,87 @@ export const rentTrackApi = {
 
   update: async (id: number, data: UpdateRentTrackDto): Promise<boolean> => {
     const response = await api.put<ApiResponse<boolean>>(`/renttrack/${id}`, data);
+    return response.data.data;
+  }
+};
+
+// Room-Tenant Mapping API
+export const roomTenantMappingApi = {
+  search: async (params: RoomTenantMappingSearchRequest): Promise<PagedResult<RoomTenantMapping>> => {
+    const response = await api.post<ApiResponse<PagedResult<RoomTenantMapping>>>('/roomtenantmapping/search', params);
+    return response.data.data;
+  },
+
+  getById: async (id: number): Promise<RoomTenantMapping> => {
+    const response = await api.get<ApiResponse<RoomTenantMapping>>(`/roomtenantmapping/${id}`);
+    return response.data.data;
+  },
+
+  getByRoom: async (roomId: number): Promise<RoomTenantMapping[]> => {
+    const response = await api.get<ApiResponse<RoomTenantMapping[]>>(`/roomtenantmapping/room/${roomId}`);
+    return response.data.data;
+  },
+
+  getByTenant: async (tenantId: number): Promise<RoomTenantMapping[]> => {
+    const response = await api.get<ApiResponse<RoomTenantMapping[]>>(`/roomtenantmapping/tenant/${tenantId}`);
+    return response.data.data;
+  },
+
+  getByOwner: async (ownerId: number): Promise<RoomTenantMapping[]> => {
+    const response = await api.get<ApiResponse<RoomTenantMapping[]>>(`/roomtenantmapping/owner/${ownerId}`);
+    return response.data.data;
+  },
+
+  create: async (data: CreateRoomTenantMappingDto): Promise<number> => {
+    const response = await api.post<ApiResponse<number>>('/roomtenantmapping/create', data);
+    return response.data.data;
+  },
+
+  update: async (id: number, data: UpdateRoomTenantMappingDto): Promise<boolean> => {
+    const response = await api.put<ApiResponse<boolean>>(`/roomtenantmapping/${id}`, data);
+    return response.data.data;
+  },
+
+  deactivate: async (id: number): Promise<boolean> => {
+    const response = await api.delete<ApiResponse<boolean>>(`/roomtenantmapping/${id}/deactivate`);
+    return response.data.data;
+  },
+
+  checkActiveMapping: async (roomId: number, tenantId: number): Promise<boolean> => {
+    const response = await api.get<ApiResponse<boolean>>(`/roomtenantmapping/check/${roomId}/${tenantId}`);
+    return response.data.data;
+  }
+};
+
+// Tenant Rent Setting API
+export const tenantRentSettingApi = {
+  search: async (params: TenantRentSettingSearchRequest): Promise<PagedResult<TenantRentSetting>> => {
+    const response = await api.post<ApiResponse<PagedResult<TenantRentSetting>>>('/tenantRentSetting/search', params);
+    return response.data.data;
+  },
+
+  getById: async (id: number): Promise<TenantRentSetting> => {
+    const response = await api.get<ApiResponse<TenantRentSetting>>(`/tenantRentSetting/${id}`);
+    return response.data.data;
+  },
+
+  getByMapping: async (mappingId: number): Promise<TenantRentSetting> => {
+    const response = await api.get<ApiResponse<TenantRentSetting>>(`/tenantRentSetting/mapping/${mappingId}`);
+    return response.data.data;
+  },
+
+  create: async (data: CreateTenantRentSettingDto): Promise<number> => {
+    const response = await api.post<ApiResponse<number>>('/tenantRentSetting/create', data);
+    return response.data.data;
+  },
+
+  update: async (id: number, data: UpdateTenantRentSettingDto): Promise<boolean> => {
+    const response = await api.put<ApiResponse<boolean>>(`/tenantRentSetting/${id}`, data);
+    return response.data.data;
+  },
+
+  delete: async (id: number): Promise<boolean> => {
+    const response = await api.delete<ApiResponse<boolean>>(`/tenantRentSetting/${id}`);
     return response.data.data;
   }
 };

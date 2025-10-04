@@ -18,8 +18,7 @@ const PropertiesList: React.FC = () => {
     getPropertyTypeName, 
     getAvailabilityStatusName,
     getAvailabilityStatusBadgeClass,
-    lookups,
-    isLoading: lookupsLoading
+    lookups
   } = useLookup();
 
   // Use enhanced pagination hook
@@ -42,7 +41,7 @@ const PropertiesList: React.FC = () => {
   });
 
   // Fetch lookup data with error handling
-  const { data: owners, isLoading: ownersLoading, error: ownersError } = useQuery({
+  const { data: owners } = useQuery({
     queryKey: ['owners-lookup'],
     queryFn: async () => {
       try {

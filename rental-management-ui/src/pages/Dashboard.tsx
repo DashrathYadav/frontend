@@ -6,8 +6,6 @@ import {
   DoorOpen,
   UserCheck,
   TrendingUp,
-  DollarSign,
-  Plus,
   ArrowRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -17,7 +15,7 @@ import { dashboardApi, rentTrackApi } from '../services/api';
 import { useRoleAccess } from '../hooks';
 import { useLookup } from '../contexts/LookupContext';
 import { formatDate, formatCurrency } from '../utils';
-import { AdminOnly, AdminOrOwner } from '../components/RoleBasedRender';
+import { AdminOnly } from '../components/RoleBasedRender';
 
 const Dashboard: React.FC = () => {
   const { isAdmin, isOwner } = useRoleAccess();

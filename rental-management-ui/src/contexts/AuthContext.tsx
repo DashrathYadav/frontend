@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import api from '../services/api';
-import { USER_ROLES, type UserRole } from '../constants';
+import { type UserRole } from '../constants';
 import { decodeJwtToken } from '../utils';
 
 interface User {

@@ -1,10 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { Mail, Phone, Calendar, UserCheck, CreditCard, Plus } from 'lucide-react';
+import { Mail, Phone, Calendar, UserCheck } from 'lucide-react';
 import { tenantApi, lookupApi } from '../../services/api';
 import { TenantSearchRequest } from '../../types';
-import { formatCurrency } from '../../utils';
 import ListPageWrapper from '../../components/ListPageWrapper';
 import EntityCard, { EntityCardItem } from '../../components/EntityCard';
 import { useEnhancedPagination } from '../../hooks/useEnhancedPagination';
@@ -39,9 +38,9 @@ const TenantsList: React.FC = () => {
   React.useEffect(() => {
     const ownerId = urlParams.get('ownerId');
     const propertyId = urlParams.get('propertyId');
-    const roomNumber = urlParams.get('roomNumber');
+    const roomId = urlParams.get('roomId');
 
-    console.log('URL params - ownerId:', ownerId, 'propertyId:', propertyId, 'roomNumber:', roomNumber);
+    console.log('URL params - ownerId:', ownerId, 'propertyId:', propertyId, 'roomId:', roomId);
 
     if (ownerId) {
       console.log('Setting ownerId filter:', ownerId);
@@ -51,16 +50,16 @@ const TenantsList: React.FC = () => {
       console.log('Setting propertyId filter:', propertyId);
       handleFilterChange('propertyId', propertyId);
     }
-    if (roomNumber) {
-      console.log('Setting roomNumber filter:', roomNumber);
-      handleFilterChange('roomNumber', roomNumber);
+    if (roomId) {
+      console.log('Setting roomId filter:', roomId);
+      handleFilterChange('roomId', roomId);
     }
 
     setInitialUrlParamsProcessed(true);
   }, [urlParams, handleFilterChange]);
 
   // Fetch lookup data with error handling
-  const { data: owners, isLoading: ownersLoading, error: ownersError } = useQuery({
+  const { data: owners } = useQuery({
     queryKey: ['owners-lookup'],
     queryFn: async () => {
       try {
@@ -76,7 +75,7 @@ const TenantsList: React.FC = () => {
     retryDelay: 1000,
   });
 
-  const { data: properties, isLoading: propertiesLoading, error: propertiesError } = useQuery({
+  const { data: properties } = useQuery({
     queryKey: ['properties-lookup', urlParams.get('ownerId'), filters.filterValues.ownerId],
     queryFn: async () => {
       try {
@@ -100,7 +99,7 @@ const TenantsList: React.FC = () => {
     enabled: true, // Always enable this query
   });
 
-  const { data: rooms, isLoading: roomsLoading, error: roomsError } = useQuery({
+  const { data: rooms } = useQuery({
     queryKey: ['rooms-lookup', urlParams.get('propertyId'), filters.filterValues.propertyId],
     queryFn: async () => {
       try {
@@ -193,7 +192,7 @@ const TenantsList: React.FC = () => {
       placeholder: 'Select Property'
     },
     {
-      key: 'roomNumber',
+      key: 'roomId',
       label: 'Room',
       options: rooms?.data?.map(room => ({
         value: room.id.toString(),
@@ -215,7 +214,7 @@ const TenantsList: React.FC = () => {
   // Initialize filter values with 'all' to prevent empty string issues
   React.useEffect(() => {
     // Only initialize if no URL parameters are present and initial URL params have been processed
-    const hasUrlParams = urlParams.get('ownerId') || urlParams.get('propertyId') || urlParams.get('roomNumber');
+    const hasUrlParams = urlParams.get('ownerId') || urlParams.get('propertyId') || urlParams.get('roomId');
 
     if (filterOptions.length > 0 && Object.keys(filters.filterValues).length === 0 && !hasUrlParams && initialUrlParamsProcessed) {
       filterOptions.forEach(filter => {
@@ -299,26 +298,15 @@ const TenantsList: React.FC = () => {
               },
               {
                 icon: <Calendar className="w-4 h-4" />,
-                label: 'Rent',
-                value: formatCurrency(tenant.presentRentValue || 0)
+                label: 'Lock-in Period',
+                value: tenant.lockInPeriod
               }
             ],
             footerStatus: {
               label: tenant.isActive ? 'Active' : 'Inactive',
               variant: tenant.isActive ? 'default' as const : 'destructive' as const
             },
-            footerActions: [
-              {
-                label: 'Create Rent Track',
-                icon: <Plus className="w-3 h-3" />,
-                url: `/rents/new?tenantId=${tenant.tenantId}`
-              },
-              {
-                label: 'Show Rent Tracks',
-                icon: <CreditCard className="w-3 h-3" />,
-                url: `/rents?ownerId=${tenant.ownerId}&propertyId=${tenant.propertyId}&roomId=${tenant.roomId || ''}&tenantId=${tenant.tenantId}`
-              }
-            ]
+            footerActions: []
           };
 
           return (
