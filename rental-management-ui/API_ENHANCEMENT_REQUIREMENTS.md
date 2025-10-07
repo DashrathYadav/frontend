@@ -1,4 +1,4 @@
-# API Enhancement Requirements - Display Names Instead of IDs
+# API Enhancement Requirements - Dashboard Monthly Summary
 
 **Document Version:** 1.0
 **Date:** 2025-01-04
@@ -7,465 +7,477 @@
 
 ---
 
-## üìã Executive Summary
+## =À Executive Summary
 
-Currently, the application displays entity IDs (tenantId, roomId, propertyId, mappingId) in user-facing pages instead of user-friendly names. This document specifies the exact API enhancements needed to resolve this issue.
+This document specifies the API requirement for an enhanced dashboard that provides simple, actionable financial and occupancy metrics for property managers. The focus is on keeping the application simple and utility-focused for everyday users.
 
-**Impact:** Affects 4 major pages across the application
-**Estimated Backend Effort:** 4-6 hours
-**Priority:** High - Impacts user experience significantly
-
----
-
-## üéØ Overview of Required Changes
-
-### APIs Requiring Enhancement:
-1. ‚úÖ **RoomTenantMapping API** - Add 6 joined fields
-2. ‚úÖ **TenantRentSetting API** - Add 8 joined fields
-
-### Current vs. Desired Display:
-
-| Location | Current Display | Desired Display |
-|----------|----------------|-----------------|
-| Board Tenant List | "Tenant ID: 5" | "John Doe" |
-| Board Tenant List | "Room ID: 3" | "Room #101 - Sunset Apartments" |
-| Rent Settings List | "Mapping ID: 10" | "John Doe - Room #101" |
-| Rent Settings Detail | Property ID in cards | Property Name |
-| Board Tenant Detail | Fallback shows IDs | Always show names |
+**Impact:** Dashboard page enhancement
+**Estimated Backend Effort:** 2-3 hours
+**Priority:** High - Core utility feature for property managers
 
 ---
 
-## üî¥ PRIORITY 1: RoomTenantMapping API Enhancement
+## <Ø Dashboard Enhancement Goals
 
-### **Affected Endpoints:**
-- `POST /api/roomtenantmapping/search`
-- `GET /api/roomtenantmapping/{id}`
-- `GET /api/roomtenantmapping/room/{roomId}`
-- `GET /api/roomtenantmapping/tenant/{tenantId}`
-- `GET /api/roomtenantmapping/owner/{ownerId}`
+### **Design Philosophy:**
+- Keep it **simple** - this is a utility tool for regular people
+- Show **what matters** - money collected, rooms occupied, action items
+- Be **actionable** - highlight what needs attention
 
-### **Current Response Structure:**
+### **What Users Need to See:**
+1. **Money Overview** - How much rent expected vs. collected this month
+2. **Room Status** - How many rooms are occupied vs. available
+3. **Action Items** - What needs immediate attention (overdue payments, expiring leases)
+
+---
+
+## =4 Dashboard Monthly Summary API
+
+### **New Endpoint Required:**
+```http
+GET /api/v1/dashboard/monthly-summary
+```
+
+### **Query Parameters (Optional):**
+- `month` (string, optional): Format "YYYY-MM" (e.g., "2025-01"). Defaults to current month.
+- `ownerId` (int, optional): Filter by owner (for role-based access). Admin sees all.
+
+### **Response Structure:**
 ```json
 {
-  "data": [
-    {
-      "roomTenantMappingId": 1,
-      "roomId": 5,
-      "tenantId": 3,
-      "isActive": true,
-      "boardingDate": "2025-01-01T00:00:00",
-      "leavingDate": null,
-      "createdBy": 1,
-      "lastModifiedBy": 1,
-      "creationDate": "2024-12-01T10:00:00",
-      "lastModificationDate": "2024-12-15T14:30:00"
-    }
-  ],
-  "totalRecords": 1,
-  "pageNumber": 1,
-  "pageSize": 10
+  "status": true,
+  "responseCode": 200,
+  "message": "Dashboard summary retrieved successfully",
+  "errors": null,
+  "data": {
+    "currentMonth": "2025-01",
+    "monthName": "January 2025",
+
+    // Financial Summary
+    "totalExpectedRent": 45000.00,
+    "totalCollectedRent": 30000.00,
+    "totalPendingRent": 15000.00,
+    "collectionPercentage": 66.67,
+    "currencyId": 1,
+    "currencySymbol": "π",
+
+    // Room Occupancy Summary
+    "totalRooms": 20,
+    "occupiedRooms": 15,
+    "availableRooms": 5,
+    "occupancyPercentage": 75.0,
+
+    // Alerts/Action Items
+    "overduePaymentsCount": 3,
+    "expiringLeasesCount": 2
+  }
 }
 ```
 
-### **Enhanced Response Structure (Required):**
-```json
-{
-  "data": [
-    {
-      "roomTenantMappingId": 1,
-      "roomId": 5,
-      "tenantId": 3,
+---
 
-      // ‚úÖ ADD THESE FIELDS (Joined from Tenants table)
-      "tenantName": "John Doe",
-      "tenantMobile": "+91-9876543210",
-      "tenantEmail": "john@example.com",
+## =– Business Logic & Calculations
 
-      // ‚úÖ ADD THESE FIELDS (Joined from Rooms table)
-      "roomNo": "101",
+### **Financial Calculations:**
 
-      // ‚úÖ ADD THESE FIELDS (Joined from Properties table)
-      "propertyId": 2,
-      "propertyName": "Sunset Apartments",
-
-      // ‚úÖ ADD THIS FIELD (Joined from Owners table) - OPTIONAL
-      "ownerName": "Jane Smith",
-
-      // Existing fields (keep as-is)
-      "isActive": true,
-      "boardingDate": "2025-01-01T00:00:00",
-      "leavingDate": null,
-      "createdBy": 1,
-      "lastModifiedBy": 1,
-      "creationDate": "2024-12-01T10:00:00",
-      "lastModificationDate": "2024-12-15T14:30:00"
-    }
-  ],
-  "totalRecords": 1,
-  "pageNumber": 1,
-  "pageSize": 10
-}
-```
-
-### **SQL Query Example:**
 ```sql
-SELECT
-    rtm.roomTenantMappingId,
-    rtm.roomId,
-    rtm.tenantId,
-    rtm.isActive,
-    rtm.boardingDate,
-    rtm.leavingDate,
-    rtm.createdBy,
-    rtm.lastModifiedBy,
-    rtm.creationDate,
-    rtm.lastModificationDate,
+-- 1. Total Expected Rent for the month
+SELECT SUM(expectedRentValue)
+FROM RentTrack
+WHERE MONTH(rentPeriodStartDate) = @Month
+  AND YEAR(rentPeriodStartDate) = @Year
+  AND (@OwnerId IS NULL OR ownerId = @OwnerId);
 
-    -- Tenant Information
-    t.tenantName,
-    t.tenantMobile,
-    t.tenantEmail,
+-- 2. Total Collected Rent for the month
+SELECT SUM(receivedRentValue)
+FROM RentTrack
+WHERE MONTH(rentPeriodStartDate) = @Month
+  AND YEAR(rentPeriodStartDate) = @Year
+  AND statusId = @PaidStatusId  -- Status: "Paid"
+  AND (@OwnerId IS NULL OR ownerId = @OwnerId);
 
-    -- Room Information
-    r.roomNo,
+-- 3. Total Pending Rent
+SELECT SUM(pendingAmount)
+FROM RentTrack
+WHERE MONTH(rentPeriodStartDate) = @Month
+  AND YEAR(rentPeriodStartDate) = @Year
+  AND statusId IN (@PendingStatusId, @PartialPaidStatusId)
+  AND (@OwnerId IS NULL OR ownerId = @OwnerId);
 
-    -- Property Information
-    r.propertyId,
-    p.propertyName,
-
-    -- Owner Information (Optional)
-    o.fullName AS ownerName
-
-FROM RoomTenantMapping rtm
-INNER JOIN Tenants t ON rtm.tenantId = t.tenantId
-INNER JOIN Rooms r ON rtm.roomId = r.roomId
-INNER JOIN Properties p ON r.propertyId = p.propertyId
-LEFT JOIN Users o ON p.ownerId = o.userId
-WHERE rtm.isActive = 1  -- or whatever your filter condition is
-ORDER BY rtm.creationDate DESC;
+-- 4. Collection Percentage
+collectionPercentage = (totalCollectedRent / totalExpectedRent) * 100
+-- If totalExpectedRent = 0, return 0 (avoid division by zero)
 ```
 
-### **C# DTO Update Required:**
-```csharp
-public class RoomTenantMappingDto
-{
-    public int RoomTenantMappingId { get; set; }
-    public int RoomId { get; set; }
-    public int TenantId { get; set; }
+### **Room Occupancy Calculations:**
 
-    // ‚úÖ ADD THESE PROPERTIES
-    public string TenantName { get; set; }
-    public string TenantMobile { get; set; }
-    public string? TenantEmail { get; set; }
-    public string RoomNo { get; set; }
-    public int PropertyId { get; set; }
-    public string PropertyName { get; set; }
-    public string? OwnerName { get; set; }  // Optional
+```sql
+-- 1. Total Rooms
+SELECT COUNT(*)
+FROM Rooms
+WHERE (@OwnerId IS NULL OR ownerId = @OwnerId);
 
-    // Existing properties
-    public bool IsActive { get; set; }
-    public DateTime BoardingDate { get; set; }
-    public DateTime? LeavingDate { get; set; }
-    public int CreatedBy { get; set; }
-    public int LastModifiedBy { get; set; }
-    public DateTime CreationDate { get; set; }
-    public DateTime? LastModificationDate { get; set; }
-}
+-- 2. Occupied Rooms (rooms with active tenants)
+SELECT COUNT(DISTINCT roomId)
+FROM RoomTenantMapping
+WHERE isActive = 1
+  AND (leavingDate IS NULL OR leavingDate > GETDATE())
+  AND (@OwnerId IS NULL OR EXISTS (
+    SELECT 1 FROM Rooms r
+    WHERE r.roomId = RoomTenantMapping.roomId
+      AND r.ownerId = @OwnerId
+  ));
+
+-- 3. Available Rooms
+availableRooms = totalRooms - occupiedRooms
+
+-- 4. Occupancy Percentage
+occupancyPercentage = (occupiedRooms / totalRooms) * 100
+-- If totalRooms = 0, return 0
 ```
 
-### **Frontend Impact:**
-- **Files Affected:**
-  - `src/pages/board-tenants/BoardTenantList.tsx` (Lines 252-253)
-  - `src/pages/board-tenants/BoardTenantDetail.tsx` (Lines 219, 245)
+### **Alert Counts:**
 
-- **What Will Change:**
-  - Card titles will show "John Doe" instead of "Tenant ID: 5"
-  - Card subtitles will show "Room #101 - Sunset Apartments" instead of "Room ID: 3"
-  - Fallback displays will show names instead of IDs
+```sql
+-- 1. Overdue Payments Count
+SELECT COUNT(*)
+FROM RentTrack
+WHERE statusId = @OverdueStatusId
+  AND (@OwnerId IS NULL OR ownerId = @OwnerId);
+
+-- 2. Expiring Leases Count (next 30 days)
+SELECT COUNT(*)
+FROM RoomTenantMapping
+WHERE isActive = 1
+  AND leavingDate BETWEEN GETDATE() AND DATEADD(DAY, 30, GETDATE())
+  AND (@OwnerId IS NULL OR EXISTS (
+    SELECT 1 FROM Rooms r
+    WHERE r.roomId = RoomTenantMapping.roomId
+      AND r.ownerId = @OwnerId
+  ));
+```
 
 ---
 
-## üî¥ PRIORITY 2: TenantRentSetting API Enhancement
+## =ª C# Implementation Example
 
-### **Affected Endpoints:**
-- `POST /api/tenantRentSetting/search`
-- `GET /api/tenantRentSetting/{id}`
-- `GET /api/tenantRentSetting/mapping/{mappingId}`
-
-### **Current Response Structure:**
-```json
-{
-  "data": [
-    {
-      "tenantRentSettingId": 1,
-      "roomTenantMappingId": 1,
-      "rentRecurringPeriodInDays": 30,
-      "rentingCycleStartPeriod": "2025-01-01T00:00:00",
-      "lockInPeriod": "6 months",
-      "deposited": 50000.00,
-      "depositToReturn": 45000.00,
-      "presentRentValue": 15000.00,
-      "pastRentValue": 14000.00,
-      "currencyId": 1,
-      "mobileNo": null,
-      "email": null,
-      "createdBy": 1,
-      "lastModifiedBy": 1,
-      "creationDate": "2024-12-01T10:00:00",
-      "lastModificationDate": "2024-12-15T14:30:00"
-    }
-  ],
-  "totalRecords": 1,
-  "pageNumber": 1,
-  "pageSize": 10
-}
-```
-
-### **Enhanced Response Structure (Required):**
-```json
-{
-  "data": [
-    {
-      "tenantRentSettingId": 1,
-      "roomTenantMappingId": 1,
-
-      // ‚úÖ ADD THESE FIELDS (From RoomTenantMapping + Joins)
-      "tenantId": 3,
-      "tenantName": "John Doe",
-      "tenantMobile": "+91-9876543210",
-      "roomId": 5,
-      "roomNo": "101",
-      "propertyId": 2,
-      "propertyName": "Sunset Apartments",
-
-      // ‚úÖ ADD THESE FIELDS (From Currency lookup)
-      "currencyName": "Indian Rupee",
-      "currencySymbol": "‚Çπ",
-
-      // Existing fields (keep as-is)
-      "rentRecurringPeriodInDays": 30,
-      "rentingCycleStartPeriod": "2025-01-01T00:00:00",
-      "lockInPeriod": "6 months",
-      "deposited": 50000.00,
-      "depositToReturn": 45000.00,
-      "presentRentValue": 15000.00,
-      "pastRentValue": 14000.00,
-      "currencyId": 1,
-      "mobileNo": null,
-      "email": null,
-      "createdBy": 1,
-      "lastModifiedBy": 1,
-      "creationDate": "2024-12-01T10:00:00",
-      "lastModificationDate": "2024-12-15T14:30:00"
-    }
-  ],
-  "totalRecords": 1,
-  "pageNumber": 1,
-  "pageSize": 10
-}
-```
-
-### **SQL Query Example:**
-```sql
-SELECT
-    trs.tenantRentSettingId,
-    trs.roomTenantMappingId,
-    trs.rentRecurringPeriodInDays,
-    trs.rentingCycleStartPeriod,
-    trs.lockInPeriod,
-    trs.deposited,
-    trs.depositToReturn,
-    trs.presentRentValue,
-    trs.pastRentValue,
-    trs.currencyId,
-    trs.mobileNo,
-    trs.email,
-    trs.createdBy,
-    trs.lastModifiedBy,
-    trs.creationDate,
-    trs.lastModificationDate,
-
-    -- From RoomTenantMapping + Joins
-    rtm.tenantId,
-    rtm.roomId,
-    t.tenantName,
-    t.tenantMobile,
-    r.roomNo,
-    r.propertyId,
-    p.propertyName,
-
-    -- Currency Information
-    c.currencyName,
-    c.currencySymbol
-
-FROM TenantRentSettings trs
-INNER JOIN RoomTenantMapping rtm ON trs.roomTenantMappingId = rtm.roomTenantMappingId
-INNER JOIN Tenants t ON rtm.tenantId = t.tenantId
-INNER JOIN Rooms r ON rtm.roomId = r.roomId
-INNER JOIN Properties p ON r.propertyId = p.propertyId
-LEFT JOIN Currencies c ON trs.currencyId = c.currencyId
-WHERE trs.tenantRentSettingId = @TenantRentSettingId;
-```
-
-### **C# DTO Update Required:**
+### **DTO:**
 ```csharp
-public class TenantRentSettingDto
+public class DashboardMonthlySummaryDto
 {
-    public int TenantRentSettingId { get; set; }
-    public int RoomTenantMappingId { get; set; }
+    // Period Information
+    public string CurrentMonth { get; set; }  // "2025-01"
+    public string MonthName { get; set; }     // "January 2025"
 
-    // ‚úÖ ADD THESE PROPERTIES (From joins)
-    public int TenantId { get; set; }
-    public string TenantName { get; set; }
-    public string TenantMobile { get; set; }
-    public int RoomId { get; set; }
-    public string RoomNo { get; set; }
-    public int PropertyId { get; set; }
-    public string PropertyName { get; set; }
-    public string? CurrencyName { get; set; }
+    // Financial Summary
+    public decimal TotalExpectedRent { get; set; }
+    public decimal TotalCollectedRent { get; set; }
+    public decimal TotalPendingRent { get; set; }
+    public decimal CollectionPercentage { get; set; }
+    public int? CurrencyId { get; set; }
     public string? CurrencySymbol { get; set; }
 
-    // Existing properties
-    public int? RentRecurringPeriodInDays { get; set; }
-    public DateTime? RentingCycleStartPeriod { get; set; }
-    public string? LockInPeriod { get; set; }
-    public decimal Deposited { get; set; }
-    public decimal DepositToReturn { get; set; }
-    public decimal? PresentRentValue { get; set; }
-    public decimal? PastRentValue { get; set; }
-    public int? CurrencyId { get; set; }
-    public string? MobileNo { get; set; }
-    public string? Email { get; set; }
-    public int CreatedBy { get; set; }
-    public int LastModifiedBy { get; set; }
-    public DateTime CreationDate { get; set; }
-    public DateTime? LastModificationDate { get; set; }
+    // Room Occupancy Summary
+    public int TotalRooms { get; set; }
+    public int OccupiedRooms { get; set; }
+    public int AvailableRooms { get; set; }
+    public decimal OccupancyPercentage { get; set; }
+
+    // Alerts
+    public int OverduePaymentsCount { get; set; }
+    public int ExpiringLeasesCount { get; set; }
 }
 ```
 
-### **Frontend Impact:**
-- **Files Affected:**
-  - `src/pages/rent-settings/TenantRentSettingsList.tsx` (Lines 236-237)
-  - `src/pages/rent-settings/TenantRentSettingsDetail.tsx` (Property name display)
+### **Controller Example:**
+```csharp
+[HttpGet("monthly-summary")]
+[Authorize(Roles = "Admin,Owner")]
+public async Task<ActionResult<ApiResponse<DashboardMonthlySummaryDto>>> GetMonthlySummary(
+    [FromQuery] string? month = null,
+    [FromQuery] int? ownerId = null)
+{
+    // If month not provided, use current month
+    var targetMonth = string.IsNullOrEmpty(month)
+        ? DateTime.Now.ToString("yyyy-MM")
+        : month;
 
-- **What Will Change:**
-  - Card titles will show "John Doe - Room #101" instead of "Mapping ID: 1"
-  - Card subtitles will show rent amount with currency symbol instead of "Rent Setting #1"
-  - Property names will display instead of Property IDs
+    // For non-admin users, enforce their own ownerId
+    if (!User.IsInRole("Admin"))
+    {
+        var userOwnerId = GetCurrentUserOwnerId();
+        ownerId = userOwnerId;
+    }
 
----
-
-## üìä Performance Considerations
-
-### **Database Indexes Required:**
-Ensure these indexes exist for optimal performance:
-
-```sql
--- For RoomTenantMapping queries
-CREATE INDEX IX_RoomTenantMapping_RoomId ON RoomTenantMapping(roomId);
-CREATE INDEX IX_RoomTenantMapping_TenantId ON RoomTenantMapping(tenantId);
-
--- For TenantRentSettings queries
-CREATE INDEX IX_TenantRentSettings_RoomTenantMappingId
-    ON TenantRentSettings(roomTenantMappingId);
-
--- For Room queries (if not already exists)
-CREATE INDEX IX_Rooms_PropertyId ON Rooms(propertyId);
-
--- For Property queries (if not already exists)
-CREATE INDEX IX_Properties_OwnerId ON Properties(ownerId);
+    var summary = await _dashboardService.GetMonthlySummaryAsync(targetMonth, ownerId);
+    return Ok(new ApiResponse<DashboardMonthlySummaryDto>
+    {
+        Status = true,
+        ResponseCode = 200,
+        Message = "Dashboard summary retrieved successfully",
+        Data = summary
+    });
+}
 ```
 
-### **Expected Performance Impact:**
-- **Query Time:** +5-10ms per query (minimal with proper indexes)
-- **Response Size:** +200-300 bytes per record (negligible)
-- **No pagination impact:** Filters and sorting remain efficient
+---
+
+## = Role-Based Access Control
+
+| Role | Access | Behavior |
+|------|--------|----------|
+| **Admin** | Full access | Can see all properties (ownerId = null) or filter by specific owner |
+| **Owner** | Own data only | Can only see their properties (ownerId = current user's ownerId) |
+| **Tenant** | No access | Return 403 Forbidden |
 
 ---
 
-## ‚úÖ Testing Requirements
+## † Edge Cases & Error Handling
+
+### **Scenario 1: No Rent Records for Month**
+```json
+{
+  "totalExpectedRent": 0.00,
+  "totalCollectedRent": 0.00,
+  "totalPendingRent": 0.00,
+  "collectionPercentage": 0.00
+}
+```
+
+### **Scenario 2: No Rooms in System**
+```json
+{
+  "totalRooms": 0,
+  "occupiedRooms": 0,
+  "availableRooms": 0,
+  "occupancyPercentage": 0.00
+}
+```
+
+### **Scenario 3: Division by Zero**
+- If `totalExpectedRent = 0`, set `collectionPercentage = 0`
+- If `totalRooms = 0`, set `occupancyPercentage = 0`
+
+### **Scenario 4: Future Months**
+- Allow querying future months
+- Will show expected rent if pre-scheduled, but 0 collections
+
+### **Scenario 5: Invalid Month Format**
+- Return 400 Bad Request
+- Message: "Invalid month format. Use YYYY-MM (e.g., 2025-01)"
+
+---
+
+## =Ä Performance Considerations
+
+### **Database Indexes Required:**
+```sql
+-- For faster RentTrack aggregations
+CREATE INDEX IX_RentTrack_StatusId ON RentTrack(statusId);
+CREATE INDEX IX_RentTrack_OwnerId ON RentTrack(ownerId);
+CREATE INDEX IX_RentTrack_RentPeriodStartDate ON RentTrack(rentPeriodStartDate);
+
+-- For faster Room queries
+CREATE INDEX IX_Rooms_OwnerId ON Rooms(ownerId);
+
+-- For faster RoomTenantMapping queries
+CREATE INDEX IX_RoomTenantMapping_IsActive ON RoomTenantMapping(isActive);
+CREATE INDEX IX_RoomTenantMapping_LeavingDate ON RoomTenantMapping(leavingDate);
+```
+
+### **Performance Metrics:**
+- **Expected Query Time:** 50-100ms (with proper indexes)
+- **Response Size:** ~500 bytes (very lightweight)
+- **Recommended Caching:** 5-10 minutes (data doesn't change frequently)
+
+### **Optimization Tips:**
+1. Use a single stored procedure to fetch all metrics in one database round-trip
+2. Cache response per user role and month
+3. Consider pre-calculating metrics nightly for historical months
+
+---
+
+## <® Frontend Impact
+
+### **Files to Update:**
+
+1. **`src/types/index.ts`** - Add new type:
+```typescript
+export interface DashboardMonthlySummary {
+  currentMonth: string;
+  monthName: string;
+  totalExpectedRent: number;
+  totalCollectedRent: number;
+  totalPendingRent: number;
+  collectionPercentage: number;
+  currencyId?: number;
+  currencySymbol?: string;
+  totalRooms: number;
+  occupiedRooms: number;
+  availableRooms: number;
+  occupancyPercentage: number;
+  overduePaymentsCount: number;
+  expiringLeasesCount: number;
+}
+```
+
+2. **`src/services/api.ts`** - Add new method:
+```typescript
+export const dashboardApi = {
+  getStats: async (): Promise<DashboardStats> => {
+    const response = await api.get<ApiResponse<DashboardStats>>('/dashboard/stats');
+    return response.data.data;
+  },
+  getMonthlySummary: async (month?: string): Promise<DashboardMonthlySummary> => {
+    const params = month ? { month } : {};
+    const response = await api.get<ApiResponse<DashboardMonthlySummary>>(
+      '/dashboard/monthly-summary',
+      { params }
+    );
+    return response.data.data;
+  }
+};
+```
+
+3. **`src/pages/Dashboard.tsx`** - Add new sections:
+   - Money Overview Card
+   - Room Occupancy Card
+   - Action Items Alert Panel
+
+---
+
+##  Testing Requirements
 
 ### **Backend Testing Checklist:**
-- [ ] All search endpoints return joined fields correctly
-- [ ] GetById endpoints return joined fields correctly
-- [ ] Null handling for optional fields (email, ownerName, currency)
-- [ ] Verify no N+1 query issues
-- [ ] Test with large datasets (1000+ records)
-- [ ] Verify pagination still works correctly
-- [ ] Test filtering with joined fields
+- [ ] Endpoint returns correct data for current month (no params)
+- [ ] Endpoint returns correct data for specific month (with month param)
+- [ ] Admin can see all properties data
+- [ ] Owner sees only their properties data
+- [ ] Tenant receives 403 Forbidden
+- [ ] Correct handling of zero values (no rents, no rooms)
+- [ ] Division by zero protection works
+- [ ] Invalid month format returns 400
+- [ ] Future months return valid response
+- [ ] Performance is under 100ms with proper indexes
 
 ### **Sample Test Cases:**
 
-**Test Case 1: RoomTenantMapping Search**
-```
-Endpoint: POST /api/roomtenantmapping/search
-Request: { "pageNumber": 1, "pageSize": 10, "isActive": true }
-Expected: Response includes tenantName, roomNo, propertyName for all records
+**Test 1: Current Month Summary (Admin)**
+```http
+GET /api/v1/dashboard/monthly-summary
+Authorization: Bearer {admin_token}
+
+Expected: 200 OK with all metrics for current month
 ```
 
-**Test Case 2: TenantRentSetting GetById**
-```
-Endpoint: GET /api/tenantRentSetting/5
-Expected: Response includes all 8 new joined fields
+**Test 2: Specific Month Summary (Owner)**
+```http
+GET /api/v1/dashboard/monthly-summary?month=2024-12
+Authorization: Bearer {owner_token}
+
+Expected: 200 OK with owner's properties only
 ```
 
-**Test Case 3: Null Currency Handling**
+**Test 3: Tenant Access Denied**
+```http
+GET /api/v1/dashboard/monthly-summary
+Authorization: Bearer {tenant_token}
+
+Expected: 403 Forbidden
 ```
-Endpoint: GET /api/tenantRentSetting/10
-Scenario: Record has currencyId = null
-Expected: currencyName and currencySymbol should be null (not throw error)
+
+**Test 4: No Data Scenario**
+```http
+GET /api/v1/dashboard/monthly-summary?month=2030-01
+Authorization: Bearer {admin_token}
+
+Expected: 200 OK with all zeros
 ```
 
 ---
 
-## üöÄ Implementation Priority
+## =› Implementation Checklist
 
-### **Phase 1 (High Priority - User Facing):**
-‚úÖ RoomTenantMapping API enhancement
-‚úÖ TenantRentSetting API enhancement
+### **Backend Tasks:**
+- [ ] Create `DashboardMonthlySummaryDto` class
+- [ ] Create database queries for financial metrics
+- [ ] Create database queries for occupancy metrics
+- [ ] Create database queries for alert counts
+- [ ] Implement controller endpoint with role-based access
+- [ ] Add proper error handling for edge cases
+- [ ] Create database indexes
+- [ ] Write unit tests
+- [ ] Write integration tests
+- [ ] Test with real data
+- [ ] Add API documentation (Swagger)
 
-### **Phase 2 (Nice to Have):**
-- Add ownerEmail to RoomTenantMapping response
-- Add roomTypeName to RoomTenantMapping response
+### **Frontend Tasks:**
+- [ ] Add `DashboardMonthlySummary` type to `types/index.ts`
+- [ ] Add `getMonthlySummary()` method to `api.ts`
+- [ ] Create Money Overview card component
+- [ ] Create Room Occupancy card component
+- [ ] Create Action Items alert panel
+- [ ] Add React Query hook for fetching summary
+- [ ] Handle loading states
+- [ ] Handle error states
+- [ ] Add unit tests
+- [ ] Test with mock data
 
 ---
 
-## üìû Questions & Contact
-
-If you have any questions about these requirements, please contact:
-
-**Frontend Team Lead:** [Your Name]
-**Slack Channel:** #frontend-backend-sync
-**Email:** frontend-team@company.com
+## =ﬁ Questions & Support
 
 ### **Common Questions:**
 
-**Q: Should we update Create/Update DTOs too?**
-A: No, only Read/Search responses need enhancement. Create/Update DTOs remain unchanged.
+**Q: What status IDs represent "Paid", "Pending", "Overdue"?**
+A: Please check your `RentStatus` lookup table. Typical values:
+- 1 = Pending
+- 2 = Paid
+- 3 = Overdue
+- 4 = Partial Paid
 
-**Q: What about backward compatibility?**
-A: Adding fields is backward compatible. Old clients will ignore new fields.
+**Q: Should we calculate metrics in real-time or pre-calculate?**
+A: Real-time calculation is fine for current month. For historical months, consider pre-calculating nightly.
 
-**Q: Should we create separate ViewModels?**
-A: Recommended approach - keep domain models unchanged, create new DTOs for API responses.
+**Q: What currency should be used if properties have different currencies?**
+A: Use the most common currency in the system, or the admin's default currency. Document this limitation.
 
-**Q: Performance concerns with JOINs?**
-A: Minimal impact with proper indexes. Current queries already have similar complexity.
+**Q: How do we handle partial payments?**
+A: Include partial payments in `totalCollectedRent` (use `receivedRentValue` field), and track remaining in `totalPendingRent`.
+
+**Q: Should we cache this endpoint?**
+A: Yes, recommended 5-10 minute cache. Financial data doesn't change every second.
 
 ---
 
-## üìù Revision History
+## =⁄ References
+
+### **Related Database Tables:**
+- `RentTrack` - Rent payment records
+- `Rooms` - Room inventory
+- `RoomTenantMapping` - Tenant-Room assignments
+- `Properties` - Property information
+- `Lookups` - Currency and status lookups
+
+### **Related Endpoints:**
+- `GET /api/v1/dashboard/stats` - Basic count statistics (existing)
+
+---
+
+## =› Revision History
 
 | Version | Date | Changes | Author |
 |---------|------|---------|--------|
-| 1.0 | 2025-01-04 | Initial document | Frontend Team |
+| 1.0 | 2025-01-04 | Initial document - Dashboard Monthly Summary API | Frontend Team |
 
 ---
 
-## ‚úÖ Sign-off
+##  Sign-off
 
 **Frontend Team:** _________________ Date: _________
+
 **Backend Team:** _________________ Date: _________
+
 **Product Owner:** _________________ Date: _________
 
 ---

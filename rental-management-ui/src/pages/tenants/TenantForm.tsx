@@ -5,8 +5,9 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { ArrowLeft, Save } from 'lucide-react';
-import { tenantApi, lookupApi } from '../../services/api';
+import { tenantApi, lookupApi, ownerApi } from '../../services/api';
 import { CreateTenantDto, UpdateTenantDto } from '../../types';
+import { useRoleAccess } from '../../hooks';
 
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
@@ -35,6 +36,13 @@ const schema = yup.object({
     otherwise: (schema) => schema.required('Password is required').min(6, 'Password must be at least 6 characters'),
   }),
 
+  // Owner selection (only for create)
+  ownerId: yup.number().when('$isEdit', {
+    is: false,
+    then: (schema) => schema.required('Owner is required').min(1, 'Please select an owner'),
+    otherwise: (schema) => schema.optional(),
+  }),
+
   lockInPeriod: yup.string().required('Lock-in period is required'),
   isActive: yup.boolean().when('$isEdit', {
     is: true,
@@ -42,6 +50,7 @@ const schema = yup.object({
     otherwise: (schema) => schema.optional(),
   }),
   permanentAddress: yup.object({
+    addressId: yup.number().optional(),
     street: yup.string().required('Street is required'),
     landMark: yup.string().required('Landmark is required'),
     area: yup.string().required('Area is required'),
@@ -57,6 +66,7 @@ const TenantForm: React.FC = () => {
   const { id } = useParams();
   const queryClient = useQueryClient();
   const isEdit = Boolean(id);
+  const { isAdmin } = useRoleAccess();
 
   const { data: states } = useQuery({
     queryKey: ['states'],
@@ -66,6 +76,13 @@ const TenantForm: React.FC = () => {
   const { data: countries } = useQuery({
     queryKey: ['countries'],
     queryFn: lookupApi.getCountries,
+  });
+
+  // Fetch owners list (only for Admin in create mode)
+  const { data: owners } = useQuery({
+    queryKey: ['owners'],
+    queryFn: ownerApi.getAll,
+    enabled: !isEdit && isAdmin(),
   });
 
   const { data: tenant, isLoading: tenantLoading } = useQuery({
@@ -101,6 +118,7 @@ const TenantForm: React.FC = () => {
         isActive: tenant.isActive,
         note: tenant.note || '',
         permanentAddress: {
+          addressId: tenant.permanentAddress.addressId,
           street: tenant.permanentAddress.street,
           landMark: tenant.permanentAddress.landMark,
           area: tenant.permanentAddress.area,
@@ -242,6 +260,29 @@ const TenantForm: React.FC = () => {
                 {(errors as any).tenantAdharId && (
                   <p className="text-error-600 text-sm mt-1">{(errors as any).tenantAdharId?.message}</p>
                 )}
+              </div>
+            )}
+
+            {/* Owner Selection - Only for Admin in create mode */}
+            {!isEdit && isAdmin() && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Owner *
+                </label>
+                <select {...register('ownerId')} className="input">
+                  <option value="">Select Owner</option>
+                  {owners?.map((owner) => (
+                    <option key={owner.ownerId} value={owner.ownerId}>
+                      {owner.fullName} ({owner.mobileNumber})
+                    </option>
+                  ))}
+                </select>
+                {(errors as any).ownerId && (
+                  <p className="text-error-600 text-sm mt-1">{(errors as any).ownerId?.message}</p>
+                )}
+                <p className="text-gray-500 text-sm mt-1">
+                  Select the owner who manages this tenant
+                </p>
               </div>
             )}
 

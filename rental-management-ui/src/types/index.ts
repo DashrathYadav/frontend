@@ -46,6 +46,7 @@ export interface CreateAddressDto {
 }
 
 export interface UpdateAddressDto {
+  addressId?: number;  // Required when updating existing address
   street: string;
   landMark: string;
   area: string;
@@ -238,6 +239,7 @@ export interface CreateTenantDto {
   permanentAddress: CreateAddressDto;
   lockInPeriod: string;
   note?: string;
+  ownerId: number;  // Required by API
 }
 
 export interface UpdateTenantDto {
@@ -530,4 +532,22 @@ export interface DashboardStats {
   totalProperties: number;
   totalRooms: number;
   totalTenants: number;
+}
+
+// Dashboard monthly summary
+export interface DashboardMonthlySummary {
+  currentMonth: string;        // "2025-01"
+  monthName: string;            // "January 2025"
+  totalExpectedRent: number;
+  totalCollectedRent: number;
+  totalPendingRent: number;
+  collectionPercentage: number;
+  currencyId?: number;
+  currencySymbol?: string;
+  totalRooms: number;
+  occupiedRooms: number;
+  availableRooms: number;
+  occupancyPercentage: number;
+  overduePaymentsCount: number;
+  expiringLeasesCount: number;
 }

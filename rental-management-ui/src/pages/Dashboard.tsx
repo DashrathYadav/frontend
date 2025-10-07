@@ -6,10 +6,13 @@ import {
   DoorOpen,
   UserCheck,
   TrendingUp,
-  ArrowRight
+  ArrowRight,
+  AlertCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StatsCard from '../components/StatsCard';
+import FinancialSummaryCard from '../components/FinancialSummaryCard';
+import RoomOccupancyCard from '../components/RoomOccupancyCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { dashboardApi, rentTrackApi } from '../services/api';
 import { useRoleAccess } from '../hooks';
@@ -31,6 +34,13 @@ const Dashboard: React.FC = () => {
     queryKey: ['dashboard-stats'],
     queryFn: dashboardApi.getStats,
     enabled: !lookupsLoading, // Wait for lookups to load first
+  });
+
+  // Fetch monthly summary (only for Admin/Owner)
+  const { data: monthlySummary, isLoading: summaryLoading, error: summaryError } = useQuery({
+    queryKey: ['dashboard-monthly-summary'],
+    queryFn: () => dashboardApi.getMonthlySummary(),
+    enabled: !lookupsLoading && (isAdmin() || isOwner()), // Only fetch for Admin/Owner
   });
 
   // Fetch recent rent tracks
@@ -135,6 +145,81 @@ const Dashboard: React.FC = () => {
           icon={UserCheck}
         />
       </div>
+
+      {/* Monthly Summary Section - Only for Admin/Owner */}
+      {(isAdmin() || isOwner()) && (
+        <>
+          {summaryLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <LoadingSpinner size="md" />
+            </div>
+          ) : summaryError ? (
+            <div className="card p-6 bg-red-50 border border-red-200">
+              <p className="text-red-600 text-sm">Failed to load monthly summary. Please try again later.</p>
+            </div>
+          ) : monthlySummary ? (
+            <>
+              {/* Financial & Occupancy Cards */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <FinancialSummaryCard
+                  monthName={monthlySummary.monthName}
+                  totalExpectedRent={monthlySummary.totalExpectedRent}
+                  totalCollectedRent={monthlySummary.totalCollectedRent}
+                  totalPendingRent={monthlySummary.totalPendingRent}
+                  collectionPercentage={monthlySummary.collectionPercentage}
+                  currencySymbol={monthlySummary.currencySymbol}
+                />
+                <RoomOccupancyCard
+                  totalRooms={monthlySummary.totalRooms}
+                  occupiedRooms={monthlySummary.occupiedRooms}
+                  availableRooms={monthlySummary.availableRooms}
+                  occupancyPercentage={monthlySummary.occupancyPercentage}
+                />
+              </div>
+
+              {/* Alerts Section */}
+              {(monthlySummary.overduePaymentsCount > 0 || monthlySummary.expiringLeasesCount > 0) && (
+                <div className="card p-6 bg-yellow-50 border border-yellow-200">
+                  <div className="flex items-start">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 mr-3 mt-0.5" />
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-yellow-900 mb-2">Action Required</h3>
+                      <div className="space-y-2">
+                        {monthlySummary.overduePaymentsCount > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-yellow-800">
+                              {monthlySummary.overduePaymentsCount} overdue payment{monthlySummary.overduePaymentsCount > 1 ? 's' : ''}
+                            </span>
+                            <Link
+                              to="/rents"
+                              className="text-sm font-medium text-yellow-900 hover:text-yellow-700 underline"
+                            >
+                              View Details
+                            </Link>
+                          </div>
+                        )}
+                        {monthlySummary.expiringLeasesCount > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-yellow-800">
+                              {monthlySummary.expiringLeasesCount} lease{monthlySummary.expiringLeasesCount > 1 ? 's' : ''} expiring in next 30 days
+                            </span>
+                            <Link
+                              to="/board-tenants"
+                              className="text-sm font-medium text-yellow-900 hover:text-yellow-700 underline"
+                            >
+                              View Details
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : null}
+        </>
+      )}
 
       {/* Quick Actions */}
       <div className="card p-6">

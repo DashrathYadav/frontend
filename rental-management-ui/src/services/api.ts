@@ -30,7 +30,8 @@ import type {
   RentTrackSearchRequest,
   LookupResponse,
   AllLookupsResponse,
-  DashboardStats
+  DashboardStats,
+  DashboardMonthlySummary
 } from '../types';
 
 // Create axios instance with base configuration
@@ -530,6 +531,14 @@ export const lookupApi = {
 export const dashboardApi = {
   getStats: async (): Promise<DashboardStats> => {
     const response = await api.get<ApiResponse<DashboardStats>>('/dashboard/stats');
+    return response.data.data;
+  },
+  getMonthlySummary: async (month?: string): Promise<DashboardMonthlySummary> => {
+    const params = month ? { month } : {};
+    const response = await api.get<ApiResponse<DashboardMonthlySummary>>(
+      '/dashboard/monthly-summary',
+      { params }
+    );
     return response.data.data;
   }
 };
