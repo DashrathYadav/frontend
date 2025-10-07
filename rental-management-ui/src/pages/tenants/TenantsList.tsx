@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Mail, Phone, Calendar, UserCheck } from 'lucide-react';
 import { tenantApi, lookupApi } from '../../services/api';
 import { TenantSearchRequest } from '../../types';
@@ -10,6 +11,7 @@ import { useEnhancedPagination } from '../../hooks/useEnhancedPagination';
 import ErrorMessage from '../../components/ErrorMessage';
 
 const TenantsList: React.FC = () => {
+  const { t } = useTranslation();
   const [urlParams] = useSearchParams();
 
   // Use enhanced pagination hook
@@ -175,39 +177,39 @@ const TenantsList: React.FC = () => {
   const filterOptions = [
     {
       key: 'ownerId',
-      label: 'Owner',
+      label: t('properties.owner'),
       options: owners?.data?.map(owner => ({
         value: owner.id.toString(),
         label: owner.value
       })) || [],
-      placeholder: 'Select Owner'
+      placeholder: t('tenants.selectOwner')
     },
     {
       key: 'propertyId',
-      label: 'Property',
+      label: t('rooms.property'),
       options: properties?.data?.map(property => ({
         value: property.id.toString(),
         label: property.value
       })) || [],
-      placeholder: 'Select Property'
+      placeholder: t('rooms.selectProperty')
     },
     {
       key: 'roomId',
-      label: 'Room',
+      label: t('tenants.room'),
       options: rooms?.data?.map(room => ({
         value: room.id.toString(),
         label: room.value
       })) || [],
-      placeholder: 'Select Room'
+      placeholder: t('tenants.selectRoom')
     },
     {
       key: 'isActive',
-      label: 'Status',
+      label: t('common.status'),
       options: [
-        { value: 'true', label: 'Active' },
-        { value: 'false', label: 'Inactive' }
+        { value: 'true', label: t('common.active') },
+        { value: 'false', label: t('common.inactive') }
       ],
-      placeholder: 'Select Status'
+      placeholder: t('properties.selectStatus')
     }
   ];
 
@@ -235,16 +237,16 @@ const TenantsList: React.FC = () => {
 
   // Show error only for tenants loading, not for lookups
   if (tenantsError) {
-    return <ErrorMessage message="Failed to load tenants" />;
+    return <ErrorMessage message={t('tenants.errorLoading')} />;
   }
 
   const tenants = tenantsData?.data || [];
 
   return (
     <ListPageWrapper
-      title="Tenants"
-      subtitle="Manage tenant information and occupancy"
-      addButtonText="Add Tenant"
+      title={t('tenants.title')}
+      subtitle={t('tenants.manageDescription')}
+      addButtonText={t('tenants.add')}
       addButtonUrl="/tenants/new"
       isLoading={tenantsLoading}
       error={tenantsError}
@@ -264,10 +266,10 @@ const TenantsList: React.FC = () => {
       searchTerm={filters.searchTerm}
       filterValues={filters.filterValues}
       filters={filterOptions}
-      placeholder="Search tenants by name, email, or phone..."
+      placeholder={t('tenants.searchPlaceholder')}
       emptyStateIcon={UserCheck}
-      emptyStateTitle="No tenants found"
-      emptyStateMessage="Get started by adding your first tenant."
+      emptyStateTitle={t('tenants.noTenantsFound')}
+      emptyStateMessage={t('tenants.getStarted')}
       hasActiveFilters={hasActiveFilters}
     >
 
@@ -276,34 +278,34 @@ const TenantsList: React.FC = () => {
           const cardItem: EntityCardItem = {
             id: tenant.tenantId,
             title: tenant.tenantName,
-            subtitle: tenant.tenantEmail || 'No email available',
+            subtitle: tenant.tenantEmail || t('tenants.noEmailAvailable'),
             viewUrl: `/tenants/${tenant.tenantId}`,
             editUrl: `/tenants/${tenant.tenantId}/edit`,
             badges: [
               {
-                label: 'Tenant',
+                label: t('tenants.tenant'),
                 variant: 'secondary' as const
               }
             ],
             details: [
               {
                 icon: <Mail className="w-4 h-4" />,
-                label: 'Email',
-                value: tenant.tenantEmail || 'No email'
+                label: t('tenants.email'),
+                value: tenant.tenantEmail || t('tenants.noEmail')
               },
               {
                 icon: <Phone className="w-4 h-4" />,
-                label: 'Mobile',
+                label: t('tenants.mobile'),
                 value: tenant.tenantMobile
               },
               {
                 icon: <Calendar className="w-4 h-4" />,
-                label: 'Lock-in Period',
+                label: t('tenants.lockInPeriod'),
                 value: tenant.lockInPeriod
               }
             ],
             footerStatus: {
-              label: tenant.isActive ? 'Active' : 'Inactive',
+              label: tenant.isActive ? t('common.active') : t('common.inactive'),
               variant: tenant.isActive ? 'default' as const : 'destructive' as const
             },
             footerActions: []

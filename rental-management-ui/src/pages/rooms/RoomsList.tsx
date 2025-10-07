@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Users, DollarSign, Home } from 'lucide-react';
 import { roomApi, lookupApi } from '../../services/api';
 import { RoomSearchRequest } from '../../types';
@@ -12,6 +13,7 @@ import ErrorMessage from '../../components/ErrorMessage';
 import { useLookup } from '../../contexts/LookupContext';
 
 const RoomsList: React.FC = () => {
+  const { t } = useTranslation();
   const [urlParams] = useSearchParams();
   
   // Use LookupContext for consistent lookup data
@@ -160,39 +162,39 @@ const RoomsList: React.FC = () => {
   const filterOptions = [
     {
       key: 'ownerId',
-      label: 'Owner',
+      label: t('properties.owner'),
       options: owners?.data?.map(owner => ({
         value: owner.id.toString(),
         label: owner.value
       })) || [],
-      placeholder: 'Select Owner'
+      placeholder: t('rooms.selectOwner')
     },
     {
       key: 'propertyId',
-      label: 'Property',
+      label: t('rooms.property'),
       options: properties?.data?.map(property => ({
         value: property.id.toString(),
         label: property.value
       })) || [],
-      placeholder: 'Select Property'
+      placeholder: t('rooms.selectProperty')
     },
     {
       key: 'roomTypeId',
-      label: 'Room Type',
+      label: t('rooms.roomType'),
       options: lookups.roomTypes.map(type => ({
         value: type.id.toString(),
         label: type.value
       })),
-      placeholder: 'Select Type'
+      placeholder: t('rooms.selectType')
     },
     {
       key: 'statusId',
-      label: 'Status',
+      label: t('common.status'),
       options: lookups.availabilityStatuses.map(status => ({
         value: status.id.toString(),
         label: status.value
       })),
-      placeholder: 'Select Status'
+      placeholder: t('rooms.selectStatus')
     }
   ];
 
@@ -220,16 +222,16 @@ const RoomsList: React.FC = () => {
 
   // Show error only for rooms loading, not for lookups
   if (roomsError) {
-    return <ErrorMessage message="Failed to load rooms" />;
+    return <ErrorMessage message={t('rooms.errorLoading')} />;
   }
 
   const rooms = roomsData?.data || [];
 
   return (
     <ListPageWrapper
-      title="Rooms"
-      subtitle="Manage individual rooms and their availability"
-      addButtonText="Add Room"
+      title={t('rooms.title')}
+      subtitle={t('rooms.manageDescription')}
+      addButtonText={t('rooms.add')}
       addButtonUrl="/rooms/new"
       isLoading={roomsLoading}
       error={roomsError}
@@ -249,10 +251,10 @@ const RoomsList: React.FC = () => {
       searchTerm={filters.searchTerm}
       filterValues={filters.filterValues}
       filters={filterOptions}
-      placeholder="Search rooms by number, type, or description..."
+      placeholder={t('rooms.searchPlaceholder')}
       emptyStateIcon={Home}
-      emptyStateTitle="No rooms found"
-      emptyStateMessage="Get started by adding your first room."
+      emptyStateTitle={t('rooms.noRoomsFound')}
+      emptyStateMessage={t('rooms.getStarted')}
       hasActiveFilters={hasActiveFilters}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -260,8 +262,8 @@ const RoomsList: React.FC = () => {
 
           const cardItem: EntityCardItem = {
             id: room.roomId,
-            title: `Room ${room.roomNo}`,
-            subtitle: room.roomSize || 'No size specified',
+            title: `${t('rooms.roomPrefix')}${room.roomNo}`,
+            subtitle: room.roomSize || t('rooms.noSizeSpecified'),
             viewUrl: `/rooms/${room.roomId}`,
             editUrl: `/rooms/${room.roomId}/edit`,
             badges: [
@@ -273,18 +275,18 @@ const RoomsList: React.FC = () => {
             details: [
               {
                 icon: <DollarSign className="w-4 h-4" />,
-                label: 'Rent',
+                label: t('rooms.rent'),
                 value: formatCurrency(room.roomRent)
               },
               {
                 icon: <Users className="w-4 h-4" />,
-                label: 'Tenants',
+                label: t('tenants.title'),
                 value: `${room.currentTenantCount}/${room.tenantLimit}`
               },
               {
                 icon: <Home className="w-4 h-4" />,
-                label: 'Property',
-                value: room.propertyName || 'Unknown Property'
+                label: t('rooms.property'),
+                value: room.propertyName || t('properties.noDescription')
               }
             ],
             footerStatus: {
@@ -292,7 +294,7 @@ const RoomsList: React.FC = () => {
               variant: getAvailabilityStatusBadgeClass(room.statusId) as 'default' | 'secondary' | 'destructive' | 'outline'
             },
             footerAction: {
-              label: 'Show Tenants',
+              label: t('rooms.showTenants'),
               icon: <Users className="w-3 h-3" />,
               url: `/tenants?ownerId=${room.ownerId}&propertyId=${room.propertyId}&roomNumber=${room.roomId}`
             }

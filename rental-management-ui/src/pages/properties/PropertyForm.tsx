@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save } from 'lucide-react';
 import { propertyApi, lookupApi } from '../../services/api';
 import { CreatePropertyDto, UpdatePropertyDto } from '../../types';
@@ -14,33 +15,35 @@ import { formToast } from '../../utils/toast';
 import { useRoleAccess } from '../../hooks/useRoleAccess';
 import { useLookup } from '../../contexts/LookupContext';
 
-const schema = yup.object({
-  propertyName: yup.string().required('Property name is required'),
-  propertyTypeId: yup.number().required('Property type is required'),
-  propertySize: yup.string().required('Property size is required'),
-  propertyRent: yup.number().required('Property rent is required').min(0),
-  statusId: yup.number().required('Status is required'),
-  propertyDescription: yup.string().required('Description is required'),
-  propertyFacility: yup.string().required('Facilities are required'),
-  ownerId: yup.number().required('Owner is required').min(1),
-  address: yup.object({
-    street: yup.string().required('Street is required'),
-    landMark: yup.string().required('Landmark is required'),
-    area: yup.string().required('Area is required'),
-    city: yup.string().required('City is required'),
-    pincode: yup.string().required('Pincode is required').matches(/^\d{6}$/, 'Pincode must be 6 digits'),
-    stateId: yup.number().required('State is required').min(1),
-    countryId: yup.number().required('Country is required').min(1),
-  }),
-});
-
 const PropertyForm: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams();
   const queryClient = useQueryClient();
   const isEdit = Boolean(id);
   const { isAdmin, isOwner, user } = useRoleAccess();
   const { lookups } = useLookup();
+
+  // Validation schema with translations
+  const schema = useMemo(() => yup.object({
+    propertyName: yup.string().required(t('validation.propertyNameRequired')),
+    propertyTypeId: yup.number().required(t('validation.propertyTypeRequired')),
+    propertySize: yup.string().required(t('validation.propertySizeRequired')),
+    propertyRent: yup.number().required(t('validation.propertyRentRequired')).min(0, t('validation.propertyRentMin')),
+    statusId: yup.number().required(t('validation.statusRequired')),
+    propertyDescription: yup.string().required(t('validation.descriptionRequired')),
+    propertyFacility: yup.string().required(t('validation.facilitiesRequired')),
+    ownerId: yup.number().required(t('validation.ownerRequired')).min(1),
+    address: yup.object({
+      street: yup.string().required(t('validation.streetRequired')),
+      landMark: yup.string().required(t('validation.landmarkRequired')),
+      area: yup.string().required(t('validation.areaRequired')),
+      city: yup.string().required(t('validation.cityRequired')),
+      pincode: yup.string().required(t('validation.pincodeRequired')).matches(/^\d{6}$/, t('validation.pincodeInvalid')),
+      stateId: yup.number().required(t('validation.stateRequired')).min(1),
+      countryId: yup.number().required(t('validation.countryRequired')).min(1),
+    }),
+  }), [t]);
 
   const { data: owners } = useQuery({
     queryKey: ['owners-lookup'],
@@ -187,10 +190,10 @@ const PropertyForm: React.FC = () => {
         </button>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            {isEdit ? 'Edit Property' : 'Add New Property'}
+            {isEdit ? t('properties.editProperty') : t('properties.addNewProperty')}
           </h1>
           <p className="text-gray-600 mt-2">
-            {isEdit ? 'Update property information' : 'Create a new rental property'}
+            {isEdit ? t('properties.updatePropertyInfo') : t('properties.createNewProperty')}
           </p>
         </div>
       </div>
@@ -198,17 +201,17 @@ const PropertyForm: React.FC = () => {
       {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Property Details</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('properties.propertyDetails')}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Property Name *
+                {t('properties.propertyName')} *
               </label>
               <input
                 {...register('propertyName')}
                 className="input"
-                placeholder="Enter property name"
+                placeholder={t('properties.propertyNamePlaceholder')}
               />
               {errors.propertyName && (
                 <p className="text-error-600 text-sm mt-1">{errors.propertyName.message}</p>
@@ -217,10 +220,10 @@ const PropertyForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Property Type *
+                {t('properties.propertyType')} *
               </label>
               <select {...register('propertyTypeId')} className="input">
-                <option value="">Select Type</option>
+                <option value="">{t('properties.selectType')}</option>
                 {lookups.propertyTypes.map((type) => (
                   <option key={type.id} value={type.id}>
                     {type.value}
@@ -234,12 +237,12 @@ const PropertyForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Property Size *
+                {t('properties.propertySize')} *
               </label>
               <input
                 {...register('propertySize')}
                 className="input"
-                placeholder="e.g., 1200 sq ft"
+                placeholder={t('properties.propertySizePlaceholder')}
               />
               {errors.propertySize && (
                 <p className="text-error-600 text-sm mt-1">{errors.propertySize.message}</p>
@@ -248,13 +251,13 @@ const PropertyForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Monthly Rent *
+                {t('properties.monthlyRent')} *
               </label>
               <input
                 type="number"
                 {...register('propertyRent')}
                 className="input"
-                placeholder="Enter monthly rent"
+                placeholder={t('properties.monthlyRentPlaceholder')}
               />
               {errors.propertyRent && (
                 <p className="text-error-600 text-sm mt-1">{errors.propertyRent.message}</p>
@@ -263,7 +266,7 @@ const PropertyForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Currency
+                {t('properties.currency')}
               </label>
               <select {...register('currencyId')} className="input">
                 {lookups.currencies.map((currency) => (
@@ -276,10 +279,10 @@ const PropertyForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status *
+                {t('common.status')} *
               </label>
               <select {...register('statusId')} className="input">
-                <option value="">Select Status</option>
+                <option value="">{t('properties.selectStatus')}</option>
                 {lookups.availabilityStatuses.map((status) => (
                   <option key={status.id} value={status.id}>
                     {status.value}
@@ -295,13 +298,13 @@ const PropertyForm: React.FC = () => {
             {isAdmin() && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Owner *
+                  {t('properties.owner')} *
                 </label>
                 <select
                   {...register('ownerId')}
                   className="input"
                 >
-                  <option value="">Select Owner</option>
+                  <option value="">{t('properties.selectOwner')}</option>
                   {owners?.data.map((owner) => (
                     <option key={owner.id} value={owner.id}>
                       {owner.value}
@@ -318,14 +321,14 @@ const PropertyForm: React.FC = () => {
             {!isEdit && isOwner() && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Owner *
+                  {t('properties.owner')} *
                 </label>
                 <select
                   {...register('ownerId')}
                   className="input bg-gray-100 cursor-not-allowed"
                   disabled={true}
                 >
-                  <option value="">Select Owner</option>
+                  <option value="">{t('properties.selectOwner')}</option>
                   {owners?.data.map((owner) => (
                     <option key={owner.id} value={owner.id}>
                       {owner.value}
@@ -336,7 +339,7 @@ const PropertyForm: React.FC = () => {
                   <p className="text-error-600 text-sm mt-1">{errors.ownerId.message}</p>
                 )}
                 <p className="text-gray-500 text-sm mt-1">
-                  You can only create properties for yourself
+                  {t('properties.onlyCreateForYourself')}
                 </p>
               </div>
             )}
@@ -348,13 +351,13 @@ const PropertyForm: React.FC = () => {
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description *
+                {t('properties.description')} *
               </label>
               <textarea
                 {...register('propertyDescription')}
                 rows={3}
                 className="input"
-                placeholder="Describe the property..."
+                placeholder={t('properties.descriptionPlaceholder')}
               />
               {errors.propertyDescription && (
                 <p className="text-error-600 text-sm mt-1">{errors.propertyDescription.message}</p>
@@ -363,13 +366,13 @@ const PropertyForm: React.FC = () => {
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Facilities *
+                {t('properties.facilities')} *
               </label>
               <textarea
                 {...register('propertyFacility')}
                 rows={3}
                 className="input"
-                placeholder="List available facilities..."
+                placeholder={t('properties.facilitiesPlaceholder')}
               />
               {errors.propertyFacility && (
                 <p className="text-error-600 text-sm mt-1">{errors.propertyFacility.message}</p>
@@ -380,17 +383,17 @@ const PropertyForm: React.FC = () => {
 
         {/* Address Section */}
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Address Information</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('properties.addressInfo')}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Street Address *
+                {t('properties.streetAddress')} *
               </label>
               <input
                 {...register('address.street')}
                 className="input"
-                placeholder="Enter street address"
+                placeholder={t('registration.streetPlaceholder')}
               />
               {errors.address?.street && (
                 <p className="text-error-600 text-sm mt-1">{errors.address.street.message}</p>
@@ -399,12 +402,12 @@ const PropertyForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Landmark *
+                {t('properties.landmark')} *
               </label>
               <input
                 {...register('address.landMark')}
                 className="input"
-                placeholder="Enter landmark"
+                placeholder={t('registration.landmarkPlaceholder')}
               />
               {errors.address?.landMark && (
                 <p className="text-error-600 text-sm mt-1">{errors.address.landMark.message}</p>
@@ -413,12 +416,12 @@ const PropertyForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Area *
+                {t('properties.area')} *
               </label>
               <input
                 {...register('address.area')}
                 className="input"
-                placeholder="Enter area"
+                placeholder={t('registration.areaPlaceholder')}
               />
               {errors.address?.area && (
                 <p className="text-error-600 text-sm mt-1">{errors.address.area.message}</p>
@@ -427,12 +430,12 @@ const PropertyForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                City *
+                {t('properties.city')} *
               </label>
               <input
                 {...register('address.city')}
                 className="input"
-                placeholder="Enter city"
+                placeholder={t('registration.cityPlaceholder')}
               />
               {errors.address?.city && (
                 <p className="text-error-600 text-sm mt-1">{errors.address.city.message}</p>
@@ -441,12 +444,12 @@ const PropertyForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Pincode *
+                {t('properties.pincode')} *
               </label>
               <input
                 {...register('address.pincode')}
                 className="input"
-                placeholder="Enter 6-digit pincode"
+                placeholder={t('registration.pincodePlaceholder')}
               />
               {errors.address?.pincode && (
                 <p className="text-error-600 text-sm mt-1">{errors.address.pincode.message}</p>
@@ -455,10 +458,10 @@ const PropertyForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                State *
+                {t('properties.state')} *
               </label>
               <select {...register('address.stateId')} className="input">
-                <option value="">Select State</option>
+                <option value="">{t('registration.selectState')}</option>
                 {lookups.states.map((state) => (
                   <option key={state.id} value={state.id}>
                     {state.value}
@@ -472,10 +475,10 @@ const PropertyForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Country *
+                {t('properties.country')} *
               </label>
               <select {...register('address.countryId')} className="input">
-                <option value="">Select Country</option>
+                <option value="">{t('registration.selectCountry')}</option>
                 {lookups.countries.map((country) => (
                   <option key={country.id} value={country.id}>
                     {country.value}
@@ -491,17 +494,17 @@ const PropertyForm: React.FC = () => {
 
         {/* Additional Information */}
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Additional Information</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('properties.additionalInfo')}</h2>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notes
+              {t('properties.notes')}
             </label>
             <textarea
               {...register('note')}
               rows={4}
               className="input"
-              placeholder="Enter any additional notes..."
+              placeholder={t('registration.notePlaceholder')}
             />
           </div>
         </div>
@@ -513,7 +516,7 @@ const PropertyForm: React.FC = () => {
             onClick={() => navigate('/properties')}
             className="btn-secondary"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
@@ -525,7 +528,7 @@ const PropertyForm: React.FC = () => {
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
-            {isEdit ? 'Update Property' : 'Create Property'}
+            {isEdit ? t('properties.updateProperty') : t('properties.createProperty')}
           </button>
         </div>
       </form>

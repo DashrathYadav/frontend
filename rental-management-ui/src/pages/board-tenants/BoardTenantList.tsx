@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Calendar, MapPin } from 'lucide-react';
 import { roomTenantMappingApi, lookupApi } from '../../services/api';
 import { RoomTenantMappingSearchRequest } from '../../types';
@@ -10,6 +11,7 @@ import { useEnhancedPagination } from '../../hooks/useEnhancedPagination';
 import ErrorMessage from '../../components/ErrorMessage';
 
 const BoardTenantList: React.FC = () => {
+  const { t } = useTranslation();
   const [urlParams] = useSearchParams();
 
   // Use enhanced pagination hook
@@ -136,48 +138,48 @@ const BoardTenantList: React.FC = () => {
   const filterOptions = [
     {
       key: 'ownerId',
-      label: 'Owner',
+      label: t('properties.owner'),
       options: owners?.data?.map(owner => ({
         value: owner.id.toString(),
         label: owner.value
       })) || [],
-      placeholder: 'Select Owner'
+      placeholder: t('properties.selectOwner')
     },
     {
       key: 'propertyId',
-      label: 'Property',
+      label: t('rooms.property'),
       options: properties?.data?.map(property => ({
         value: property.id.toString(),
         label: property.value
       })) || [],
-      placeholder: 'Select Property'
+      placeholder: t('rooms.selectProperty')
     },
     {
       key: 'roomId',
-      label: 'Room',
+      label: t('boardTenants.roomLabel'),
       options: rooms?.data?.map(room => ({
         value: room.id.toString(),
         label: room.value
       })) || [],
-      placeholder: 'Select Room'
+      placeholder: t('boardTenants.selectRoomPlaceholder')
     },
     {
       key: 'tenantId',
-      label: 'Tenant',
+      label: t('tenants.tenant'),
       options: tenants?.data?.map(tenant => ({
         value: tenant.id.toString(),
         label: tenant.value
       })) || [],
-      placeholder: 'Select Tenant'
+      placeholder: t('boardTenants.selectTenantPlaceholder')
     },
     {
       key: 'isActive',
-      label: 'Status',
+      label: t('common.status'),
       options: [
-        { value: 'true', label: 'Active' },
-        { value: 'false', label: 'Inactive' }
+        { value: 'true', label: t('common.active') },
+        { value: 'false', label: t('common.inactive') }
       ],
-      placeholder: 'Select Status'
+      placeholder: t('properties.selectStatus')
     }
   ];
 
@@ -198,28 +200,28 @@ const BoardTenantList: React.FC = () => {
   }, []);
 
   if (mappingsError) {
-    return <ErrorMessage message="Failed to load board tenant mappings" />;
+    return <ErrorMessage message={t('boardTenants.errorLoading')} />;
   }
 
   const mappings = mappingsData?.data || [];
 
   // Helper function to format dates
   const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return 'Not set';
+    if (!dateString) return t('boardTenants.notSet');
     try {
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid date';
+      if (isNaN(date.getTime())) return t('boardTenants.invalidDate');
       return date.toLocaleDateString();
     } catch (error) {
-      return 'Invalid date';
+      return t('boardTenants.invalidDate');
     }
   };
 
   return (
     <ListPageWrapper
-      title="Board Tenants"
-      subtitle="Manage room-tenant mappings and occupancy"
-      addButtonText="Board New Tenant"
+      title={t('boardTenants.title')}
+      subtitle={t('boardTenants.manageDescription')}
+      addButtonText={t('boardTenants.boardNewTenant')}
       addButtonUrl="/board-tenants/new"
       isLoading={mappingsLoading}
       error={mappingsError}
@@ -239,10 +241,10 @@ const BoardTenantList: React.FC = () => {
       searchTerm={filters.searchTerm}
       filterValues={filters.filterValues}
       filters={filterOptions}
-      placeholder="Search by tenant name or room number..."
+      placeholder={t('boardTenants.searchPlaceholder')}
       emptyStateIcon={MapPin}
-      emptyStateTitle="No board tenant mappings found"
-      emptyStateMessage="Get started by boarding a tenant to a room."
+      emptyStateTitle={t('boardTenants.noMappingsFound')}
+      emptyStateMessage={t('boardTenants.getStarted')}
       hasActiveFilters={hasActiveFilters}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -250,34 +252,34 @@ const BoardTenantList: React.FC = () => {
           const cardItem: EntityCardItem = {
             id: mapping.roomTenantMappingId,
             title: mapping.tenantName,
-            subtitle: `Room #${mapping.roomNo} - ${mapping.propertyName}`,
+            subtitle: `${t('boardTenants.roomPrefix')}${mapping.roomNo} - ${mapping.propertyName}`,
             viewUrl: `/board-tenants/${mapping.roomTenantMappingId}`,
             editUrl: `/board-tenants/${mapping.roomTenantMappingId}/edit`,
             badges: [
               {
-                label: mapping.isActive ? 'Active' : 'Inactive',
+                label: mapping.isActive ? t('common.active') : t('common.inactive'),
                 variant: mapping.isActive ? 'default' as const : 'secondary' as const
               }
             ],
             details: [
               {
                 icon: <Calendar className="w-4 h-4" />,
-                label: 'Boarding Date',
+                label: t('boardTenants.boardingDate'),
                 value: formatDate(mapping.boardingDate)
               },
               {
                 icon: <Calendar className="w-4 h-4" />,
-                label: 'Leaving Date',
+                label: t('boardTenants.leavingDate'),
                 value: formatDate(mapping.leavingDate)
               },
               {
                 icon: <MapPin className="w-4 h-4" />,
-                label: 'Mapping ID',
+                label: t('boardTenants.mappingId'),
                 value: `#${mapping.roomTenantMappingId}`
               }
             ],
             footerStatus: {
-              label: mapping.isActive ? 'Currently Occupied' : 'Vacated',
+              label: mapping.isActive ? t('boardTenants.currentlyOccupied') : t('boardTenants.vacated'),
               variant: mapping.isActive ? 'default' as const : 'destructive' as const
             },
             footerActions: []

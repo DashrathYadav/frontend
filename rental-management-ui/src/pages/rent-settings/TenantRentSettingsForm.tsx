@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save } from 'lucide-react';
 import { tenantRentSettingApi, roomTenantMappingApi, lookupApi } from '../../services/api';
 import { CreateTenantRentSettingDto, UpdateTenantRentSettingDto } from '../../types';
@@ -13,30 +14,31 @@ import ErrorMessage from '../../components/ErrorMessage';
 import { extractErrorMessage } from '../../utils/errorHandler';
 import { formToast } from '../../utils/toast';
 
-const schema = yup.object({
-  roomTenantMappingId: yup.number().when('$isEdit', {
-    is: false,
-    then: (schema) => schema.required('Room-tenant mapping is required').min(1, 'Please select a mapping'),
-    otherwise: (schema) => schema.optional(),
-  }),
-  deposited: yup.number().required('Deposited amount is required').min(0, 'Deposited amount must be non-negative'),
-  depositToReturn: yup.number().required('Deposit to return is required').min(0, 'Deposit to return must be non-negative'),
-  presentRentValue: yup.number().optional().min(0, 'Present rent must be non-negative'),
-  pastRentValue: yup.number().optional().min(0, 'Past rent must be non-negative'),
-  rentRecurringPeriodInDays: yup.number().optional().min(1, 'Rent period must be at least 1 day'),
-  rentingCycleStartPeriod: yup.string().optional(),
-  lockInPeriod: yup.string().optional(),
-  currencyId: yup.number().optional(),
-  mobileNo: yup.string().optional(),
-  email: yup.string().email('Invalid email format').optional(),
-});
-
 const TenantRentSettingsForm: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const isEdit = Boolean(id);
+
+  const schema = useMemo(() => yup.object({
+    roomTenantMappingId: yup.number().when('$isEdit', {
+      is: false,
+      then: (schema) => schema.required(t('rentSettings.mappingRequired')).min(1, t('rentSettings.pleaseSelectMapping')),
+      otherwise: (schema) => schema.optional(),
+    }),
+    deposited: yup.number().required(t('rentSettings.depositedRequired')).min(0, t('rentSettings.depositedMin')),
+    depositToReturn: yup.number().required(t('rentSettings.depositToReturnRequired')).min(0, t('rentSettings.depositToReturnMin')),
+    presentRentValue: yup.number().optional().min(0, t('rentSettings.presentRentMin')),
+    pastRentValue: yup.number().optional().min(0, t('rentSettings.pastRentMin')),
+    rentRecurringPeriodInDays: yup.number().optional().min(1, t('rentSettings.rentRecurringMin')),
+    rentingCycleStartPeriod: yup.string().optional(),
+    lockInPeriod: yup.string().optional(),
+    currencyId: yup.number().optional(),
+    mobileNo: yup.string().optional(),
+    email: yup.string().email(t('common.invalidEmail')).optional(),
+  }), [t]);
 
   // Get pre-filled mapping ID from URL params (for create mode)
   const urlMappingId = searchParams.get('mappingId');
@@ -117,7 +119,7 @@ const TenantRentSettingsForm: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenant-rent-settings'] });
       queryClient.invalidateQueries({ queryKey: ['rent-setting-by-mapping'] });
-      formToast.created('Rent Settings');
+      formToast.created(t('rentSettings.rentSettings'));
       navigate('/rent-settings');
     },
     onError: (error) => {
@@ -134,7 +136,7 @@ const TenantRentSettingsForm: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['tenant-rent-settings'] });
       queryClient.invalidateQueries({ queryKey: ['tenant-rent-setting', id] });
       queryClient.invalidateQueries({ queryKey: ['rent-setting-by-mapping'] });
-      formToast.updated('Rent Settings');
+      formToast.updated(t('rentSettings.rentSettings'));
       navigate('/rent-settings');
     },
     onError: (error) => {
@@ -185,10 +187,10 @@ const TenantRentSettingsForm: React.FC = () => {
         </button>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            {isEdit ? 'Edit Rent Settings' : 'Create Rent Settings'}
+            {isEdit ? t('rentSettings.editRentSettings') : t('rentSettings.createRentSettings')}
           </h1>
           <p className="text-gray-600 mt-2">
-            {isEdit ? 'Update rent configuration' : 'Configure rent details for a room-tenant mapping'}
+            {isEdit ? t('rentSettings.updateRentConfig') : t('rentSettings.configureRentDetails')}
           </p>
         </div>
       </div>
@@ -198,32 +200,32 @@ const TenantRentSettingsForm: React.FC = () => {
         {/* Mapping Selection - Only in create mode */}
         {!isEdit && (
           <div className="card p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Room-Tenant Mapping</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('rentSettings.roomTenantMapping')}</h2>
 
             <div className="grid grid-cols-1 gap-6">
               {selectedMapping ? (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm font-medium text-blue-900">
-                    Selected Mapping: #{selectedMapping.roomTenantMappingId}
+                    {t('rentSettings.selectedMapping')}: #{selectedMapping.roomTenantMappingId}
                   </p>
                   <p className="text-sm text-blue-700 mt-1">
-                    Room ID: {selectedMapping.roomId} | Tenant ID: {selectedMapping.tenantId}
+                    {t('boardTenants.roomIdPrefix')} {selectedMapping.roomId} | {t('tenants.tenantId')}: {selectedMapping.tenantId}
                   </p>
                   <input type="hidden" {...register('roomTenantMappingId')} value={selectedMapping.roomTenantMappingId} />
                 </div>
               ) : (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Room-Tenant Mapping *
+                    {t('rentSettings.selectRoomTenantMapping')}
                   </label>
                   <select
                     {...register('roomTenantMappingId')}
                     className="input"
                   >
-                    <option value="">Select Mapping</option>
+                    <option value="">{t('rentSettings.selectMapping')}</option>
                     {mappings?.map((mapping) => (
                       <option key={mapping.roomTenantMappingId} value={mapping.roomTenantMappingId}>
-                        Mapping #{mapping.roomTenantMappingId} - Room {mapping.roomId} | Tenant {mapping.tenantId}
+                        {t('rentSettings.mappingId')} #{mapping.roomTenantMappingId} - {t('boardTenants.roomLabel')} {mapping.roomId} | {t('tenants.tenant')} {mapping.tenantId}
                       </option>
                     ))}
                   </select>
@@ -231,7 +233,7 @@ const TenantRentSettingsForm: React.FC = () => {
                     <p className="text-error-600 text-sm mt-1">{String(errors.roomTenantMappingId?.message || '')}</p>
                   )}
                   <p className="text-gray-500 text-sm mt-1">
-                    Select the room-tenant mapping for which you want to configure rent settings
+                    {t('rentSettings.helpTextSelectMapping')}
                   </p>
                 </div>
               )}
@@ -242,20 +244,20 @@ const TenantRentSettingsForm: React.FC = () => {
         {/* Display mapping in edit mode (read-only) */}
         {isEdit && rentSetting && (
           <div className="card p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Mapping Information</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('rentSettings.mappingInformation')}</h2>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Room-Tenant Mapping
+                {t('rentSettings.roomTenantMapping')}
               </label>
               <input
                 type="text"
-                value={`Mapping ID: ${rentSetting.roomTenantMappingId}`}
+                value={`${t('rentSettings.mappingId')}: ${rentSetting.roomTenantMappingId}`}
                 className="input bg-gray-100 cursor-not-allowed"
                 disabled={true}
               />
               <p className="text-gray-500 text-sm mt-1">
-                Mapping cannot be changed in edit mode
+                {t('rentSettings.mappingCannotChange')}
               </p>
             </div>
           </div>
@@ -263,19 +265,19 @@ const TenantRentSettingsForm: React.FC = () => {
 
         {/* Rent Details */}
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Rent Details</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('rentSettings.rentDetails')}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Present Rent Value
+                {t('rentSettings.presentRentValue')}
               </label>
               <input
                 type="number"
                 step="0.01"
                 {...register('presentRentValue')}
                 className="input"
-                placeholder="Enter current rent amount"
+                placeholder={t('rentSettings.presentRentPlaceholder')}
               />
               {errors.presentRentValue && (
                 <p className="text-error-600 text-sm mt-1">{String(errors.presentRentValue?.message || '')}</p>
@@ -284,14 +286,14 @@ const TenantRentSettingsForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Past Rent Value
+                {t('rentSettings.pastRentValue')}
               </label>
               <input
                 type="number"
                 step="0.01"
                 {...register('pastRentValue')}
                 className="input"
-                placeholder="Enter previous rent amount"
+                placeholder={t('rentSettings.pastRentPlaceholder')}
               />
               {errors.pastRentValue && (
                 <p className="text-error-600 text-sm mt-1">{String(errors.pastRentValue?.message || '')}</p>
@@ -300,25 +302,25 @@ const TenantRentSettingsForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Rent Recurring Period (Days)
+                {t('rentSettings.rentRecurringPeriod')}
               </label>
               <input
                 type="number"
                 {...register('rentRecurringPeriodInDays')}
                 className="input"
-                placeholder="e.g., 30 for monthly"
+                placeholder={t('rentSettings.rentRecurringPlaceholder')}
               />
               {errors.rentRecurringPeriodInDays && (
                 <p className="text-error-600 text-sm mt-1">{String(errors.rentRecurringPeriodInDays?.message || '')}</p>
               )}
               <p className="text-gray-500 text-sm mt-1">
-                1=daily, 7=weekly, 30=monthly, 365=yearly
+                {t('rentSettings.rentRecurringHelp')}
               </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Renting Cycle Start Date
+                {t('rentSettings.rentCycleStartDate')}
               </label>
               <input
                 type="date"
@@ -332,10 +334,10 @@ const TenantRentSettingsForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Currency
+                {t('rentSettings.currency')}
               </label>
               <select {...register('currencyId')} className="input">
-                <option value="">Select Currency</option>
+                <option value="">{t('rentSettings.selectCurrency')}</option>
                 {currencies?.data.map((currency) => (
                   <option key={currency.id} value={currency.id}>
                     {currency.value}
@@ -349,12 +351,12 @@ const TenantRentSettingsForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Lock-in Period
+                {t('rentSettings.lockInPeriod')}
               </label>
               <input
                 {...register('lockInPeriod')}
                 className="input"
-                placeholder="e.g., 12 months"
+                placeholder={t('rentSettings.lockInPlaceholder')}
               />
               {errors.lockInPeriod && (
                 <p className="text-error-600 text-sm mt-1">{String(errors.lockInPeriod?.message || '')}</p>
@@ -365,19 +367,19 @@ const TenantRentSettingsForm: React.FC = () => {
 
         {/* Deposit Details */}
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Deposit Details</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('rentSettings.depositDetails')}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Deposited Amount *
+                {t('rentSettings.depositedAmount')}
               </label>
               <input
                 type="number"
                 step="0.01"
                 {...register('deposited')}
                 className="input"
-                placeholder="Enter deposited amount"
+                placeholder={t('rentSettings.depositedPlaceholder')}
               />
               {errors.deposited && (
                 <p className="text-error-600 text-sm mt-1">{String(errors.deposited?.message || '')}</p>
@@ -386,14 +388,14 @@ const TenantRentSettingsForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Deposit to Return *
+                {t('rentSettings.depositToReturnLabel')}
               </label>
               <input
                 type="number"
                 step="0.01"
                 {...register('depositToReturn')}
                 className="input"
-                placeholder="Enter amount to return"
+                placeholder={t('rentSettings.depositToReturnPlaceholder')}
               />
               {errors.depositToReturn && (
                 <p className="text-error-600 text-sm mt-1">{String(errors.depositToReturn?.message || '')}</p>
@@ -404,20 +406,20 @@ const TenantRentSettingsForm: React.FC = () => {
 
         {/* Contact Override */}
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Contact Override (Optional)</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('rentSettings.contactOverride')}</h2>
           <p className="text-sm text-gray-600 mb-4">
-            Override tenant's default contact information for rent notifications
+            {t('rentSettings.contactOverrideHelp')}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mobile Number
+                {t('rentSettings.mobileNumber')}
               </label>
               <input
                 {...register('mobileNo')}
                 className="input"
-                placeholder="Override mobile number"
+                placeholder={t('rentSettings.mobileNumberPlaceholder')}
               />
               {errors.mobileNo && (
                 <p className="text-error-600 text-sm mt-1">{String(errors.mobileNo?.message || '')}</p>
@@ -426,13 +428,13 @@ const TenantRentSettingsForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+                {t('tenants.email')}
               </label>
               <input
                 type="email"
                 {...register('email')}
                 className="input"
-                placeholder="Override email address"
+                placeholder={t('rentSettings.emailPlaceholder')}
               />
               {errors.email && (
                 <p className="text-error-600 text-sm mt-1">{String(errors.email?.message || '')}</p>
@@ -448,7 +450,7 @@ const TenantRentSettingsForm: React.FC = () => {
             onClick={() => navigate('/rent-settings')}
             className="btn-secondary"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
@@ -460,7 +462,7 @@ const TenantRentSettingsForm: React.FC = () => {
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
-            {isEdit ? 'Update Settings' : 'Create Settings'}
+            {isEdit ? t('rentSettings.updateSettings') : t('rentSettings.createSettings')}
           </button>
         </div>
       </form>

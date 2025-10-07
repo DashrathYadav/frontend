@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { DollarSign, Calendar } from 'lucide-react';
 import { tenantRentSettingApi, lookupApi } from '../../services/api';
 import { TenantRentSettingSearchRequest } from '../../types';
@@ -11,6 +12,7 @@ import ErrorMessage from '../../components/ErrorMessage';
 import { formatCurrency } from '../../utils';
 
 const TenantRentSettingsList: React.FC = () => {
+  const { t } = useTranslation();
   const [urlParams] = useSearchParams();
 
   // Use enhanced pagination hook
@@ -141,39 +143,39 @@ const TenantRentSettingsList: React.FC = () => {
   const filterOptions = [
     {
       key: 'ownerId',
-      label: 'Owner',
+      label: t('properties.owner'),
       options: owners?.data?.map(owner => ({
         value: owner.id.toString(),
         label: owner.value
       })) || [],
-      placeholder: 'Select Owner'
+      placeholder: t('properties.selectOwner')
     },
     {
       key: 'propertyId',
-      label: 'Property',
+      label: t('rooms.property'),
       options: properties?.data?.map(property => ({
         value: property.id.toString(),
         label: property.value
       })) || [],
-      placeholder: 'Select Property'
+      placeholder: t('rooms.selectProperty')
     },
     {
       key: 'roomId',
-      label: 'Room',
+      label: t('boardTenants.roomLabel'),
       options: rooms?.data?.map(room => ({
         value: room.id.toString(),
         label: room.value
       })) || [],
-      placeholder: 'Select Room'
+      placeholder: t('boardTenants.selectRoomPlaceholder')
     },
     {
       key: 'tenantId',
-      label: 'Tenant',
+      label: t('tenants.tenant'),
       options: tenants?.data?.map(tenant => ({
         value: tenant.id.toString(),
         label: tenant.value
       })) || [],
-      placeholder: 'Select Tenant'
+      placeholder: t('boardTenants.selectTenantPlaceholder')
     }
   ];
 
@@ -194,16 +196,16 @@ const TenantRentSettingsList: React.FC = () => {
   }, []);
 
   if (settingsError) {
-    return <ErrorMessage message="Failed to load tenant rent settings" />;
+    return <ErrorMessage message={t('rentSettings.errorLoading')} />;
   }
 
   const settings = settingsData?.data || [];
 
   return (
     <ListPageWrapper
-      title="Tenant Rent Settings"
-      subtitle="Manage rent configurations for room-tenant mappings"
-      addButtonText="Create Rent Settings"
+      title={t('rentSettings.tenantRentSettings')}
+      subtitle={t('rentSettings.manageDescription')}
+      addButtonText={t('rentSettings.createRentSettings')}
       addButtonUrl="/rent-settings/new"
       isLoading={settingsLoading}
       error={settingsError}
@@ -223,47 +225,47 @@ const TenantRentSettingsList: React.FC = () => {
       searchTerm={filters.searchTerm}
       filterValues={filters.filterValues}
       filters={filterOptions}
-      placeholder="Search rent settings..."
+      placeholder={t('rentSettings.searchPlaceholder')}
       emptyStateIcon={DollarSign}
-      emptyStateTitle="No rent settings found"
-      emptyStateMessage="Get started by creating rent settings for a room-tenant mapping."
+      emptyStateTitle={t('rentSettings.noSettingsFound')}
+      emptyStateMessage={t('rentSettings.getStarted')}
       hasActiveFilters={hasActiveFilters}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {settings.map((setting) => {
           const cardItem: EntityCardItem = {
             id: setting.tenantRentSettingId,
-            title: `${setting.tenantName} - Room #${setting.roomNo}`,
+            title: `${setting.tenantName} - ${t('boardTenants.roomPrefix')}${setting.roomNo}`,
             subtitle: setting.propertyName,
             viewUrl: `/rent-settings/${setting.tenantRentSettingId}`,
             editUrl: `/rent-settings/${setting.tenantRentSettingId}/edit`,
             badges: [
               {
-                label: 'Rent Setting',
+                label: t('rentSettings.rentSetting'),
                 variant: 'default' as const
               }
             ],
             details: [
               {
                 icon: <DollarSign className="w-4 h-4" />,
-                label: 'Present Rent',
+                label: t('rentSettings.presentRent'),
                 value: formatCurrency(setting.presentRentValue || 0)
               },
               {
                 icon: <DollarSign className="w-4 h-4" />,
-                label: 'Deposit',
+                label: t('rentSettings.deposit'),
                 value: formatCurrency(setting.deposited)
               },
               {
                 icon: <Calendar className="w-4 h-4" />,
-                label: 'Rent Period',
+                label: t('rentSettings.rentPeriod'),
                 value: setting.rentRecurringPeriodInDays
-                  ? `Every ${setting.rentRecurringPeriodInDays} day${setting.rentRecurringPeriodInDays > 1 ? 's' : ''}`
-                  : 'Not set'
+                  ? `${t('rentSettings.everyDays')} ${setting.rentRecurringPeriodInDays} ${setting.rentRecurringPeriodInDays > 1 ? t('boardTenants.days') : t('boardTenants.day')}`
+                  : t('rentSettings.notSet')
               }
             ],
             footerStatus: {
-              label: `Deposit to Return: ${formatCurrency(setting.depositToReturn)}`,
+              label: `${t('rentSettings.depositToReturn')}: ${formatCurrency(setting.depositToReturn)}`,
               variant: 'default' as const
             },
             footerActions: []

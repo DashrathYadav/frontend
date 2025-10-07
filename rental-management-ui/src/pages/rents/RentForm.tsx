@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save } from 'lucide-react';
 import { rentTrackApi, lookupApi, tenantApi } from '../../services/api';
 import { CreateRentTrackDto, UpdateRentTrackDto } from '../../types';
@@ -14,22 +15,8 @@ import { formatErrorMessage } from '../../utils/errorHandler';
 import { useRoleAccess } from '../../hooks/useRoleAccess';
 import { useLookup } from '../../contexts/LookupContext';
 
-const schema = yup.object({
-  propertyId: yup.number().required('Property is required').min(1),
-  tenantId: yup.number().required('Tenant is required').min(1),
-  ownerId: yup.number().required('Owner is required').min(1),
-  expectedRentValue: yup.number().min(0).optional(),
-  receivedRentValue: yup.number().min(0).optional(),
-  pendingAmount: yup.number().min(0, 'Pending amount cannot be negative').optional(),
-  rentPeriodStartDate: yup.string().required('Start date is required'),
-  rentPeriodEndDate: yup.string().required('End date is required'),
-  statusId: yup.number().required('Status is required'),
-  roomId: yup.number().optional(),
-  currencyId: yup.number().optional(),
-  note: yup.string().optional(),
-});
-
 const RentForm: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -38,6 +25,21 @@ const RentForm: React.FC = () => {
   const hasPreFilledRef = React.useRef(false);
   const { isAdmin, isOwner, user } = useRoleAccess();
   const { lookups } = useLookup();
+
+  const schema = useMemo(() => yup.object({
+    propertyId: yup.number().required(t('rents.propertyRequired')).min(1),
+    tenantId: yup.number().required(t('rents.tenantRequired')).min(1),
+    ownerId: yup.number().required(t('rents.ownerRequired')).min(1),
+    expectedRentValue: yup.number().min(0).optional(),
+    receivedRentValue: yup.number().min(0).optional(),
+    pendingAmount: yup.number().min(0, t('rents.pendingAmountNegative')).optional(),
+    rentPeriodStartDate: yup.string().required(t('rents.startDateRequired')),
+    rentPeriodEndDate: yup.string().required(t('rents.endDateRequired')),
+    statusId: yup.number().required(t('rents.statusRequired')),
+    roomId: yup.number().optional(),
+    currencyId: yup.number().optional(),
+    note: yup.string().optional(),
+  }), [t]);
 
   // Get tenantId from URL params for pre-filling
   const tenantIdFromUrl = searchParams.get('tenantId');
@@ -197,10 +199,10 @@ const RentForm: React.FC = () => {
         </button>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            {isEdit ? 'Edit Rent Record' : 'Add New Rent Record'}
+            {isEdit ? t('rents.editRentRecord') : t('rents.addNewRentRecord')}
           </h1>
           <p className="text-gray-600 mt-2">
-            {isEdit ? 'Update rent payment information' : 'Create a new rent tracking record'}
+            {isEdit ? t('rents.updateRentInfo') : t('rents.createNewRentRecord')}
           </p>
         </div>
       </div>
@@ -218,8 +220,8 @@ const RentForm: React.FC = () => {
               </div>
               <div className="ml-3">
                 <p className="text-sm text-blue-700">
-                  Form pre-filled with data from tenant: <strong>{tenantData?.tenantName}</strong>
-                  {tenantLoading && <span className="ml-2 text-blue-500">(Loading...)</span>}
+                  {t('rents.formPreFilled')} <strong>{tenantData?.tenantName}</strong>
+                  {tenantLoading && <span className="ml-2 text-blue-500">{t('rents.loadingPreFillData')}</span>}
                 </p>
               </div>
             </div>
@@ -227,20 +229,20 @@ const RentForm: React.FC = () => {
         )}
 
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Property & Tenant Details</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('rents.propertyTenantDetails')}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Owner field - visibility and editability based on user role */}
             {isAdmin() && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Owner *
+                  {t('rents.ownerLabel')}
                 </label>
                 <select
                   {...register('ownerId')}
                   className="input"
                 >
-                  <option value="">Select Owner</option>
+                  <option value="">{t('rents.selectOwner')}</option>
                   {owners?.data.map((owner) => (
                     <option key={owner.id} value={owner.id}>
                       {owner.value}
@@ -257,14 +259,14 @@ const RentForm: React.FC = () => {
             {!isEdit && isOwner() && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Owner *
+                  {t('rents.ownerLabel')}
                 </label>
                 <select
                   {...register('ownerId')}
                   className="input bg-gray-100 cursor-not-allowed"
                   disabled={true}
                 >
-                  <option value="">Select Owner</option>
+                  <option value="">{t('rents.selectOwner')}</option>
                   {owners?.data.map((owner) => (
                     <option key={owner.id} value={owner.id}>
                       {owner.value}
@@ -275,7 +277,7 @@ const RentForm: React.FC = () => {
                   <p className="text-error-600 text-sm mt-1">{String(errors.ownerId?.message)}</p>
                 )}
                 <p className="text-gray-500 text-sm mt-1">
-                  You can only create rent records for yourself
+                  {t('rents.onlyCreateForYourself')}
                 </p>
               </div>
             )}
@@ -287,7 +289,7 @@ const RentForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Property *
+                {t('rents.propertyLabel')}
               </label>
               <select
                 {...register('propertyId')}
@@ -295,7 +297,7 @@ const RentForm: React.FC = () => {
                 disabled={isEdit || !selectedOwnerId || propertiesLoading}
               >
                 <option value="">
-                  {propertiesLoading ? 'Loading properties...' : 'Select Property'}
+                  {propertiesLoading ? t('rents.loadingProperties') : t('rents.selectProperty')}
                 </option>
                 {properties?.data.map((property) => (
                   <option key={property.id} value={property.id}>
@@ -308,14 +310,14 @@ const RentForm: React.FC = () => {
               )}
               {isEdit && (
                 <p className="text-gray-500 text-sm mt-1">
-                  Property cannot be changed in edit mode
+                  {t('rents.propertyCannotChange')}
                 </p>
               )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Room
+                {t('rents.roomLabel')}
               </label>
               <select
                 {...register('roomId')}
@@ -323,24 +325,24 @@ const RentForm: React.FC = () => {
                 disabled={isEdit || !selectedPropertyId || roomsLoading}
               >
                 <option value="">
-                  {roomsLoading ? 'Loading rooms...' : 'Select Room (Optional)'}
+                  {roomsLoading ? t('rents.loadingRooms') : t('rents.selectRoomOptional')}
                 </option>
                 {rooms?.data.map((room) => (
                   <option key={room.id} value={room.id}>
-                    Room {room.value}
+                    {t('rents.roomLabel')} {room.value}
                   </option>
                 ))}
               </select>
               {isEdit && (
                 <p className="text-gray-500 text-sm mt-1">
-                  Room cannot be changed in edit mode
+                  {t('rents.roomCannotChange')}
                 </p>
               )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tenant *
+                {t('rents.tenantLabel')}
               </label>
               <select
                 {...register('tenantId')}
@@ -348,9 +350,9 @@ const RentForm: React.FC = () => {
                 disabled={isEdit || !selectedRoomId || tenantsLoading}
               >
                 <option value="">
-                  {!selectedRoomId ? 'Select Room first' : 
-                   tenantsLoading ? 'Loading tenants...' : 
-                   'Select Tenant'}
+                  {!selectedRoomId ? t('rents.selectRoomFirst') :
+                   tenantsLoading ? t('rents.loadingTenants') :
+                   t('rents.selectTenant')}
                 </option>
                 {tenants?.data.map((tenant) => (
                   <option key={tenant.id} value={tenant.id}>
@@ -363,7 +365,7 @@ const RentForm: React.FC = () => {
               )}
               {isEdit && (
                 <p className="text-gray-500 text-sm mt-1">
-                  Tenant cannot be changed in edit mode
+                  {t('rents.tenantCannotChange')}
                 </p>
               )}
             </div>
@@ -372,18 +374,18 @@ const RentForm: React.FC = () => {
 
         {/* Financial Details */}
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Financial Details</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('rents.financialDetails')}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Expected Rent Amount
+                {t('rents.expectedRentAmount')}
               </label>
               <input
                 type="number"
                 {...register('expectedRentValue')}
                 className="input"
-                placeholder="Enter expected rent amount"
+                placeholder={t('rents.expectedRentPlaceholder')}
               />
               {errors.expectedRentValue && (
                 <p className="text-error-600 text-sm mt-1">{String(errors.expectedRentValue?.message)}</p>
@@ -392,13 +394,13 @@ const RentForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Received Rent Amount
+                {t('rents.receivedRentAmount')}
               </label>
               <input
                 type="number"
                 {...register('receivedRentValue')}
                 className="input"
-                placeholder="Enter received rent amount"
+                placeholder={t('rents.receivedRentPlaceholder')}
               />
               {errors.receivedRentValue && (
                 <p className="text-error-600 text-sm mt-1">{String(errors.receivedRentValue?.message)}</p>
@@ -407,13 +409,13 @@ const RentForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Pending Amount
+                {t('rents.pendingAmount')}
               </label>
               <input
                 type="number"
                 {...register('pendingAmount')}
                 className="input"
-                placeholder="Enter pending amount"
+                placeholder={t('rents.pendingAmountPlaceholder')}
               />
               {errors.pendingAmount && (
                 <p className="text-error-600 text-sm mt-1">{String(errors.pendingAmount?.message)}</p>
@@ -422,7 +424,7 @@ const RentForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Currency
+                {t('rents.currency')}
               </label>
               <select {...register('currencyId')} className="input">
                 {currencies?.data.map((currency) => (
@@ -435,10 +437,10 @@ const RentForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Payment Status *
+                {t('rents.paymentStatus')}
               </label>
               <select {...register('statusId')} className="input">
-                <option value="">Select Status</option>
+                <option value="">{t('rents.selectStatus')}</option>
                 {lookups.rentStatuses.map((status) => (
                   <option key={status.id} value={status.id}>
                     {status.value}
@@ -454,12 +456,12 @@ const RentForm: React.FC = () => {
 
         {/* Period Details */}
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Rent Period</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('rents.rentPeriod')}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Period Start Date *
+                {t('rents.periodStartDate')}
               </label>
               <input
                 type="date"
@@ -473,7 +475,7 @@ const RentForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Period End Date *
+                {t('rents.periodEndDate')}
               </label>
               <input
                 type="date"
@@ -489,17 +491,17 @@ const RentForm: React.FC = () => {
 
         {/* Additional Information */}
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Additional Information</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('rents.additionalInfo')}</h2>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notes
+              {t('rents.notes')}
             </label>
             <textarea
               {...register('note')}
               rows={4}
               className="input"
-              placeholder="Enter any additional notes about this rent record..."
+              placeholder={t('rents.notesPlaceholder')}
             />
           </div>
         </div>
@@ -511,7 +513,7 @@ const RentForm: React.FC = () => {
             onClick={() => navigate('/rents')}
             className="btn-secondary"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
@@ -523,7 +525,7 @@ const RentForm: React.FC = () => {
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
-            {isEdit ? 'Update Rent Record' : 'Create Rent Record'}
+            {isEdit ? t('rents.updateRentRecord') : t('rents.createRentRecord')}
           </button>
         </div>
       </form>

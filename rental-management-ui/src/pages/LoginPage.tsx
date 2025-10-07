@@ -1,17 +1,22 @@
 import { GalleryVerticalEnd } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { LoginForm } from "../components/LoginForm";
+import { LanguageSelector } from "../components/LanguageSelector";
 
 export default function LoginPage() {
+    const { t } = useTranslation();
+
     return (
         <div className="grid min-h-screen lg:grid-cols-2">
             <div className="flex flex-col gap-4 p-6 md:p-10">
-                <div className="flex justify-center gap-2 md:justify-start">
+                <div className="flex justify-between items-center gap-2">
                     <a href="#" className="flex items-center gap-2 font-medium">
                         <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
                             <GalleryVerticalEnd className="size-4" />
                         </div>
-                        Rentwiz
+                        {t('common.appName')}
                     </a>
+                    <LanguageSelector />
                 </div>
                 <div className="flex flex-1 items-center justify-center">
                     <div className="w-full max-w-sm">
@@ -31,8 +36,8 @@ export default function LoginPage() {
                             <GalleryVerticalEnd className="w-12 h-12 text-white" />
                         </div>
                         <div className="space-y-2">
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome to Rentwiz</h2>
-                            <p className="text-gray-600 dark:text-gray-300">Property Management Made Simple</p>
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('dashboard.welcome')}</h2>
+                            <p className="text-gray-600 dark:text-gray-300">{t('common.tagline')}</p>
                         </div>
                     </div>
                 </div>

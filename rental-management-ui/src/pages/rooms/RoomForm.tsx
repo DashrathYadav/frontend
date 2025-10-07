@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save } from 'lucide-react';
 import { roomApi, lookupApi } from '../../services/api';
 import { CreateRoomDto, UpdateRoomDto } from '../../types';
@@ -14,6 +15,7 @@ import { useLookup } from '../../contexts/LookupContext';
 
 
 const RoomForm: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams();
   const queryClient = useQueryClient();
@@ -125,10 +127,10 @@ const RoomForm: React.FC = () => {
         </button>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            {isEdit ? 'Edit Room' : 'Add New Room'}
+            {isEdit ? t('rooms.editRoom') : t('rooms.addNewRoom')}
           </h1>
           <p className="text-gray-600 mt-2">
-            {isEdit ? 'Update room information' : 'Create a new room in your property'}
+            {isEdit ? t('rooms.updateRoomInfo') : t('rooms.createNewRoom')}
           </p>
         </div>
       </div>
@@ -136,18 +138,18 @@ const RoomForm: React.FC = () => {
       {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Room Details</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('rooms.roomDetails')}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Room Number *
+                {t('rooms.roomNumberLabel')}
               </label>
               <input
                 type="number"
                 {...register('roomNo')}
                 className={`input ${isEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                placeholder="Enter room number"
+                placeholder={t('rooms.roomNumberPlaceholder')}
                 disabled={isEdit}
               />
               {errors.roomNo && (
@@ -155,17 +157,17 @@ const RoomForm: React.FC = () => {
               )}
               {isEdit && (
                 <p className="text-gray-500 text-sm mt-1">
-                  Room number cannot be changed in edit mode
+                  {t('rooms.roomNumberCannotChange')}
                 </p>
               )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Room Type
+                {t('rooms.roomTypeLabel')}
               </label>
               <select {...register('roomTypeId')} className="input">
-                <option value="">Select Type</option>
+                <option value="">{t('rooms.selectType')}</option>
                 {lookups.roomTypes.map((type) => (
                   <option key={type.id} value={type.id}>
                     {type.value}
@@ -178,13 +180,13 @@ const RoomForm: React.FC = () => {
             {isAdmin() && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Owner *
+                  {t('properties.owner')} *
                 </label>
                 <select
                   {...register('ownerId')}
                   className="input"
                 >
-                  <option value="">Select Owner</option>
+                  <option value="">{t('rooms.selectOwner')}</option>
                   {owners?.data.map((owner) => (
                     <option key={owner.id} value={owner.id}>
                       {owner.value}
@@ -201,14 +203,14 @@ const RoomForm: React.FC = () => {
             {!isEdit && isOwner() && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Owner *
+                  {t('properties.owner')} *
                 </label>
                 <select
                   {...register('ownerId')}
                   className="input bg-gray-100 cursor-not-allowed"
                   disabled={true}
                 >
-                  <option value="">Select Owner</option>
+                  <option value="">{t('rooms.selectOwner')}</option>
                   {owners?.data.map((owner) => (
                     <option key={owner.id} value={owner.id}>
                       {owner.value}
@@ -219,7 +221,7 @@ const RoomForm: React.FC = () => {
                   <p className="text-error-600 text-sm mt-1">{String(errors.ownerId?.message)}</p>
                 )}
                 <p className="text-gray-500 text-sm mt-1">
-                  You can only create rooms for yourself
+                  {t('rooms.onlyCreateForYourself')}
                 </p>
               </div>
             )}
@@ -231,14 +233,14 @@ const RoomForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Property *
+                {t('rooms.propertyLabel')}
               </label>
               <select
                 {...register('propertyId')}
                 className={`input ${isEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 disabled={isEdit || !selectedOwnerId}
               >
-                <option value="">Select Property</option>
+                <option value="">{t('rooms.selectProperty')}</option>
                 {properties?.data.map((property) => (
                   <option key={property.id} value={property.id}>
                     {property.value}
@@ -250,31 +252,31 @@ const RoomForm: React.FC = () => {
               )}
               {isEdit && (
                 <p className="text-gray-500 text-sm mt-1">
-                  Property cannot be changed in edit mode
+                  {t('rooms.propertyCannotChange')}
                 </p>
               )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Room Size
+                {t('rooms.roomSize')}
               </label>
               <input
                 {...register('roomSize')}
                 className="input"
-                placeholder="e.g., 300 sq ft"
+                placeholder={t('rooms.roomSizePlaceholder')}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Monthly Rent *
+                {t('rooms.monthlyRent')}
               </label>
               <input
                 type="number"
                 {...register('roomRent')}
                 className="input"
-                placeholder="Enter monthly rent"
+                placeholder={t('rooms.monthlyRentPlaceholder')}
               />
               {errors.roomRent && (
                 <p className="text-error-600 text-sm mt-1">{String(errors.roomRent?.message)}</p>
@@ -283,7 +285,7 @@ const RoomForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Currency
+                {t('rooms.currency')}
               </label>
               <select {...register('currencyId')} className="input">
                 {lookups.currencies.map((currency) => (
@@ -296,10 +298,10 @@ const RoomForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status *
+                {t('rooms.statusLabel')}
               </label>
               <select {...register('statusId')} className="input">
-                <option value="">Select Status</option>
+                <option value="">{t('rooms.selectStatus')}</option>
                 {lookups.availabilityStatuses.map((status) => (
                   <option key={status.id} value={status.id}>
                     {status.value}
@@ -313,13 +315,13 @@ const RoomForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tenant Limit *
+                {t('rooms.tenantLimit')}
               </label>
               <input
                 type="number"
                 {...register('tenantLimit')}
                 className="input"
-                placeholder="Maximum number of tenants"
+                placeholder={t('rooms.tenantLimitPlaceholder')}
               />
               {errors.tenantLimit && (
                 <p className="text-error-600 text-sm mt-1">{String(errors.tenantLimit?.message)}</p>
@@ -328,25 +330,25 @@ const RoomForm: React.FC = () => {
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description
+                {t('rooms.descriptionLabel')}
               </label>
               <textarea
                 {...register('roomDescription')}
                 rows={3}
                 className="input"
-                placeholder="Describe the room..."
+                placeholder={t('rooms.descriptionPlaceholder')}
               />
             </div>
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Facilities
+                {t('rooms.facilitiesLabel')}
               </label>
               <textarea
                 {...register('roomFacility')}
                 rows={3}
                 className="input"
-                placeholder="List available facilities..."
+                placeholder={t('rooms.facilitiesPlaceholder')}
               />
             </div>
           </div>
@@ -357,17 +359,17 @@ const RoomForm: React.FC = () => {
 
         {/* Additional Information */}
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Additional Information</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('rooms.additionalInfo')}</h2>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notes
+              {t('rooms.notesLabel')}
             </label>
             <textarea
               {...register('note')}
               rows={4}
               className="input"
-              placeholder="Enter any additional notes..."
+              placeholder={t('rooms.notesPlaceholder')}
             />
           </div>
         </div>
@@ -379,7 +381,7 @@ const RoomForm: React.FC = () => {
             onClick={() => navigate('/rooms')}
             className="btn-secondary"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
@@ -391,7 +393,7 @@ const RoomForm: React.FC = () => {
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
-            {isEdit ? 'Update Room' : 'Create Room'}
+            {isEdit ? t('rooms.updateRoom') : t('rooms.createRoom')}
           </button>
         </div>
       </form>

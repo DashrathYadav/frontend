@@ -1,5 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
   Users,
   Building2,
@@ -21,6 +22,7 @@ import { formatDate, formatCurrency } from '../utils';
 import { AdminOnly } from '../components/RoleBasedRender';
 
 const Dashboard: React.FC = () => {
+  const { t } = useTranslation();
   const { isAdmin, isOwner } = useRoleAccess();
   const { 
     getRentStatusName, 
@@ -66,7 +68,7 @@ const Dashboard: React.FC = () => {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-error-600">Failed to load dashboard data</p>
+        <p className="text-error-600">{t('dashboard.errorLoadingData')}</p>
       </div>
     );
   }
@@ -76,16 +78,16 @@ const Dashboard: React.FC = () => {
 
   // Define quick actions for different roles
   const adminActions = [
-    { name: 'Add Owner', href: '/owners/new', icon: Users, color: 'bg-blue-500' },
-    { name: 'Add Property', href: '/properties/new', icon: Building2, color: 'bg-green-500' },
-    { name: 'Add Room', href: '/rooms/new', icon: DoorOpen, color: 'bg-purple-500' },
-    { name: 'Add Tenant', href: '/tenants/new', icon: UserCheck, color: 'bg-orange-500' },
+    { name: t('dashboard.addOwner'), href: '/owners/new', icon: Users, color: 'bg-blue-500' },
+    { name: t('dashboard.addProperty'), href: '/properties/new', icon: Building2, color: 'bg-green-500' },
+    { name: t('dashboard.addRoom'), href: '/rooms/new', icon: DoorOpen, color: 'bg-purple-500' },
+    { name: t('dashboard.addTenant'), href: '/tenants/new', icon: UserCheck, color: 'bg-orange-500' },
   ];
 
   const ownerActions = [
-    { name: 'Add Property', href: '/properties/new', icon: Building2, color: 'bg-green-500' },
-    { name: 'Add Room', href: '/rooms/new', icon: DoorOpen, color: 'bg-purple-500' },
-    { name: 'Add Tenant', href: '/tenants/new', icon: UserCheck, color: 'bg-orange-500' },
+    { name: t('dashboard.addProperty'), href: '/properties/new', icon: Building2, color: 'bg-green-500' },
+    { name: t('dashboard.addRoom'), href: '/rooms/new', icon: DoorOpen, color: 'bg-purple-500' },
+    { name: t('dashboard.addTenant'), href: '/tenants/new', icon: UserCheck, color: 'bg-orange-500' },
   ];
 
   const quickActions = isAdmin() ? adminActions : isOwner() ? ownerActions : [];
@@ -102,11 +104,11 @@ const Dashboard: React.FC = () => {
             <div className="ml-3 flex-1">
               <p className="text-sm text-yellow-700">
                 {lookupsError}
-                <button 
+                <button
                   onClick={retryLookups}
                   className="ml-2 text-yellow-800 underline hover:text-yellow-900"
                 >
-                  Retry
+                  {t('dashboard.retry')}
                 </button>
               </p>
             </div>
@@ -116,31 +118,31 @@ const Dashboard: React.FC = () => {
 
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-2">Welcome to your property management overview</p>
+        <h1 className="text-3xl font-bold text-gray-900">{t('dashboard.title')}</h1>
+        <p className="text-gray-600 mt-2">{t('dashboard.welcomeMessage')}</p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <AdminOnly>
           <StatsCard
-            title="Total Owners"
+            title={t('dashboard.totalOwners')}
             value={stats?.totalOwners || 0}
             icon={Users}
           />
         </AdminOnly>
         <StatsCard
-          title="Properties"
+          title={t('dashboard.totalProperties')}
           value={stats?.totalProperties || 0}
           icon={Building2}
         />
         <StatsCard
-          title="Rooms"
+          title={t('dashboard.totalRooms')}
           value={stats?.totalRooms || 0}
           icon={DoorOpen}
         />
         <StatsCard
-          title="Tenants"
+          title={t('dashboard.totalTenants')}
           value={stats?.totalTenants || 0}
           icon={UserCheck}
         />
@@ -155,7 +157,7 @@ const Dashboard: React.FC = () => {
             </div>
           ) : summaryError ? (
             <div className="card p-6 bg-red-50 border border-red-200">
-              <p className="text-red-600 text-sm">Failed to load monthly summary. Please try again later.</p>
+              <p className="text-red-600 text-sm">{t('dashboard.errorLoadingSummary')}</p>
             </div>
           ) : monthlySummary ? (
             <>
@@ -183,31 +185,31 @@ const Dashboard: React.FC = () => {
                   <div className="flex items-start">
                     <AlertCircle className="w-5 h-5 text-yellow-600 mr-3 mt-0.5" />
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-yellow-900 mb-2">Action Required</h3>
+                      <h3 className="text-lg font-semibold text-yellow-900 mb-2">{t('dashboard.actionRequired')}</h3>
                       <div className="space-y-2">
                         {monthlySummary.overduePaymentsCount > 0 && (
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-yellow-800">
-                              {monthlySummary.overduePaymentsCount} overdue payment{monthlySummary.overduePaymentsCount > 1 ? 's' : ''}
+                              {monthlySummary.overduePaymentsCount} {t('dashboard.overduePayment', { count: monthlySummary.overduePaymentsCount })}
                             </span>
                             <Link
                               to="/rents"
                               className="text-sm font-medium text-yellow-900 hover:text-yellow-700 underline"
                             >
-                              View Details
+                              {t('dashboard.viewDetails')}
                             </Link>
                           </div>
                         )}
                         {monthlySummary.expiringLeasesCount > 0 && (
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-yellow-800">
-                              {monthlySummary.expiringLeasesCount} lease{monthlySummary.expiringLeasesCount > 1 ? 's' : ''} expiring in next 30 days
+                              {monthlySummary.expiringLeasesCount} {t('dashboard.expiringLease', { count: monthlySummary.expiringLeasesCount })}
                             </span>
                             <Link
                               to="/board-tenants"
                               className="text-sm font-medium text-yellow-900 hover:text-yellow-700 underline"
                             >
-                              View Details
+                              {t('dashboard.viewDetails')}
                             </Link>
                           </div>
                         )}
@@ -223,7 +225,7 @@ const Dashboard: React.FC = () => {
 
       {/* Quick Actions */}
       <div className="card p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('dashboard.quickActions')}</h2>
         {quickActions.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {quickActions.map((action) => {
@@ -249,14 +251,14 @@ const Dashboard: React.FC = () => {
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500">
-            <p>No quick actions available for your role.</p>
+            <p>{t('dashboard.noQuickActions')}</p>
           </div>
         )}
       </div>
 
       {/* Recent Activity */}
       <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Rents</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('dashboard.recentRents')}</h2>
           {rentsLoading ? (
             <div className="flex items-center justify-center py-8">
               <LoadingSpinner size="md" />
@@ -284,14 +286,14 @@ const Dashboard: React.FC = () => {
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
-              <p>No recent rent records found</p>
+              <p>{t('dashboard.noRecentRents')}</p>
             </div>
           )}
           <Link
             to="/rents"
             className="inline-flex items-center text-primary-600 hover:text-primary-700 mt-4 text-sm font-medium"
           >
-            View all rent records
+            {t('dashboard.viewAllRents')}
             <ArrowRight className="w-4 h-4 ml-1" />
           </Link>
       </div>

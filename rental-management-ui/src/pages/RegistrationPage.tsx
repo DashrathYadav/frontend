@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useMutation } from '@tanstack/react-query';
 import { ArrowLeft, UserPlus, Eye, EyeOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { authApi, lookupApi } from '../services/api';
 import { extractErrorMessage } from '../utils/errorHandler';
 import { showSuccess } from '../utils/toast';
 import { useQuery } from '@tanstack/react-query';
+import { LanguageSelector } from '../components/LanguageSelector';
 
 // Registration form type matching API requirements
 interface RegistrationFormData {
@@ -30,28 +32,30 @@ interface RegistrationFormData {
   };
 }
 
-const schema = yup.object({
-  loginId: yup.string().required('Login ID is required').max(50),
-  password: yup.string().required('Password is required').min(6, 'Password must be at least 6 characters'),
-  fullName: yup.string().required('Full name is required').max(100),
-  mobileNumber: yup.string().required('Mobile number is required').matches(/^\d{10,15}$/, 'Mobile number must be between 10 and 15 digits'),
-  email: yup.string().email('Invalid email format').optional(),
-  aadharNumber: yup.string().optional().test('aadhar-format', 'Aadhar number must be 12 digits', (value) => !value || /^\d{12}$/.test(value)),
-  note: yup.string().optional().max(500),
-  address: yup.object({
-    street: yup.string().required('Street is required').max(100),
-    landMark: yup.string().required('Landmark is required').max(100),
-    area: yup.string().required('Area is required').max(50),
-    city: yup.string().required('City is required').max(50),
-    pincode: yup.string().required('Pincode is required').matches(/^\d{6}$/, 'Pincode must be 6 digits'),
-    stateId: yup.number().required('State is required').min(1),
-    countryId: yup.number().required('Country is required').min(1),
-  }),
-});
-
 const RegistrationPage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+
+  // Validation schema with translations
+  const schema = useMemo(() => yup.object({
+    loginId: yup.string().required(t('validation.loginIdRequired')).max(50),
+    password: yup.string().required(t('validation.passwordRequired')).min(6, t('validation.passwordMin')),
+    fullName: yup.string().required(t('validation.fullNameRequired')).max(100),
+    mobileNumber: yup.string().required(t('validation.mobileRequired')).matches(/^\d{10,15}$/, t('validation.mobileInvalid')),
+    email: yup.string().email(t('validation.emailInvalid')).optional(),
+    aadharNumber: yup.string().optional().test('aadhar-format', t('validation.aadharInvalid'), (value) => !value || /^\d{12}$/.test(value)),
+    note: yup.string().optional().max(500),
+    address: yup.object({
+      street: yup.string().required(t('validation.streetRequired')).max(100),
+      landMark: yup.string().required(t('validation.landmarkRequired')).max(100),
+      area: yup.string().required(t('validation.areaRequired')).max(50),
+      city: yup.string().required(t('validation.cityRequired')).max(50),
+      pincode: yup.string().required(t('validation.pincodeRequired')).matches(/^\d{6}$/, t('validation.pincodeInvalid')),
+      stateId: yup.number().required(t('validation.stateRequired')).min(1),
+      countryId: yup.number().required(t('validation.countryRequired')).min(1),
+    }),
+  }), [t]);
 
   const {
     register,
@@ -78,10 +82,10 @@ const RegistrationPage: React.FC = () => {
     onSuccess: (data) => {
       if (data.status) {
         // Show success message and redirect to login
-        showSuccess('Registration successful! Please login with your credentials.');
+        showSuccess(t('auth.registrationSuccess'));
         navigate('/login');
       } else {
-        setError('root', { message: data.message || 'Registration failed' });
+        setError('root', { message: data.message || t('auth.registrationFailed') });
       }
     },
     onError: (error: any) => {
@@ -109,17 +113,20 @@ const RegistrationPage: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <UserPlus className="w-8 h-8 text-white" />
                 <div>
-                  <h1 className="text-2xl font-bold text-white">Owner Registration</h1>
-                  <p className="text-primary-100">Join Rentwiz as a Property Owner</p>
+                  <h1 className="text-2xl font-bold text-white">{t('auth.registrationTitle')}</h1>
+                  <p className="text-primary-100">{t('auth.registrationTagline')}</p>
                 </div>
               </div>
-              <Link
-                to="/login"
-                className="text-primary-100 hover:text-white transition-colors duration-200 flex items-center space-x-1"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="text-sm">Back to Login</span>
-              </Link>
+              <div className="flex items-center gap-4">
+                <LanguageSelector />
+                <Link
+                  to="/login"
+                  className="text-primary-100 hover:text-white transition-colors duration-200 flex items-center space-x-1"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="text-sm">{t('auth.backToLogin')}</span>
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -135,19 +142,19 @@ const RegistrationPage: React.FC = () => {
             {/* Basic Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                Basic Information
+                {t('registration.basicInformation')}
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Login ID *
+                    {t('auth.loginId')} *
                   </label>
                   <input
                     type="text"
                     {...register('loginId')}
                     className="input"
-                    placeholder="Enter unique login ID"
+                    placeholder={t('auth.loginIdPlaceholder')}
                   />
                   {errors.loginId && (
                     <p className="text-error-600 text-sm mt-1">{errors.loginId.message}</p>
@@ -156,14 +163,14 @@ const RegistrationPage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Password *
+                    {t('auth.password')} *
                   </label>
                   <div className="relative">
                     <input
                       type={showPassword ? 'text' : 'password'}
                       {...register('password')}
                       className="input pr-10"
-                      placeholder="Enter password"
+                      placeholder={t('auth.passwordPlaceholder')}
                     />
                     <button
                       type="button"
@@ -184,13 +191,13 @@ const RegistrationPage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name *
+                    {t('registration.fullName')} *
                   </label>
                   <input
                     type="text"
                     {...register('fullName')}
                     className="input"
-                    placeholder="Enter full name"
+                    placeholder={t('registration.fullNamePlaceholder')}
                   />
                   {errors.fullName && (
                     <p className="text-error-600 text-sm mt-1">{errors.fullName.message}</p>
@@ -199,13 +206,13 @@ const RegistrationPage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mobile Number *
+                    {t('registration.mobileNumber')} *
                   </label>
                   <input
                     type="text"
                     {...register('mobileNumber')}
                     className="input"
-                    placeholder="Enter 10-15 digit mobile number"
+                    placeholder={t('registration.mobileNumberPlaceholder')}
                     maxLength={15}
                   />
                   {errors.mobileNumber && (
@@ -215,13 +222,13 @@ const RegistrationPage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
+                    {t('registration.email')}
                   </label>
                   <input
                     type="email"
                     {...register('email')}
                     className="input"
-                    placeholder="Enter email address"
+                    placeholder={t('registration.emailPlaceholder')}
                   />
                   {errors.email && (
                     <p className="text-error-600 text-sm mt-1">{errors.email.message}</p>
@@ -230,13 +237,13 @@ const RegistrationPage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Aadhar Number
+                    {t('registration.aadharNumber')}
                   </label>
                   <input
                     type="text"
                     {...register('aadharNumber')}
                     className="input"
-                    placeholder="Enter 12-digit Aadhar number"
+                    placeholder={t('registration.aadharNumberPlaceholder')}
                     maxLength={12}
                   />
                   {errors.aadharNumber && (
@@ -249,19 +256,19 @@ const RegistrationPage: React.FC = () => {
             {/* Address Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                Address Information
+                {t('registration.addressInformation')}
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Street *
+                    {t('registration.street')} *
                   </label>
                   <input
                     type="text"
                     {...register('address.street')}
                     className="input"
-                    placeholder="Enter street address"
+                    placeholder={t('registration.streetPlaceholder')}
                   />
                   {errors.address?.street && (
                     <p className="text-error-600 text-sm mt-1">{errors.address.street.message}</p>
@@ -270,13 +277,13 @@ const RegistrationPage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Landmark *
+                    {t('registration.landmark')} *
                   </label>
                   <input
                     type="text"
                     {...register('address.landMark')}
                     className="input"
-                    placeholder="Enter landmark"
+                    placeholder={t('registration.landmarkPlaceholder')}
                   />
                   {errors.address?.landMark && (
                     <p className="text-error-600 text-sm mt-1">{errors.address.landMark.message}</p>
@@ -285,13 +292,13 @@ const RegistrationPage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Area *
+                    {t('registration.area')} *
                   </label>
                   <input
                     type="text"
                     {...register('address.area')}
                     className="input"
-                    placeholder="Enter area"
+                    placeholder={t('registration.areaPlaceholder')}
                   />
                   {errors.address?.area && (
                     <p className="text-error-600 text-sm mt-1">{errors.address.area.message}</p>
@@ -300,13 +307,13 @@ const RegistrationPage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    City *
+                    {t('registration.city')} *
                   </label>
                   <input
                     type="text"
                     {...register('address.city')}
                     className="input"
-                    placeholder="Enter city"
+                    placeholder={t('registration.cityPlaceholder')}
                   />
                   {errors.address?.city && (
                     <p className="text-error-600 text-sm mt-1">{errors.address.city.message}</p>
@@ -315,13 +322,13 @@ const RegistrationPage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Pincode *
+                    {t('registration.pincode')} *
                   </label>
                   <input
                     type="text"
                     {...register('address.pincode')}
                     className="input"
-                    placeholder="Enter 6-digit pincode"
+                    placeholder={t('registration.pincodePlaceholder')}
                     maxLength={6}
                   />
                   {errors.address?.pincode && (
@@ -331,10 +338,10 @@ const RegistrationPage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    State *
+                    {t('registration.state')} *
                   </label>
                   <select {...register('address.stateId')} className="input">
-                    <option value="">Select State</option>
+                    <option value="">{t('registration.selectState')}</option>
                     {states?.data?.map(state => (
                       <option key={state.id} value={state.id}>
                         {state.value}
@@ -348,10 +355,10 @@ const RegistrationPage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Country *
+                    {t('registration.country')} *
                   </label>
                   <select {...register('address.countryId')} className="input">
-                    <option value="">Select Country</option>
+                    <option value="">{t('registration.selectCountry')}</option>
                     {countries?.data?.map(country => (
                       <option key={country.id} value={country.id}>
                         {country.value}
@@ -368,13 +375,13 @@ const RegistrationPage: React.FC = () => {
             {/* Note */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Note
+                {t('registration.note')}
               </label>
               <textarea
                 {...register('note')}
                 rows={3}
                 className="input"
-                placeholder="Enter any additional information about yourself..."
+                placeholder={t('registration.notePlaceholder')}
               />
               {errors.note && (
                 <p className="text-error-600 text-sm mt-1">{errors.note.message}</p>
@@ -387,7 +394,7 @@ const RegistrationPage: React.FC = () => {
                 to="/login"
                 className="text-primary-600 hover:text-primary-700 font-medium"
               >
-                Already have an account? Login
+                {t('auth.alreadyHaveAccount')} {t('auth.login')}
               </Link>
               <button
                 type="submit"
@@ -397,12 +404,12 @@ const RegistrationPage: React.FC = () => {
                 {registrationMutation.isPending ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Registering...</span>
+                    <span>{t('auth.registering')}</span>
                   </>
                 ) : (
                   <>
                     <UserPlus className="w-4 h-4" />
-                    <span>Register as Owner</span>
+                    <span>{t('auth.registerAsOwner')}</span>
                   </>
                 )}
               </button>

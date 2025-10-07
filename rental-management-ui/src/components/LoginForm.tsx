@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Eye, EyeOff } from "lucide-react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "./Button";
 import { Input } from "./Input";
 import { Label } from "./Label";
@@ -20,16 +21,8 @@ import {
     SelectValue,
 } from "./Select";
 
-// Form validation schema
-const loginSchema = z.object({
-    loginId: z.string().min(1, "Login ID is required"),
-    password: z.string().min(1, "Password is required"),
-    role: z.enum([USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.TENANT]),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
-
 export function LoginForm() {
+    const { t } = useTranslation();
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { login, loading } = useAuth();
@@ -38,6 +31,17 @@ export function LoginForm() {
 
     // Get the intended destination from location state, or default to dashboard
     const from = (location.state as any)?.from?.pathname || "/dashboard";
+
+    // Form validation schema with translations
+    const loginSchema = useMemo(() => z.object({
+        loginId: z.string().min(1, t('validation.loginIdRequired')),
+        password: z.string().min(1, t('validation.passwordRequired')),
+        role: z.enum([USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.TENANT], {
+            errorMap: () => ({ message: t('validation.roleRequired') })
+        }),
+    }), [t]);
+
+    type LoginFormData = z.infer<typeof loginSchema>;
 
     const {
         register,
@@ -60,37 +64,37 @@ export function LoginForm() {
                 // Redirect to the intended page or dashboard
                 navigate(from, { replace: true });
             } else {
-                setError("Invalid login ID, password, or role. Please try again.");
+                setError(t('auth.loginFailed'));
             }
         } catch (err) {
-            setError("Login failed. Please try again.");
+            setError(t('auth.loginError'));
         }
     };
 
     return (
         <Card className="w-full">
             <CardHeader className="space-y-1">
-                <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
+                <CardTitle className="text-2xl text-center">{t('auth.loginTitle')}</CardTitle>
                 <CardDescription className="text-center">
-                    Enter your credentials to access your account
+                    {t('auth.loginDescription')}
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="role">Role</Label>
+                        <Label htmlFor="role">{t('auth.role')}</Label>
                         <Select
                             onValueChange={(value: UserRole) => setValue("role", value, { shouldValidate: true })}
                         >
                             <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select role" />
+                                <SelectValue placeholder={t('auth.selectRole')} />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
-                                    <SelectLabel>Role</SelectLabel>
-                                    <SelectItem value={USER_ROLES.ADMIN}>{USER_ROLES.ADMIN}</SelectItem>
-                                    <SelectItem value={USER_ROLES.OWNER}>{USER_ROLES.OWNER}</SelectItem>
-                                    <SelectItem value={USER_ROLES.TENANT}>{USER_ROLES.TENANT}</SelectItem>
+                                    <SelectLabel>{t('auth.roleLabel')}</SelectLabel>
+                                    <SelectItem value={USER_ROLES.ADMIN}>{t('auth.admin')}</SelectItem>
+                                    <SelectItem value={USER_ROLES.OWNER}>{t('auth.owner')}</SelectItem>
+                                    <SelectItem value={USER_ROLES.TENANT}>{t('auth.tenant')}</SelectItem>
                                 </SelectGroup>
                             </SelectContent>
                         </Select>
@@ -100,11 +104,11 @@ export function LoginForm() {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="loginId">Login ID</Label>
+                        <Label htmlFor="loginId">{t('auth.loginId')}</Label>
                         <Input
                             id="loginId"
                             type="text"
-                            placeholder="Enter your login ID"
+                            placeholder={t('auth.loginIdPlaceholder')}
                             {...register("loginId")}
                             className={errors.loginId ? "border-red-500" : ""}
                         />
@@ -114,12 +118,12 @@ export function LoginForm() {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="password">Password</Label>
+                        <Label htmlFor="password">{t('auth.password')}</Label>
                         <div className="relative">
                             <Input
                                 id="password"
                                 type={showPassword ? "text" : "password"}
-                                placeholder="Enter your password"
+                                placeholder={t('auth.passwordPlaceholder')}
                                 {...register("password")}
                                 className={errors.password ? "border-red-500 pr-10" : "pr-10"}
                             />
@@ -143,15 +147,15 @@ export function LoginForm() {
                     )}
 
                     <Button type="submit" className="w-full" disabled={loading || !selectedRole}>
-                        {loading ? "Logging in..." : "Login"}
+                        {loading ? t('auth.loggingIn') : t('auth.loginButton')}
                     </Button>
                 </form>
             </CardContent>
             <CardFooter className="flex flex-col space-y-2">
                 <div className="text-sm text-center text-gray-600">
-                    Don't have an account?{" "}
+                    {t('auth.dontHaveAccount')}{" "}
                     <Link to="/register" className="text-primary hover:underline">
-                        Sign up
+                        {t('auth.signupLink')}
                     </Link>
                 </div>
             </CardFooter>

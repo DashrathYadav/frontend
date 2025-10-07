@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
     ArrowLeft,
     Edit,
@@ -25,6 +26,7 @@ import { Badge } from '../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
 const TenantRentSettingsDetail: React.FC = () => {
+    const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -50,16 +52,16 @@ const TenantRentSettingsDetail: React.FC = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['tenant-rent-settings'] });
             queryClient.invalidateQueries({ queryKey: ['rent-setting-by-mapping'] });
-            showSuccess('Rent settings deleted successfully');
+            showSuccess(t('rentSettings.settingsDeletedSuccess'));
             navigate('/rent-settings');
         },
         onError: () => {
-            showError('Failed to delete rent settings');
+            showError(t('rentSettings.failedToDelete'));
         },
     });
 
     const handleDelete = () => {
-        if (window.confirm('Are you sure you want to delete these rent settings? This action cannot be undone.')) {
+        if (window.confirm(t('rentSettings.deleteConfirmation'))) {
             deleteMutation.mutate();
         }
     };
@@ -73,19 +75,19 @@ const TenantRentSettingsDetail: React.FC = () => {
     }
 
     if (settingError || !rentSetting) {
-        return <ErrorMessage message="Failed to load rent settings" />;
+        return <ErrorMessage message={t('rentSettings.failedToLoadSettings')} />;
     }
 
     // Helper function to format dates safely
     const formatDate = (dateString: string | undefined) => {
-        if (!dateString) return 'Not set';
+        if (!dateString) return t('rentSettings.notSet');
         try {
             const date = new Date(dateString);
-            if (isNaN(date.getTime())) return 'Invalid date';
+            if (isNaN(date.getTime())) return t('rentSettings.invalidDate');
             return date.toLocaleDateString();
         } catch (error) {
             console.error('Error formatting date:', error);
-            return 'Invalid date';
+            return t('rentSettings.invalidDate');
         }
     };
 
@@ -101,8 +103,8 @@ const TenantRentSettingsDetail: React.FC = () => {
                         <ArrowLeft className="w-5 h-5" />
                     </button>
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Rent Settings</h1>
-                        <p className="text-gray-600 mt-1">Settings ID: #{rentSetting.tenantRentSettingId}</p>
+                        <h1 className="text-3xl font-bold text-gray-900">{t('rentSettings.rentSettingsTitle')}</h1>
+                        <p className="text-gray-600 mt-1">{t('rentSettings.settingsIdPrefix')}{rentSetting.tenantRentSettingId}</p>
                     </div>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -111,7 +113,7 @@ const TenantRentSettingsDetail: React.FC = () => {
                         className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                     >
                         <Edit className="w-4 h-4 mr-2" />
-                        Edit Settings
+                        {t('rentSettings.editSettings')}
                     </Link>
                     <button
                         onClick={handleDelete}
@@ -119,7 +121,7 @@ const TenantRentSettingsDetail: React.FC = () => {
                         className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 disabled:opacity-50"
                     >
                         <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
+                        {t('rentSettings.deleteSettings')}
                     </button>
                 </div>
             </div>
@@ -131,32 +133,32 @@ const TenantRentSettingsDetail: React.FC = () => {
                     {/* Rent Summary Card */}
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-lg">Rent Summary</CardTitle>
+                            <CardTitle className="text-lg">{t('rentSettings.rentSummary')}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">Present Rent</span>
+                                <span className="text-sm text-gray-600">{t('rentSettings.presentRent')}</span>
                                 <span className="font-semibold text-lg text-green-600">
                                     {formatCurrency(rentSetting.presentRentValue || 0)}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">Deposited</span>
+                                <span className="text-sm text-gray-600">{t('rentSettings.deposited')}</span>
                                 <span className="font-semibold text-lg text-blue-600">
                                     {formatCurrency(rentSetting.deposited)}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">To Return</span>
+                                <span className="text-sm text-gray-600">{t('rentSettings.toReturn')}</span>
                                 <span className="font-semibold text-lg text-orange-600">
                                     {formatCurrency(rentSetting.depositToReturn)}
                                 </span>
                             </div>
                             {rentSetting.rentRecurringPeriodInDays && (
                                 <div className="pt-3 border-t">
-                                    <span className="text-sm text-gray-600">Rent Cycle</span>
+                                    <span className="text-sm text-gray-600">{t('rentSettings.rentCycle')}</span>
                                     <p className="font-medium text-gray-900 mt-1">
-                                        Every {rentSetting.rentRecurringPeriodInDays} day{rentSetting.rentRecurringPeriodInDays > 1 ? 's' : ''}
+                                        {t('rentSettings.everyDays')} {rentSetting.rentRecurringPeriodInDays} {rentSetting.rentRecurringPeriodInDays > 1 ? t('boardTenants.days') : t('boardTenants.day')}
                                     </p>
                                 </div>
                             )}
@@ -168,21 +170,21 @@ const TenantRentSettingsDetail: React.FC = () => {
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center">
                                 <User className="w-5 h-5 mr-2" />
-                                Tenant
+                                {t('rentSettings.tenant')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <div>
-                                <p className="text-sm text-gray-600">Name</p>
+                                <p className="text-sm text-gray-600">{t('boardTenants.name')}</p>
                                 <p className="font-semibold text-gray-900">{rentSetting.tenantName}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-gray-600">Mobile</p>
+                                <p className="text-sm text-gray-600">{t('boardTenants.mobile')}</p>
                                 <p className="font-medium text-gray-900">{rentSetting.tenantMobile}</p>
                             </div>
                             {rentSetting.tenantEmail && (
                                 <div>
-                                    <p className="text-sm text-gray-600">Email</p>
+                                    <p className="text-sm text-gray-600">{t('boardTenants.email')}</p>
                                     <p className="font-medium text-gray-900">{rentSetting.tenantEmail}</p>
                                 </div>
                             )}
@@ -190,7 +192,7 @@ const TenantRentSettingsDetail: React.FC = () => {
                                 to={`/tenants/${rentSetting.tenantId}`}
                                 className="text-sm text-blue-600 hover:text-blue-700 inline-flex items-center mt-2"
                             >
-                                View Profile →
+                                {t('rentSettings.viewProfile')}
                             </Link>
                         </CardContent>
                     </Card>
@@ -200,23 +202,23 @@ const TenantRentSettingsDetail: React.FC = () => {
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center">
                                 <Home className="w-5 h-5 mr-2" />
-                                Room & Property
+                                {t('rentSettings.roomProperty')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <div>
-                                <p className="text-sm text-gray-600">Room Number</p>
+                                <p className="text-sm text-gray-600">{t('rentSettings.roomNumber')}</p>
                                 <p className="font-semibold text-gray-900">#{rentSetting.roomNo}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-gray-600">Property</p>
+                                <p className="text-sm text-gray-600">{t('boardTenants.property')}</p>
                                 <p className="font-medium text-gray-900">{rentSetting.propertyName}</p>
                             </div>
                             <Link
                                 to={`/rooms/${rentSetting.roomId}`}
                                 className="text-sm text-blue-600 hover:text-blue-700 inline-flex items-center mt-2"
                             >
-                                View Room →
+                                {t('rentSettings.viewRoom')}
                             </Link>
                         </CardContent>
                     </Card>
@@ -226,9 +228,9 @@ const TenantRentSettingsDetail: React.FC = () => {
                 <div className="lg:col-span-2">
                     <Tabs defaultValue="overview" className="w-full">
                         <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="overview">Overview</TabsTrigger>
-                            <TabsTrigger value="mapping">Mapping Details</TabsTrigger>
-                            <TabsTrigger value="audit">Audit Trail</TabsTrigger>
+                            <TabsTrigger value="overview">{t('rentSettings.overview')}</TabsTrigger>
+                            <TabsTrigger value="mapping">{t('rentSettings.mappingDetails')}</TabsTrigger>
+                            <TabsTrigger value="audit">{t('rentSettings.auditTrail')}</TabsTrigger>
                         </TabsList>
 
                         {/* Overview Tab */}
@@ -236,15 +238,15 @@ const TenantRentSettingsDetail: React.FC = () => {
                             {/* Rent Configuration */}
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Rent Configuration</CardTitle>
-                                    <CardDescription>Payment and rent cycle details</CardDescription>
+                                    <CardTitle>{t('rentSettings.rentConfiguration')}</CardTitle>
+                                    <CardDescription>{t('rentSettings.paymentRentCycleDetails')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <label className="text-sm font-medium text-gray-500 flex items-center">
                                                 <DollarSign className="w-4 h-4 mr-2" />
-                                                Present Rent Value
+                                                {t('rentSettings.presentRentValue')}
                                             </label>
                                             <p className="text-lg font-semibold text-green-600 mt-1">
                                                 {formatCurrency(rentSetting.presentRentValue || 0)}
@@ -253,7 +255,7 @@ const TenantRentSettingsDetail: React.FC = () => {
 
                                         {rentSetting.pastRentValue && (
                                             <div>
-                                                <label className="text-sm font-medium text-gray-500">Past Rent Value</label>
+                                                <label className="text-sm font-medium text-gray-500">{t('rentSettings.pastRentValue')}</label>
                                                 <p className="text-lg font-semibold text-gray-600 mt-1">
                                                     {formatCurrency(rentSetting.pastRentValue)}
                                                 </p>
@@ -262,15 +264,15 @@ const TenantRentSettingsDetail: React.FC = () => {
 
                                         {rentSetting.rentRecurringPeriodInDays && (
                                             <div>
-                                                <label className="text-sm font-medium text-gray-500">Rent Recurring Period</label>
+                                                <label className="text-sm font-medium text-gray-500">{t('rentSettings.rentRecurringPeriod')}</label>
                                                 <p className="text-lg text-gray-900 mt-1">
-                                                    Every {rentSetting.rentRecurringPeriodInDays} day{rentSetting.rentRecurringPeriodInDays > 1 ? 's' : ''}
+                                                    {t('rentSettings.everyDays')} {rentSetting.rentRecurringPeriodInDays} {rentSetting.rentRecurringPeriodInDays > 1 ? t('boardTenants.days') : t('boardTenants.day')}
                                                 </p>
                                                 <p className="text-sm text-gray-500 mt-1">
-                                                    {rentSetting.rentRecurringPeriodInDays === 1 && '(Daily)'}
-                                                    {rentSetting.rentRecurringPeriodInDays === 7 && '(Weekly)'}
-                                                    {rentSetting.rentRecurringPeriodInDays === 30 && '(Monthly)'}
-                                                    {rentSetting.rentRecurringPeriodInDays === 365 && '(Yearly)'}
+                                                    {rentSetting.rentRecurringPeriodInDays === 1 && t('rentSettings.daily')}
+                                                    {rentSetting.rentRecurringPeriodInDays === 7 && t('rentSettings.weekly')}
+                                                    {rentSetting.rentRecurringPeriodInDays === 30 && t('rentSettings.monthly')}
+                                                    {rentSetting.rentRecurringPeriodInDays === 365 && t('rentSettings.yearly')}
                                                 </p>
                                             </div>
                                         )}
@@ -279,7 +281,7 @@ const TenantRentSettingsDetail: React.FC = () => {
                                             <div>
                                                 <label className="text-sm font-medium text-gray-500 flex items-center">
                                                     <Calendar className="w-4 h-4 mr-2" />
-                                                    Rent Cycle Start Date
+                                                    {t('rentSettings.rentCycleStartDate')}
                                                 </label>
                                                 <p className="text-lg text-gray-900 mt-1">
                                                     {formatDate(rentSetting.rentingCycleStartPeriod)}
@@ -289,7 +291,7 @@ const TenantRentSettingsDetail: React.FC = () => {
 
                                         {rentSetting.lockInPeriod && (
                                             <div className="md:col-span-2">
-                                                <label className="text-sm font-medium text-gray-500">Lock-in Period</label>
+                                                <label className="text-sm font-medium text-gray-500">{t('rentSettings.lockInPeriod')}</label>
                                                 <p className="text-lg text-gray-900 mt-1">{rentSetting.lockInPeriod}</p>
                                             </div>
                                         )}
@@ -300,33 +302,33 @@ const TenantRentSettingsDetail: React.FC = () => {
                             {/* Deposit Information */}
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Deposit Information</CardTitle>
-                                    <CardDescription>Security deposit details</CardDescription>
+                                    <CardTitle>{t('rentSettings.depositInformation')}</CardTitle>
+                                    <CardDescription>{t('rentSettings.securityDepositDetails')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Deposited Amount</label>
+                                            <label className="text-sm font-medium text-gray-500">{t('rentSettings.depositedAmount')}</label>
                                             <p className="text-lg font-semibold text-blue-600 mt-1">
                                                 {formatCurrency(rentSetting.deposited)}
                                             </p>
                                         </div>
 
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Deposit to Return</label>
+                                            <label className="text-sm font-medium text-gray-500">{t('rentSettings.depositToReturn')}</label>
                                             <p className="text-lg font-semibold text-orange-600 mt-1">
                                                 {formatCurrency(rentSetting.depositToReturn)}
                                             </p>
                                         </div>
 
                                         <div className="md:col-span-2">
-                                            <label className="text-sm font-medium text-gray-500">Deductions/Adjustments</label>
+                                            <label className="text-sm font-medium text-gray-500">{t('rentSettings.deductionsAdjustments')}</label>
                                             <p className="text-lg font-semibold text-red-600 mt-1">
                                                 {formatCurrency(rentSetting.deposited - rentSetting.depositToReturn)}
                                             </p>
                                             {rentSetting.deposited !== rentSetting.depositToReturn && (
                                                 <p className="text-sm text-gray-500 mt-1">
-                                                    Difference between deposited and returnable amount
+                                                    {t('rentSettings.differenceDepositMessage')}
                                                 </p>
                                             )}
                                         </div>
@@ -338,19 +340,19 @@ const TenantRentSettingsDetail: React.FC = () => {
                             {(rentSetting.mobileNo || rentSetting.email) && (
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>Contact Override</CardTitle>
-                                        <CardDescription>Alternative contact for rent notifications</CardDescription>
+                                        <CardTitle>{t('rentSettings.contactOverrideTitle')}</CardTitle>
+                                        <CardDescription>{t('rentSettings.alternativeContact')}</CardDescription>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
                                         {rentSetting.mobileNo && (
                                             <div>
-                                                <label className="text-sm font-medium text-gray-500">Mobile Number</label>
+                                                <label className="text-sm font-medium text-gray-500">{t('rentSettings.mobileNumber')}</label>
                                                 <p className="text-lg text-gray-900 mt-1">{rentSetting.mobileNo}</p>
                                             </div>
                                         )}
                                         {rentSetting.email && (
                                             <div>
-                                                <label className="text-sm font-medium text-gray-500">Email</label>
+                                                <label className="text-sm font-medium text-gray-500">{t('tenants.email')}</label>
                                                 <p className="text-lg text-gray-900 mt-1">{rentSetting.email}</p>
                                             </div>
                                         )}
@@ -364,9 +366,9 @@ const TenantRentSettingsDetail: React.FC = () => {
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <div>
-                                        <CardTitle>Room-Tenant Mapping</CardTitle>
+                                        <CardTitle>{t('rentSettings.roomTenantMapping')}</CardTitle>
                                         <CardDescription>
-                                            Related occupancy information
+                                            {t('rentSettings.relatedOccupancyInfo')}
                                         </CardDescription>
                                     </div>
                                     {mapping && (
@@ -374,7 +376,7 @@ const TenantRentSettingsDetail: React.FC = () => {
                                             to={`/board-tenants/${mapping.roomTenantMappingId}`}
                                             className="text-sm text-blue-600 hover:text-blue-700"
                                         >
-                                            View Full Details →
+                                            {t('rentSettings.viewFullDetails')}
                                         </Link>
                                     )}
                                 </CardHeader>
@@ -389,7 +391,7 @@ const TenantRentSettingsDetail: React.FC = () => {
                                                 <div>
                                                     <label className="text-sm font-medium text-gray-500 flex items-center">
                                                         <MapPin className="w-4 h-4 mr-2" />
-                                                        Mapping ID
+                                                        {t('rentSettings.mappingId')}
                                                     </label>
                                                     <p className="text-lg font-semibold text-gray-900 mt-1">
                                                         #{mapping.roomTenantMappingId}
@@ -397,7 +399,7 @@ const TenantRentSettingsDetail: React.FC = () => {
                                                 </div>
 
                                                 <div>
-                                                    <label className="text-sm font-medium text-gray-500">Status</label>
+                                                    <label className="text-sm font-medium text-gray-500">{t('common.status')}</label>
                                                     <div className="flex items-center space-x-2 mt-1">
                                                         {mapping.isActive ? (
                                                             <CheckCircle className="w-4 h-4 text-green-500" />
@@ -405,7 +407,7 @@ const TenantRentSettingsDetail: React.FC = () => {
                                                             <AlertCircle className="w-4 h-4 text-red-500" />
                                                         )}
                                                         <Badge variant={mapping.isActive ? "default" : "secondary"}>
-                                                            {mapping.isActive ? 'Active' : 'Inactive'}
+                                                            {mapping.isActive ? t('common.active') : t('common.inactive')}
                                                         </Badge>
                                                     </div>
                                                 </div>
@@ -413,7 +415,7 @@ const TenantRentSettingsDetail: React.FC = () => {
                                                 <div>
                                                     <label className="text-sm font-medium text-gray-500 flex items-center">
                                                         <Calendar className="w-4 h-4 mr-2" />
-                                                        Boarding Date
+                                                        {t('rentSettings.boardingDate')}
                                                     </label>
                                                     <p className="text-lg text-gray-900 mt-1">
                                                         {formatDate(mapping.boardingDate)}
@@ -422,7 +424,7 @@ const TenantRentSettingsDetail: React.FC = () => {
 
                                                 {mapping.leavingDate && (
                                                     <div>
-                                                        <label className="text-sm font-medium text-gray-500">Leaving Date</label>
+                                                        <label className="text-sm font-medium text-gray-500">{t('rentSettings.leavingDate')}</label>
                                                         <p className="text-lg text-gray-900 mt-1">
                                                             {formatDate(mapping.leavingDate)}
                                                         </p>
@@ -433,7 +435,7 @@ const TenantRentSettingsDetail: React.FC = () => {
                                     ) : (
                                         <div className="text-center py-8">
                                             <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                            <p className="text-sm text-gray-500">Mapping information unavailable</p>
+                                            <p className="text-sm text-gray-500">{t('rentSettings.mappingInfoUnavailable')}</p>
                                         </div>
                                     )}
                                 </CardContent>
@@ -444,27 +446,27 @@ const TenantRentSettingsDetail: React.FC = () => {
                         <TabsContent value="audit" className="space-y-6">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Audit Trail</CardTitle>
-                                    <CardDescription>Creation and modification history</CardDescription>
+                                    <CardTitle>{t('rentSettings.auditTrail')}</CardTitle>
+                                    <CardDescription>{t('rentSettings.creationModificationHistory')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Created By</label>
-                                            <p className="text-lg text-gray-900">User ID: {rentSetting.createdBy}</p>
+                                            <label className="text-sm font-medium text-gray-500">{t('rentSettings.createdBy')}</label>
+                                            <p className="text-lg text-gray-900">{t('rentSettings.userIdPrefix')} {rentSetting.createdBy}</p>
                                         </div>
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Creation Date</label>
+                                            <label className="text-sm font-medium text-gray-500">{t('rentSettings.creationDate')}</label>
                                             <p className="text-lg text-gray-900">
                                                 {formatDate(rentSetting.creationDate)}
                                             </p>
                                         </div>
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Last Modified By</label>
-                                            <p className="text-lg text-gray-900">User ID: {rentSetting.lastModifiedBy}</p>
+                                            <label className="text-sm font-medium text-gray-500">{t('rentSettings.lastModifiedBy')}</label>
+                                            <p className="text-lg text-gray-900">{t('rentSettings.userIdPrefix')} {rentSetting.lastModifiedBy}</p>
                                         </div>
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Last Modified</label>
+                                            <label className="text-sm font-medium text-gray-500">{t('rentSettings.lastModified')}</label>
                                             <p className="text-lg text-gray-900">
                                                 {formatDate(rentSetting.lastModificationDate)}
                                             </p>

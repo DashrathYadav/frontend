@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
     ArrowLeft,
     Edit,
@@ -27,6 +28,7 @@ import { Badge } from '../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
 const BoardTenantDetail: React.FC = () => {
+    const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -53,16 +55,16 @@ const BoardTenantDetail: React.FC = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['room-tenant-mappings'] });
             queryClient.invalidateQueries({ queryKey: ['room-tenant-mapping', mappingId] });
-            showSuccess('Mapping deactivated successfully');
+            showSuccess(t('boardTenants.mappingDeactivatedSuccess'));
             navigate('/board-tenants');
         },
         onError: () => {
-            showError('Failed to deactivate mapping');
+            showError(t('boardTenants.failedToDeactivate'));
         },
     });
 
     const handleDeactivate = () => {
-        if (window.confirm('Are you sure you want to deactivate this mapping? This action will mark the tenant as having left the room.')) {
+        if (window.confirm(t('boardTenants.deactivateConfirmation'))) {
             deactivateMutation.mutate();
         }
     };
@@ -76,19 +78,19 @@ const BoardTenantDetail: React.FC = () => {
     }
 
     if (mappingError || !mapping) {
-        return <ErrorMessage message="Failed to load mapping details" />;
+        return <ErrorMessage message={t('boardTenants.failedToLoadDetails')} />;
     }
 
     // Helper function to format dates safely
     const formatDate = (dateString: string | undefined) => {
-        if (!dateString) return 'Not set';
+        if (!dateString) return t('boardTenants.notSet');
         try {
             const date = new Date(dateString);
-            if (isNaN(date.getTime())) return 'Invalid date';
+            if (isNaN(date.getTime())) return t('boardTenants.invalidDate');
             return date.toLocaleDateString();
         } catch (error) {
             console.error('Error formatting date:', error);
-            return 'Invalid date';
+            return t('boardTenants.invalidDate');
         }
     };
 
@@ -110,8 +112,8 @@ const BoardTenantDetail: React.FC = () => {
                         <ArrowLeft className="w-5 h-5" />
                     </button>
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Board Tenant Mapping</h1>
-                        <p className="text-gray-600 mt-1">Mapping ID: #{mapping.roomTenantMappingId}</p>
+                        <h1 className="text-3xl font-bold text-gray-900">{t('boardTenants.boardTenantMapping')}</h1>
+                        <p className="text-gray-600 mt-1">{t('boardTenants.mappingIdPrefix')}{mapping.roomTenantMappingId}</p>
                     </div>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -120,7 +122,7 @@ const BoardTenantDetail: React.FC = () => {
                         className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                     >
                         <Edit className="w-4 h-4 mr-2" />
-                        Edit Mapping
+                        {t('boardTenants.editMapping')}
                     </Link>
                     {mapping.isActive && (
                         <button
@@ -129,7 +131,7 @@ const BoardTenantDetail: React.FC = () => {
                             className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 disabled:opacity-50"
                         >
                             <Trash2 className="w-4 h-4 mr-2" />
-                            Deactivate
+                            {t('boardTenants.deactivate')}
                         </button>
                     )}
                 </div>
@@ -146,20 +148,20 @@ const BoardTenantDetail: React.FC = () => {
                                 <div className="flex items-center space-x-2">
                                     <StatusBadge status={mapping.isActive ? 1 : 0} category="availability" />
                                     <Badge variant={mapping.isActive ? "default" : "secondary"} className="text-sm">
-                                        {mapping.isActive ? 'Active' : 'Inactive'}
+                                        {mapping.isActive ? t('common.active') : t('common.inactive')}
                                     </Badge>
                                 </div>
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">Mapping ID</span>
+                                <span className="text-sm text-gray-600">{t('boardTenants.mappingId')}</span>
                                 <span className="font-semibold text-lg">#{mapping.roomTenantMappingId}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">Status</span>
+                                <span className="text-sm text-gray-600">{t('common.status')}</span>
                                 <span className="font-semibold text-lg">
-                                    {mapping.isActive ? 'Currently Occupied' : 'Vacated'}
+                                    {mapping.isActive ? t('boardTenants.currentlyOccupied') : t('boardTenants.vacated')}
                                 </span>
                             </div>
                         </CardContent>
@@ -170,21 +172,21 @@ const BoardTenantDetail: React.FC = () => {
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center">
                                 <User className="w-5 h-5 mr-2" />
-                                Tenant Information
+                                {t('boardTenants.tenantInformation')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <div>
-                                <p className="text-sm text-gray-600">Name</p>
+                                <p className="text-sm text-gray-600">{t('boardTenants.name')}</p>
                                 <p className="font-semibold text-gray-900">{mapping.tenantName}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-gray-600">Mobile</p>
+                                <p className="text-sm text-gray-600">{t('boardTenants.mobile')}</p>
                                 <p className="font-medium text-gray-900">{mapping.tenantMobile}</p>
                             </div>
                             {mapping.tenantEmail && (
                                 <div>
-                                    <p className="text-sm text-gray-600">Email</p>
+                                    <p className="text-sm text-gray-600">{t('boardTenants.email')}</p>
                                     <p className="font-medium text-gray-900">{mapping.tenantEmail}</p>
                                 </div>
                             )}
@@ -192,7 +194,7 @@ const BoardTenantDetail: React.FC = () => {
                                 to={`/tenants/${mapping.tenantId}`}
                                 className="text-sm text-blue-600 hover:text-blue-700 inline-flex items-center mt-2"
                             >
-                                View Full Profile →
+                                {t('boardTenants.viewFullProfile')}
                             </Link>
                         </CardContent>
                     </Card>
@@ -202,23 +204,23 @@ const BoardTenantDetail: React.FC = () => {
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center">
                                 <Home className="w-5 h-5 mr-2" />
-                                Room Information
+                                {t('boardTenants.roomInformation')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <div>
-                                <p className="text-sm text-gray-600">Room Number</p>
+                                <p className="text-sm text-gray-600">{t('boardTenants.roomNumber')}</p>
                                 <p className="font-semibold text-gray-900">#{mapping.roomNo}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-gray-600">Property</p>
+                                <p className="text-sm text-gray-600">{t('boardTenants.property')}</p>
                                 <p className="font-medium text-gray-900">{mapping.propertyName}</p>
                             </div>
                             <Link
                                 to={`/rooms/${mapping.roomId}`}
                                 className="text-sm text-blue-600 hover:text-blue-700 inline-flex items-center mt-2"
                             >
-                                View Room Details →
+                                {t('boardTenants.viewRoomDetails')}
                             </Link>
                         </CardContent>
                     </Card>
@@ -228,24 +230,24 @@ const BoardTenantDetail: React.FC = () => {
                 <div className="lg:col-span-2">
                     <Tabs defaultValue="overview" className="w-full">
                         <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="overview">Overview</TabsTrigger>
-                            <TabsTrigger value="rent-settings">Rent Settings</TabsTrigger>
-                            <TabsTrigger value="audit">Audit Trail</TabsTrigger>
+                            <TabsTrigger value="overview">{t('boardTenants.overview')}</TabsTrigger>
+                            <TabsTrigger value="rent-settings">{t('boardTenants.rentSettings')}</TabsTrigger>
+                            <TabsTrigger value="audit">{t('boardTenants.auditTrail')}</TabsTrigger>
                         </TabsList>
 
                         {/* Overview Tab */}
                         <TabsContent value="overview" className="space-y-6">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Mapping Details</CardTitle>
-                                    <CardDescription>Room-tenant occupancy information</CardDescription>
+                                    <CardTitle>{t('boardTenants.mappingDetails')}</CardTitle>
+                                    <CardDescription>{t('boardTenants.roomTenantOccupancyInfo')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <label className="text-sm font-medium text-gray-500 flex items-center">
                                                 <Calendar className="w-4 h-4 mr-2" />
-                                                Boarding Date
+                                                {t('boardTenants.boardingDate')}
                                             </label>
                                             <p className="text-lg font-semibold text-gray-900 mt-1">
                                                 {formatDate(mapping.boardingDate)}
@@ -255,7 +257,7 @@ const BoardTenantDetail: React.FC = () => {
                                         <div>
                                             <label className="text-sm font-medium text-gray-500 flex items-center">
                                                 <Calendar className="w-4 h-4 mr-2" />
-                                                Leaving Date
+                                                {t('boardTenants.leavingDate')}
                                             </label>
                                             <p className="text-lg font-semibold text-gray-900 mt-1">
                                                 {formatDate(mapping.leavingDate)}
@@ -263,11 +265,11 @@ const BoardTenantDetail: React.FC = () => {
                                         </div>
 
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Status</label>
+                                            <label className="text-sm font-medium text-gray-500">{t('common.status')}</label>
                                             <div className="flex items-center space-x-2 mt-1">
                                                 {getStatusIcon(mapping.isActive)}
                                                 <span className="text-lg text-gray-900">
-                                                    {mapping.isActive ? 'Active - Currently Occupied' : 'Inactive - Vacated'}
+                                                    {mapping.isActive ? t('boardTenants.activeOccupied') : t('boardTenants.inactiveVacated')}
                                                 </span>
                                             </div>
                                         </div>
@@ -275,7 +277,7 @@ const BoardTenantDetail: React.FC = () => {
                                         <div>
                                             <label className="text-sm font-medium text-gray-500 flex items-center">
                                                 <MapPin className="w-4 h-4 mr-2" />
-                                                Mapping ID
+                                                {t('boardTenants.mappingId')}
                                             </label>
                                             <p className="text-lg font-semibold text-gray-900 mt-1">
                                                 #{mapping.roomTenantMappingId}
@@ -286,7 +288,7 @@ const BoardTenantDetail: React.FC = () => {
                                     {/* Calculate duration */}
                                     {mapping.boardingDate && (
                                         <div className="pt-4 border-t">
-                                            <label className="text-sm font-medium text-gray-500">Duration</label>
+                                            <label className="text-sm font-medium text-gray-500">{t('boardTenants.duration')}</label>
                                             <p className="text-lg text-gray-900 mt-1">
                                                 {(() => {
                                                     const start = new Date(mapping.boardingDate);
@@ -296,11 +298,11 @@ const BoardTenantDetail: React.FC = () => {
                                                     const remainingDays = days % 30;
 
                                                     if (months > 0) {
-                                                        return `${months} month${months > 1 ? 's' : ''} ${remainingDays > 0 ? `and ${remainingDays} day${remainingDays > 1 ? 's' : ''}` : ''}`;
+                                                        return `${months} ${months > 1 ? t('boardTenants.months') : t('boardTenants.month')} ${remainingDays > 0 ? `${t('boardTenants.and')} ${remainingDays} ${remainingDays > 1 ? t('boardTenants.days') : t('boardTenants.day')}` : ''}`;
                                                     }
-                                                    return `${days} day${days > 1 ? 's' : ''}`;
+                                                    return `${days} ${days > 1 ? t('boardTenants.days') : t('boardTenants.day')}`;
                                                 })()}
-                                                {!mapping.leavingDate && ' (ongoing)'}
+                                                {!mapping.leavingDate && ` ${t('boardTenants.ongoing')}`}
                                             </p>
                                         </div>
                                     )}
@@ -313,9 +315,9 @@ const BoardTenantDetail: React.FC = () => {
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <div>
-                                        <CardTitle>Rent Settings</CardTitle>
+                                        <CardTitle>{t('boardTenants.rentSettings')}</CardTitle>
                                         <CardDescription>
-                                            Rent configuration for this mapping
+                                            {t('boardTenants.rentConfigurationInfo')}
                                         </CardDescription>
                                     </div>
                                     {!rentSetting && !rentSettingLoading && (
@@ -324,7 +326,7 @@ const BoardTenantDetail: React.FC = () => {
                                             className="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                         >
                                             <Plus className="w-4 h-4 mr-2" />
-                                            Create Rent Settings
+                                            {t('boardTenants.createRentSettings')}
                                         </Link>
                                     )}
                                 </CardHeader>
@@ -339,7 +341,7 @@ const BoardTenantDetail: React.FC = () => {
                                                 <div>
                                                     <label className="text-sm font-medium text-gray-500 flex items-center">
                                                         <DollarSign className="w-4 h-4 mr-2" />
-                                                        Present Rent
+                                                        {t('boardTenants.presentRent')}
                                                     </label>
                                                     <p className="text-lg font-semibold text-green-600 mt-1">
                                                         {formatCurrency(rentSetting.presentRentValue || 0)}
@@ -347,14 +349,14 @@ const BoardTenantDetail: React.FC = () => {
                                                 </div>
 
                                                 <div>
-                                                    <label className="text-sm font-medium text-gray-500">Deposited Amount</label>
+                                                    <label className="text-sm font-medium text-gray-500">{t('boardTenants.depositedAmount')}</label>
                                                     <p className="text-lg font-semibold text-blue-600 mt-1">
                                                         {formatCurrency(rentSetting.deposited)}
                                                     </p>
                                                 </div>
 
                                                 <div>
-                                                    <label className="text-sm font-medium text-gray-500">Deposit to Return</label>
+                                                    <label className="text-sm font-medium text-gray-500">{t('boardTenants.depositToReturn')}</label>
                                                     <p className="text-lg font-semibold text-orange-600 mt-1">
                                                         {formatCurrency(rentSetting.depositToReturn)}
                                                     </p>
@@ -362,16 +364,16 @@ const BoardTenantDetail: React.FC = () => {
 
                                                 {rentSetting.rentRecurringPeriodInDays && (
                                                     <div>
-                                                        <label className="text-sm font-medium text-gray-500">Rent Period</label>
+                                                        <label className="text-sm font-medium text-gray-500">{t('boardTenants.rentPeriod')}</label>
                                                         <p className="text-lg text-gray-900 mt-1">
-                                                            Every {rentSetting.rentRecurringPeriodInDays} day{rentSetting.rentRecurringPeriodInDays > 1 ? 's' : ''}
+                                                            {t('boardTenants.everyDays')} {rentSetting.rentRecurringPeriodInDays} {rentSetting.rentRecurringPeriodInDays > 1 ? t('boardTenants.days') : t('boardTenants.day')}
                                                         </p>
                                                     </div>
                                                 )}
 
                                                 {rentSetting.lockInPeriod && (
                                                     <div>
-                                                        <label className="text-sm font-medium text-gray-500">Lock-in Period</label>
+                                                        <label className="text-sm font-medium text-gray-500">{t('boardTenants.lockInPeriod')}</label>
                                                         <p className="text-lg text-gray-900 mt-1">{rentSetting.lockInPeriod}</p>
                                                     </div>
                                                 )}
@@ -382,29 +384,29 @@ const BoardTenantDetail: React.FC = () => {
                                                     to={`/rent-settings/${rentSetting.tenantRentSettingId}`}
                                                     className="text-sm text-blue-600 hover:text-blue-700"
                                                 >
-                                                    View Full Details →
+                                                    {t('boardTenants.viewFullDetails')}
                                                 </Link>
                                                 <Link
                                                     to={`/rent-settings/${rentSetting.tenantRentSettingId}/edit`}
                                                     className="text-sm text-blue-600 hover:text-blue-700"
                                                 >
-                                                    Edit Settings →
+                                                    {t('boardTenants.editSettings')}
                                                 </Link>
                                             </div>
                                         </div>
                                     ) : (
                                         <div className="text-center py-8">
                                             <DollarSign className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                            <h3 className="text-lg font-medium text-gray-900 mb-2">No rent settings configured</h3>
+                                            <h3 className="text-lg font-medium text-gray-900 mb-2">{t('boardTenants.noRentSettings')}</h3>
                                             <p className="text-gray-600 mb-4">
-                                                Create rent settings to configure payment details for this mapping.
+                                                {t('boardTenants.noRentSettingsMessage')}
                                             </p>
                                             <Link
                                                 to={`/rent-settings/new?mappingId=${mappingId}`}
                                                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
                                             >
                                                 <Plus className="w-4 h-4 mr-2" />
-                                                Create Rent Settings
+                                                {t('boardTenants.createRentSettings')}
                                             </Link>
                                         </div>
                                     )}
@@ -416,27 +418,27 @@ const BoardTenantDetail: React.FC = () => {
                         <TabsContent value="audit" className="space-y-6">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Audit Trail</CardTitle>
-                                    <CardDescription>Creation and modification history</CardDescription>
+                                    <CardTitle>{t('boardTenants.auditTrail')}</CardTitle>
+                                    <CardDescription>{t('boardTenants.auditTrailInfo')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Created By</label>
-                                            <p className="text-lg text-gray-900">User ID: {mapping.createdBy}</p>
+                                            <label className="text-sm font-medium text-gray-500">{t('boardTenants.createdBy')}</label>
+                                            <p className="text-lg text-gray-900">{t('boardTenants.userIdPrefix')} {mapping.createdBy}</p>
                                         </div>
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Creation Date</label>
+                                            <label className="text-sm font-medium text-gray-500">{t('boardTenants.creationDate')}</label>
                                             <p className="text-lg text-gray-900">
                                                 {formatDate(mapping.creationDate)}
                                             </p>
                                         </div>
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Last Modified By</label>
-                                            <p className="text-lg text-gray-900">User ID: {mapping.lastModifiedBy}</p>
+                                            <label className="text-sm font-medium text-gray-500">{t('boardTenants.lastModifiedBy')}</label>
+                                            <p className="text-lg text-gray-900">{t('boardTenants.userIdPrefix')} {mapping.lastModifiedBy}</p>
                                         </div>
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Last Modified</label>
+                                            <label className="text-sm font-medium text-gray-500">{t('boardTenants.lastModified')}</label>
                                             <p className="text-lg text-gray-900">
                                                 {formatDate(mapping.lastModificationDate)}
                                             </p>

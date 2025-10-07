@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Plus, MapPin, DollarSign, Building2, Home } from 'lucide-react';
 import { propertyApi, lookupApi } from '../../services/api';
 import { PropertySearchRequest } from '../../types';
@@ -14,8 +15,9 @@ import { useEnhancedPagination } from '../../hooks/useEnhancedPagination';
 import { useLookup } from '../../contexts/LookupContext';
 
 const PropertiesList: React.FC = () => {
-  const { 
-    getPropertyTypeName, 
+  const { t } = useTranslation();
+  const {
+    getPropertyTypeName,
     getAvailabilityStatusName,
     getAvailabilityStatusBadgeClass,
     lookups
@@ -108,30 +110,30 @@ const PropertiesList: React.FC = () => {
   const filterOptions = [
     {
       key: 'ownerId',
-      label: 'Owner',
+      label: t('properties.owner'),
       options: owners?.data?.map(owner => ({
         value: owner.id.toString(),
         label: owner.value
       })) || [],
-      placeholder: 'Select Owner'
+      placeholder: t('properties.selectOwner')
     },
     {
       key: 'propertyTypeId',
-      label: 'Property Type',
+      label: t('properties.propertyType'),
       options: lookups.propertyTypes.map(type => ({
         value: type.id.toString(),
         label: type.value
       })),
-      placeholder: 'Select Type'
+      placeholder: t('properties.selectType')
     },
     {
       key: 'statusId',
-      label: 'Status',
+      label: t('common.status'),
       options: lookups.availabilityStatuses.map(status => ({
         value: status.id.toString(),
         label: status.value
       })),
-      placeholder: 'Select Status'
+      placeholder: t('properties.selectStatus')
     }
   ];
 
@@ -151,7 +153,7 @@ const PropertiesList: React.FC = () => {
 
   // Show error only for properties loading, not for lookups
   if (propertiesError) {
-    return <ErrorMessage message="Failed to load properties" />;
+    return <ErrorMessage message={t('properties.errorLoading')} />;
   }
 
   const properties = propertiesData?.data || [];
@@ -167,12 +169,12 @@ const PropertiesList: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Properties</h1>
-          <p className="text-gray-600 mt-2">Manage your rental properties</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('properties.title')}</h1>
+          <p className="text-gray-600 mt-2">{t('properties.manageDescription')}</p>
         </div>
         <Link to="/properties/new" className="btn-primary">
           <Plus className="w-4 h-4 mr-2" />
-          Add Property
+          {t('properties.add')}
         </Link>
       </div>
 
@@ -185,7 +187,7 @@ const PropertiesList: React.FC = () => {
         filterValues={filters.filterValues}
         onFilterChange={handleFilterChange}
         onClearFilters={handleClearFilters}
-        placeholder="Search properties by name, description, or facility..."
+        placeholder={t('properties.searchPlaceholder')}
       />
 
       {/* Loading State */}
@@ -201,11 +203,11 @@ const PropertiesList: React.FC = () => {
           {properties.length === 0 ? (
             <div className="text-center py-12">
               <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No properties found</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{t('properties.noPropertiesFound')}</h3>
               <p className="text-gray-600">
                 {hasActiveFilters
-                  ? "Try adjusting your search criteria or filters."
-                  : "Get started by adding your first property."
+                  ? t('properties.adjustFilters')
+                  : t('properties.getStarted')
                 }
               </p>
             </div>
@@ -216,7 +218,7 @@ const PropertiesList: React.FC = () => {
                 const cardItem: EntityCardItem = {
                   id: property.propertyId,
                   title: property.propertyName,
-                  subtitle: property.propertyDescription || 'No description available',
+                  subtitle: property.propertyDescription || t('properties.noDescription'),
                   viewUrl: `/properties/${property.propertyId}`,
                   editUrl: `/properties/${property.propertyId}/edit`,
                   badges: [
@@ -228,17 +230,17 @@ const PropertiesList: React.FC = () => {
                   details: [
                     {
                       icon: <MapPin className="w-4 h-4" />,
-                      label: 'Location',
+                      label: t('properties.location'),
                       value: `${property.address.city}, ${property.address.area}`
                     },
                     {
                       icon: <DollarSign className="w-4 h-4" />,
-                      label: 'Rent',
+                      label: t('properties.rent'),
                       value: formatCurrency(property.propertyRent)
                     },
                     {
                       icon: <Home className="w-4 h-4" />,
-                      label: 'Size',
+                      label: t('properties.size'),
                       value: property.propertySize
                     }
                   ],
@@ -247,7 +249,7 @@ const PropertiesList: React.FC = () => {
                     variant: getAvailabilityStatusBadgeClass(property.statusId) as 'default' | 'secondary' | 'destructive' | 'outline'
                   },
                   footerAction: {
-                    label: 'Show Rooms',
+                    label: t('properties.showRooms'),
                     icon: <Building2 className="w-3 h-3" />,
                     url: `/rooms?ownerId=${property.ownerId}&propertyId=${property.propertyId}`
                   }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
     ArrowLeft,
     Edit,
@@ -24,6 +25,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
 const RentDetail: React.FC = () => {
+    const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const rentTrackId = parseInt(id!);
@@ -72,19 +74,19 @@ const RentDetail: React.FC = () => {
     }
 
     if (rentTrackError || !rentTrack) {
-        return <ErrorMessage message="Failed to load rent track details" />;
+        return <ErrorMessage message={t('rents.errorLoading')} />;
     }
 
     // Helper function to format dates safely
     const formatDate = (dateString: string | undefined) => {
-        if (!dateString) return 'Not available';
+        if (!dateString) return t('rents.notAvailable');
         try {
             const date = new Date(dateString);
-            if (isNaN(date.getTime())) return 'Invalid date';
+            if (isNaN(date.getTime())) return t('rents.invalidDate');
             return date.toLocaleDateString();
         } catch (error) {
             console.error('Error formatting date:', error);
-            return 'Invalid date';
+            return t('rents.invalidDate');
         }
     };
 
@@ -104,13 +106,13 @@ const RentDetail: React.FC = () => {
     const getStatusLabel = (status: number) => {
         switch (status) {
             case 1:
-                return 'Paid';
+                return t('rents.paid');
             case 2:
-                return 'Pending';
+                return t('rents.pending');
             case 3:
-                return 'Overdue';
+                return t('common.status');
             default:
-                return 'Unknown';
+                return t('common.status');
         }
     };
 
@@ -126,8 +128,8 @@ const RentDetail: React.FC = () => {
                         <ArrowLeft className="w-5 h-5" />
                     </button>
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Rent Payment Details</h1>
-                        <p className="text-gray-600 mt-1">Rent Track ID: #{rentTrack.rentTrackId}</p>
+                        <h1 className="text-3xl font-bold text-gray-900">{t('rents.rentPaymentDetails')}</h1>
+                        <p className="text-gray-600 mt-1">{t('rents.rentTrackId')}{rentTrack.rentTrackId}</p>
                     </div>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -136,7 +138,7 @@ const RentDetail: React.FC = () => {
                         className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                     >
                         <Edit className="w-4 h-4 mr-2" />
-                        Edit Rent Record
+                        {t('rents.editRent')}
                     </Link>
                 </div>
             </div>
@@ -149,7 +151,7 @@ const RentDetail: React.FC = () => {
                     <Card>
                         <CardHeader>
                             <div className="flex items-center justify-between">
-                                <CardTitle className="text-lg">Payment Status</CardTitle>
+                                <CardTitle className="text-lg">{t('rents.paymentStatusCard')}</CardTitle>
                                 <StatusBadge status={rentTrack.statusId} category="rent" />
                             </div>
                         </CardHeader>
@@ -159,7 +161,7 @@ const RentDetail: React.FC = () => {
                                 <span className="font-semibold text-lg">{getStatusLabel(rentTrack.statusId)}</span>
                             </div>
                             <div className="text-sm text-gray-600">
-                                Rent Period: {formatDate(rentTrack.rentPeriodStartDate)} - {formatDate(rentTrack.rentPeriodEndDate)}
+                                {t('rents.rentPeriodLabel')} {formatDate(rentTrack.rentPeriodStartDate)} - {formatDate(rentTrack.rentPeriodEndDate)}
                             </div>
                         </CardContent>
                     </Card>
@@ -167,30 +169,30 @@ const RentDetail: React.FC = () => {
                     {/* Financial Summary */}
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-lg">Financial Summary</CardTitle>
+                            <CardTitle className="text-lg">{t('rents.financialSummary')}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">Expected Rent</span>
+                                <span className="text-sm text-gray-600">{t('rents.expectedRent')}</span>
                                 <span className="font-semibold text-lg text-blue-600">
                                     {formatCurrency(rentTrack.expectedRentValue || 0)}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">Received Amount</span>
+                                <span className="text-sm text-gray-600">{t('rents.receivedAmount')}</span>
                                 <span className="font-semibold text-lg text-green-600">
                                     {formatCurrency(rentTrack.receivedRentValue || 0)}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">Pending Amount</span>
+                                <span className="text-sm text-gray-600">{t('rents.pendingAmountLabel')}</span>
                                 <span className="font-semibold text-lg text-red-600">
                                     {formatCurrency(rentTrack.pendingAmount || 0)}
                                 </span>
                             </div>
                             <div className="pt-2 border-t">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-gray-700">Payment Rate</span>
+                                    <span className="text-sm font-medium text-gray-700">{t('rents.paymentRate')}</span>
                                     <span className="font-semibold text-lg">
                                         {rentTrack.expectedRentValue && rentTrack.expectedRentValue > 0
                                             ? Math.round((rentTrack.receivedRentValue || 0) / rentTrack.expectedRentValue * 100)
@@ -204,7 +206,7 @@ const RentDetail: React.FC = () => {
                     {/* Related Entities */}
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-lg">Related Entities</CardTitle>
+                            <CardTitle className="text-lg">{t('rents.relatedEntities')}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {property && (
@@ -218,7 +220,7 @@ const RentDetail: React.FC = () => {
                                             to={`/properties/${property.propertyId}`}
                                             className="text-sm text-blue-600 hover:text-blue-700 transition-colors duration-200"
                                         >
-                                            View Property →
+                                            {t('rents.viewProperty')}
                                         </Link>
                                     </div>
                                 </div>
@@ -229,12 +231,12 @@ const RentDetail: React.FC = () => {
                                         <Home className="w-5 h-5 text-green-600" />
                                     </div>
                                     <div>
-                                        <p className="font-medium text-gray-900">Room #{room.roomNo}</p>
+                                        <p className="font-medium text-gray-900">{t('rents.roomPrefix')}{room.roomNo}</p>
                                         <Link
                                             to={`/rooms/${room.roomId}`}
                                             className="text-sm text-blue-600 hover:text-blue-700 transition-colors duration-200"
                                         >
-                                            View Room →
+                                            {t('rents.viewRoom')}
                                         </Link>
                                     </div>
                                 </div>
@@ -246,12 +248,12 @@ const RentDetail: React.FC = () => {
                                     </div>
                                     <div>
                                         <p className="font-medium text-gray-900">{tenant.tenantName}</p>
-                                        <p className="text-sm text-gray-600">Tenant ID: #{tenant.tenantId}</p>
+                                        <p className="text-sm text-gray-600">{t('rents.tenantIdPrefix')}{tenant.tenantId}</p>
                                         <Link
                                             to={`/tenants/${tenant.tenantId}`}
                                             className="text-sm text-blue-600 hover:text-blue-700 transition-colors duration-200"
                                         >
-                                            View Tenant →
+                                            {t('rents.viewTenantProfile')}
                                         </Link>
                                     </div>
                                 </div>
@@ -263,12 +265,12 @@ const RentDetail: React.FC = () => {
                                     </div>
                                     <div>
                                         <p className="font-medium text-gray-900">{owner.fullName}</p>
-                                        <p className="text-sm text-gray-600">Owner ID: #{owner.ownerId}</p>
+                                        <p className="text-sm text-gray-600">{t('rents.ownerIdPrefix')}{owner.ownerId}</p>
                                         <Link
                                             to={`/owners/${owner.ownerId}`}
                                             className="text-sm text-blue-600 hover:text-blue-700 transition-colors duration-200"
                                         >
-                                            View Owner →
+                                            {t('rents.viewOwner')}
                                         </Link>
                                     </div>
                                 </div>
@@ -281,9 +283,9 @@ const RentDetail: React.FC = () => {
                 <div className="lg:col-span-2">
                     <Tabs defaultValue="overview" className="w-full">
                         <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="overview">Overview</TabsTrigger>
-                            <TabsTrigger value="payment-details">Payment Details</TabsTrigger>
-                            <TabsTrigger value="details">Details</TabsTrigger>
+                            <TabsTrigger value="overview">{t('rents.overview')}</TabsTrigger>
+                            <TabsTrigger value="payment-details">{t('rents.paymentDetails')}</TabsTrigger>
+                            <TabsTrigger value="details">{t('rents.detailsTab')}</TabsTrigger>
                         </TabsList>
 
                         {/* Overview Tab */}
@@ -291,45 +293,45 @@ const RentDetail: React.FC = () => {
                             {/* Rent Period Information */}
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Rent Period Information</CardTitle>
-                                    <CardDescription>Details about the rent period and payment schedule</CardDescription>
+                                    <CardTitle>{t('rents.rentPeriodInformation')}</CardTitle>
+                                    <CardDescription>{t('rents.rentPeriodDesc')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-4">
                                             <div>
-                                                <label className="text-sm font-medium text-gray-500">Start Date</label>
+                                                <label className="text-sm font-medium text-gray-500">{t('rents.startDate')}</label>
                                                 <p className="text-lg font-semibold text-gray-900">{formatDate(rentTrack.rentPeriodStartDate)}</p>
                                             </div>
                                             <div>
-                                                <label className="text-sm font-medium text-gray-500">End Date</label>
+                                                <label className="text-sm font-medium text-gray-500">{t('rents.endDate')}</label>
                                                 <p className="text-lg font-semibold text-gray-900">{formatDate(rentTrack.rentPeriodEndDate)}</p>
                                             </div>
                                             <div>
-                                                <label className="text-sm font-medium text-gray-500">Duration</label>
+                                                <label className="text-sm font-medium text-gray-500">{t('rents.duration')}</label>
                                                 <p className="text-lg text-gray-900">
                                                     {(() => {
                                                         const start = new Date(rentTrack.rentPeriodStartDate);
                                                         const end = new Date(rentTrack.rentPeriodEndDate);
                                                         const diffTime = Math.abs(end.getTime() - start.getTime());
                                                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                                                        return `${diffDays} days`;
+                                                        return `${diffDays} ${t('rents.daysLabel')}`;
                                                     })()}
                                                 </p>
                                             </div>
                                         </div>
                                         <div className="space-y-4">
                                             <div>
-                                                <label className="text-sm font-medium text-gray-500">Status</label>
+                                                <label className="text-sm font-medium text-gray-500">{t('rents.statusLabel')}</label>
                                                 <div className="flex items-center space-x-2 mt-1">
                                                     {getStatusIcon(rentTrack.statusId)}
                                                     <span className="text-lg text-gray-900">{getStatusLabel(rentTrack.statusId)}</span>
                                                 </div>
                                             </div>
                                             <div>
-                                                <label className="text-sm font-medium text-gray-500">Currency</label>
+                                                <label className="text-sm font-medium text-gray-500">{t('rents.currencyLabel')}</label>
                                                 <p className="text-lg text-gray-900">
-                                                    {rentTrack.currencyId ? `Currency ID: ${rentTrack.currencyId}` : 'Not specified'}
+                                                    {rentTrack.currencyId ? `${t('rents.currencyIdPrefix')} ${rentTrack.currencyId}` : t('rents.notSpecified')}
                                                 </p>
                                             </div>
                                         </div>
@@ -340,8 +342,8 @@ const RentDetail: React.FC = () => {
                             {/* Payment Breakdown */}
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Payment Breakdown</CardTitle>
-                                    <CardDescription>Detailed breakdown of expected, received, and pending amounts</CardDescription>
+                                    <CardTitle>{t('rents.paymentBreakdown')}</CardTitle>
+                                    <CardDescription>{t('rents.paymentBreakdownDesc')}</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-4">
@@ -349,8 +351,8 @@ const RentDetail: React.FC = () => {
                                             <div className="flex items-center space-x-3">
                                                 <TrendingUp className="w-5 h-5 text-blue-600" />
                                                 <div>
-                                                    <p className="font-medium text-gray-900">Expected Rent</p>
-                                                    <p className="text-sm text-gray-600">Amount that should be paid</p>
+                                                    <p className="font-medium text-gray-900">{t('rents.expectedRent')}</p>
+                                                    <p className="text-sm text-gray-600">{t('rents.amountShouldBePaid')}</p>
                                                 </div>
                                             </div>
                                             <span className="text-xl font-bold text-blue-600">
@@ -361,8 +363,8 @@ const RentDetail: React.FC = () => {
                                             <div className="flex items-center space-x-3">
                                                 <CheckCircle className="w-5 h-5 text-green-600" />
                                                 <div>
-                                                    <p className="font-medium text-gray-900">Received Amount</p>
-                                                    <p className="text-sm text-gray-600">Amount already paid</p>
+                                                    <p className="font-medium text-gray-900">{t('rents.receivedAmount')}</p>
+                                                    <p className="text-sm text-gray-600">{t('rents.amountAlreadyPaid')}</p>
                                                 </div>
                                             </div>
                                             <span className="text-xl font-bold text-green-600">
@@ -373,8 +375,8 @@ const RentDetail: React.FC = () => {
                                             <div className="flex items-center space-x-3">
                                                 <TrendingDown className="w-5 h-5 text-red-600" />
                                                 <div>
-                                                    <p className="font-medium text-gray-900">Pending Amount</p>
-                                                    <p className="text-sm text-gray-600">Amount still due</p>
+                                                    <p className="font-medium text-gray-900">{t('rents.pendingAmountLabel')}</p>
+                                                    <p className="text-sm text-gray-600">{t('rents.amountStillDue')}</p>
                                                 </div>
                                             </div>
                                             <span className="text-xl font-bold text-red-600">
@@ -390,13 +392,13 @@ const RentDetail: React.FC = () => {
                         <TabsContent value="payment-details" className="space-y-6">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Payment Analysis</CardTitle>
-                                    <CardDescription>Detailed analysis of payment status and trends</CardDescription>
+                                    <CardTitle>{t('rents.paymentAnalysis')}</CardTitle>
+                                    <CardDescription>{t('rents.paymentAnalysisDesc')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                     {/* Payment Progress */}
                                     <div>
-                                        <h4 className="font-semibold text-gray-900 mb-3">Payment Progress</h4>
+                                        <h4 className="font-semibold text-gray-900 mb-3">{t('rents.paymentProgress')}</h4>
                                         <div className="w-full bg-gray-200 rounded-full h-4">
                                             <div
                                                 className="bg-green-600 h-4 rounded-full transition-all duration-300"
@@ -422,26 +424,26 @@ const RentDetail: React.FC = () => {
                                                     ? Math.round((rentTrack.receivedRentValue || 0) / rentTrack.expectedRentValue * 100)
                                                     : 0}%
                                             </div>
-                                            <div className="text-sm text-gray-600">Payment Rate</div>
+                                            <div className="text-sm text-gray-600">{t('rents.paymentRateLabel')}</div>
                                         </div>
                                         <div className="text-center p-4 bg-green-50 rounded-lg">
                                             <div className="text-2xl font-bold text-green-600">
-                                                {rentTrack.receivedRentValue ? 'Yes' : 'No'}
+                                                {rentTrack.receivedRentValue ? t('common.yes') : t('common.no')}
                                             </div>
-                                            <div className="text-sm text-gray-600">Payment Made</div>
+                                            <div className="text-sm text-gray-600">{t('rents.paymentMade')}</div>
                                         </div>
                                         <div className="text-center p-4 bg-orange-50 rounded-lg">
                                             <div className="text-2xl font-bold text-orange-600">
-                                                {rentTrack.pendingAmount && rentTrack.pendingAmount > 0 ? 'Yes' : 'No'}
+                                                {rentTrack.pendingAmount && rentTrack.pendingAmount > 0 ? t('common.yes') : t('common.no')}
                                             </div>
-                                            <div className="text-sm text-gray-600">Outstanding</div>
+                                            <div className="text-sm text-gray-600">{t('rents.outstandingLabel')}</div>
                                         </div>
                                     </div>
 
                                     {/* Note section if available */}
                                     {rentTrack.note && (
                                         <div>
-                                            <h4 className="font-semibold text-gray-900 mb-2">Payment Notes</h4>
+                                            <h4 className="font-semibold text-gray-900 mb-2">{t('rents.paymentNotes')}</h4>
                                             <div className="bg-gray-50 p-4 rounded-lg">
                                                 <p className="text-gray-900">{rentTrack.note}</p>
                                             </div>
@@ -455,19 +457,19 @@ const RentDetail: React.FC = () => {
                         <TabsContent value="details" className="space-y-6">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Additional Details</CardTitle>
-                                    <CardDescription>Creation and modification information</CardDescription>
+                                    <CardTitle>{t('rents.additionalDetails')}</CardTitle>
+                                    <CardDescription>{t('rents.creationModificationInfo')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Creation Date</label>
+                                            <label className="text-sm font-medium text-gray-500">{t('rents.creationDate')}</label>
                                             <p className="text-lg text-gray-900">
                                                 {formatDate(rentTrack.createdDate)}
                                             </p>
                                         </div>
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Last Modified</label>
+                                            <label className="text-sm font-medium text-gray-500">{t('rents.lastModified')}</label>
                                             <p className="text-lg text-gray-900">
                                                 {formatDate(rentTrack.lastModifiedDate)}
                                             </p>
@@ -477,7 +479,7 @@ const RentDetail: React.FC = () => {
                                     {/* Note section if available */}
                                     {rentTrack.note && (
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Note</label>
+                                            <label className="text-sm font-medium text-gray-500">{t('rents.noteLabel')}</label>
                                             <p className="mt-2 text-gray-900 leading-relaxed">{rentTrack.note}</p>
                                         </div>
                                     )}

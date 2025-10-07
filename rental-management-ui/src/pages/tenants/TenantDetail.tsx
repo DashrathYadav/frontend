@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
     ArrowLeft,
     Edit,
@@ -28,6 +29,7 @@ import { Badge } from '../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
 const TenantDetail: React.FC = () => {
+    const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const tenantId = parseInt(id!);
@@ -69,19 +71,19 @@ const TenantDetail: React.FC = () => {
     }
 
     if (tenantError || !tenant) {
-        return <ErrorMessage message="Failed to load tenant details" />;
+        return <ErrorMessage message={t('tenants.errorLoadingDetails')} />;
     }
 
     // Helper function to format dates safely
     const formatDate = (dateString: string | undefined) => {
-        if (!dateString) return 'Not available';
+        if (!dateString) return t('properties.dateNotAvailable');
         try {
             const date = new Date(dateString);
-            if (isNaN(date.getTime())) return 'Invalid date';
+            if (isNaN(date.getTime())) return t('properties.invalidDate');
             return date.toLocaleDateString();
         } catch (error) {
             console.error('Error formatting date:', error);
-            return 'Invalid date';
+            return t('properties.invalidDate');
         }
     };
 
@@ -104,7 +106,7 @@ const TenantDetail: React.FC = () => {
                     </button>
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">{tenant.tenantName}</h1>
-                        <p className="text-gray-600 mt-1">Tenant ID: #{tenant.tenantId}</p>
+                        <p className="text-gray-600 mt-1">{t('tenants.tenantId')}: #{tenant.tenantId}</p>
                     </div>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -113,7 +115,7 @@ const TenantDetail: React.FC = () => {
                         className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                     >
                         <Edit className="w-4 h-4 mr-2" />
-                        Edit Tenant
+                        {t('tenants.edit')}
                     </Link>
                 </div>
             </div>
@@ -142,7 +144,7 @@ const TenantDetail: React.FC = () => {
                                 <div className="flex items-center space-x-2">
                                     <StatusBadge status={tenant.isActive ? 1 : 0} category="availability" />
                                     <Badge variant="outline" className="text-sm">
-                                        {tenant.roleId === 3 ? 'Tenant' : 'Other'}
+                                        {tenant.roleId === 3 ? t('tenants.tenant') : t('tenants.other')}
                                     </Badge>
                                 </div>
                             </div>
@@ -152,21 +154,21 @@ const TenantDetail: React.FC = () => {
                     {/* Quick Stats */}
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-lg">Quick Stats</CardTitle>
+                            <CardTitle className="text-lg">{t('tenants.quickStats')}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">Lock-in Period</span>
+                                <span className="text-sm text-gray-600">{t('tenants.lockInPeriod')}</span>
                                 <span className="font-semibold text-lg">{tenant.lockInPeriod}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">Room Mappings</span>
+                                <span className="text-sm text-gray-600">{t('tenants.roomMappings')}</span>
                                 <span className="font-semibold text-lg text-blue-600">
                                     {roomMappings?.length || 0}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">Active Mappings</span>
+                                <span className="text-sm text-gray-600">{t('tenants.activeMappings')}</span>
                                 <span className="font-semibold text-lg text-green-600">
                                     {roomMappings?.filter(m => m.isActive).length || 0}
                                 </span>
@@ -179,11 +181,11 @@ const TenantDetail: React.FC = () => {
                 <div className="lg:col-span-2">
                     <Tabs defaultValue="overview" className="w-full">
                         <TabsList className="grid w-full grid-cols-5">
-                            <TabsTrigger value="overview">Overview</TabsTrigger>
-                            <TabsTrigger value="room-mappings">Room Mappings</TabsTrigger>
-                            <TabsTrigger value="documents">Documents</TabsTrigger>
-                            <TabsTrigger value="profile-picture">Profile Picture</TabsTrigger>
-                            <TabsTrigger value="details">Details</TabsTrigger>
+                            <TabsTrigger value="overview">{t('properties.overview')}</TabsTrigger>
+                            <TabsTrigger value="room-mappings">{t('tenants.roomMappingsTab')}</TabsTrigger>
+                            <TabsTrigger value="documents">{t('tenants.documentsTab')}</TabsTrigger>
+                            <TabsTrigger value="profile-picture">{t('tenants.profilePicture')}</TabsTrigger>
+                            <TabsTrigger value="details">{t('properties.additionalDetails')}</TabsTrigger>
                         </TabsList>
 
                         {/* Overview Tab */}
@@ -191,45 +193,45 @@ const TenantDetail: React.FC = () => {
                             {/* Tenant Details */}
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Tenant Details</CardTitle>
-                                    <CardDescription>Personal and contact information</CardDescription>
+                                    <CardTitle>{t('tenants.details')}</CardTitle>
+                                    <CardDescription>{t('tenants.personalContactInfo')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-4">
                                             <div>
-                                                <label className="text-sm font-medium text-gray-500">Tenant Name</label>
+                                                <label className="text-sm font-medium text-gray-500">{t('tenants.tenantName')}</label>
                                                 <p className="text-lg font-semibold text-gray-900">{tenant.tenantName}</p>
                                             </div>
                                             <div>
-                                                <label className="text-sm font-medium text-gray-500">Mobile Number</label>
+                                                <label className="text-sm font-medium text-gray-500">{t('tenants.mobileNumber')}</label>
                                                 <p className="text-lg text-gray-900">{tenant.tenantMobile}</p>
                                             </div>
                                             <div>
-                                                <label className="text-sm font-medium text-gray-500">Email</label>
-                                                <p className="text-lg text-gray-900">{tenant.tenantEmail || 'Not provided'}</p>
+                                                <label className="text-sm font-medium text-gray-500">{t('tenants.email')}</label>
+                                                <p className="text-lg text-gray-900">{tenant.tenantEmail || t('tenants.notProvided')}</p>
                                             </div>
                                             <div>
-                                                <label className="text-sm font-medium text-gray-500">Aadhar ID</label>
+                                                <label className="text-sm font-medium text-gray-500">{t('tenants.aadharIdLabel')}</label>
                                                 <p className="text-lg text-gray-900">{tenant.tenantAdharId}</p>
                                             </div>
                                         </div>
                                         <div className="space-y-4">
                                             <div>
-                                                <label className="text-sm font-medium text-gray-500">Status</label>
+                                                <label className="text-sm font-medium text-gray-500">{t('common.status')}</label>
                                                 <div className="flex items-center space-x-2 mt-1">
                                                     {getStatusIcon(tenant.isActive)}
                                                     <span className="text-lg text-gray-900">
-                                                        {tenant.isActive ? 'Active' : 'Inactive'}
+                                                        {tenant.isActive ? t('common.active') : t('common.inactive')}
                                                     </span>
                                                 </div>
                                             </div>
                                             <div>
-                                                <label className="text-sm font-medium text-gray-500">Login ID</label>
+                                                <label className="text-sm font-medium text-gray-500">{t('tenants.loginId')}</label>
                                                 <p className="text-lg text-gray-900">{tenant.loginId}</p>
                                             </div>
                                             <div>
-                                                <label className="text-sm font-medium text-gray-500">Lock-in Period</label>
+                                                <label className="text-sm font-medium text-gray-500">{t('tenants.lockInPeriod')}</label>
                                                 <p className="text-lg text-gray-900">{tenant.lockInPeriod}</p>
                                             </div>
                                         </div>
@@ -238,7 +240,7 @@ const TenantDetail: React.FC = () => {
                                     {/* Note */}
                                     {tenant.note && (
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Note</label>
+                                            <label className="text-sm font-medium text-gray-500">{t('registration.note')}</label>
                                             <p className="mt-2 text-gray-900 leading-relaxed">{tenant.note}</p>
                                         </div>
                                     )}
@@ -248,19 +250,19 @@ const TenantDetail: React.FC = () => {
                             {/* Address Information */}
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Address Information</CardTitle>
-                                    <CardDescription>Permanent address</CardDescription>
+                                    <CardTitle>{t('tenants.addressInfo')}</CardTitle>
+                                    <CardDescription>{t('tenants.permanentAddress')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                     <div>
-                                        <h4 className="font-semibold text-gray-900 mb-3">Permanent Address</h4>
+                                        <h4 className="font-semibold text-gray-900 mb-3">{t('tenants.permanentAddress')}</h4>
                                         <div className="space-y-2 text-sm">
-                                            <p><span className="text-gray-600">Street:</span> {tenant.permanentAddress.street}</p>
-                                            <p><span className="text-gray-600">Landmark:</span> {tenant.permanentAddress.landMark}</p>
-                                            <p><span className="text-gray-600">Area:</span> {tenant.permanentAddress.area}</p>
-                                            <p><span className="text-gray-600">City:</span> {tenant.permanentAddress.city}</p>
-                                            <p><span className="text-gray-600">State:</span> {tenant.permanentAddress.stateId}</p>
-                                            <p><span className="text-gray-600">Pincode:</span> {tenant.permanentAddress.pincode}</p>
+                                            <p><span className="text-gray-600">{t('tenants.street')}</span> {tenant.permanentAddress.street}</p>
+                                            <p><span className="text-gray-600">{t('tenants.landmarkLabel')}</span> {tenant.permanentAddress.landMark}</p>
+                                            <p><span className="text-gray-600">{t('tenants.areaLabel')}</span> {tenant.permanentAddress.area}</p>
+                                            <p><span className="text-gray-600">{t('tenants.cityLabel')}</span> {tenant.permanentAddress.city}</p>
+                                            <p><span className="text-gray-600">{t('tenants.stateLabel')}</span> {tenant.permanentAddress.stateId}</p>
+                                            <p><span className="text-gray-600">{t('tenants.pincodeLabel')}</span> {tenant.permanentAddress.pincode}</p>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -272,9 +274,9 @@ const TenantDetail: React.FC = () => {
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <div>
-                                        <CardTitle>Room Mappings</CardTitle>
+                                        <CardTitle>{t('tenants.roomMappings')}</CardTitle>
                                         <CardDescription>
-                                            Rooms currently or previously occupied by this tenant
+                                            {t('tenants.roomsMappingDesc')}
                                         </CardDescription>
                                     </div>
                                     <Link
@@ -282,7 +284,7 @@ const TenantDetail: React.FC = () => {
                                         className="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                     >
                                         <Plus className="w-4 h-4 mr-2" />
-                                        Board to Room
+                                        {t('tenants.boardToRoom')}
                                     </Link>
                                 </CardHeader>
                                 <CardContent>
@@ -293,14 +295,14 @@ const TenantDetail: React.FC = () => {
                                     ) : !roomMappings || roomMappings.length === 0 ? (
                                         <div className="text-center py-8">
                                             <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                            <h3 className="text-lg font-medium text-gray-900 mb-2">No room mappings found</h3>
-                                            <p className="text-gray-600 mb-4">This tenant is not currently boarded to any room.</p>
+                                            <h3 className="text-lg font-medium text-gray-900 mb-2">{t('tenants.noRoomMappingsFound')}</h3>
+                                            <p className="text-gray-600 mb-4">{t('tenants.notBoardedToRoom')}</p>
                                             <Link
                                                 to={`/board-tenants/new?tenantId=${tenantId}`}
                                                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
                                             >
                                                 <Plus className="w-4 h-4 mr-2" />
-                                                Board to Room
+                                                {t('tenants.boardToRoom')}
                                             </Link>
                                         </div>
                                     ) : (
@@ -312,22 +314,22 @@ const TenantDetail: React.FC = () => {
                                                 >
                                                     <div className="flex items-center justify-between mb-3">
                                                         <h4 className="font-semibold text-gray-900">
-                                                            Room ID: {mapping.roomId}
+                                                            {t('tenants.roomIdLabel')} {mapping.roomId}
                                                         </h4>
                                                         <Badge variant={mapping.isActive ? "default" : "secondary"}>
-                                                            {mapping.isActive ? "Active" : "Inactive"}
+                                                            {mapping.isActive ? t('common.active') : t('common.inactive')}
                                                         </Badge>
                                                     </div>
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                                         <div>
-                                                            <span className="text-gray-600">Boarding Date:</span>
+                                                            <span className="text-gray-600">{t('tenants.boardingDate')}</span>
                                                             <span className="ml-2 font-medium text-gray-900">
                                                                 {formatDate(mapping.boardingDate)}
                                                             </span>
                                                         </div>
                                                         {mapping.leavingDate && (
                                                             <div>
-                                                                <span className="text-gray-600">Leaving Date:</span>
+                                                                <span className="text-gray-600">{t('tenants.leavingDate')}</span>
                                                                 <span className="ml-2 font-medium text-gray-900">
                                                                     {formatDate(mapping.leavingDate)}
                                                                 </span>
@@ -339,13 +341,13 @@ const TenantDetail: React.FC = () => {
                                                             to={`/board-tenants/${mapping.roomTenantMappingId}`}
                                                             className="text-sm text-blue-600 hover:text-blue-700"
                                                         >
-                                                            View Details →
+                                                            {t('tenants.viewDetailsArrow')}
                                                         </Link>
                                                         <Link
                                                             to={`/board-tenants/${mapping.roomTenantMappingId}/edit`}
                                                             className="text-sm text-blue-600 hover:text-blue-700"
                                                         >
-                                                            Edit →
+                                                            {t('tenants.editArrow')}
                                                         </Link>
                                                     </div>
                                                 </div>
@@ -361,9 +363,9 @@ const TenantDetail: React.FC = () => {
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <div>
-                                        <CardTitle>Documents</CardTitle>
+                                        <CardTitle>{t('tenants.documents')}</CardTitle>
                                         <CardDescription>
-                                            Uploaded documents for verification
+                                            {t('tenants.uploadedDocumentsDesc')}
                                         </CardDescription>
                                     </div>
                                     <Link
@@ -371,16 +373,16 @@ const TenantDetail: React.FC = () => {
                                         className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                                     >
                                         <FileText className="w-4 h-4 mr-2" />
-                                        Manage Documents
+                                        {t('tenants.manageDocuments')}
                                     </Link>
                                 </CardHeader>
                                 <CardContent>
                                     {tenantFiles?.files && tenantFiles.files.length > 0 ? (
                                         <div className="space-y-4">
                                             {[
-                                                { type: DocumentType.Agreement, label: 'Rental Agreement', icon: FileText },
-                                                { type: DocumentType.PermanentAddressProof, label: 'Address Proof', icon: Home },
-                                                { type: DocumentType.IdentityProof, label: 'Aadhaar Card', icon: User }
+                                                { type: DocumentType.Agreement, label: t('tenants.rentalAgreement'), icon: FileText },
+                                                { type: DocumentType.PermanentAddressProof, label: t('tenants.addressProof'), icon: Home },
+                                                { type: DocumentType.IdentityProof, label: t('tenants.aadhaarCard'), icon: User }
                                             ].map(({ type, label, icon: Icon }) => {
                                                 const document = tenantFiles.files.find(f => f.documentType === type);
                                                 return (
@@ -394,13 +396,13 @@ const TenantDetail: React.FC = () => {
                                                                         <p className="text-xs text-gray-500">{document.fileName}</p>
                                                                         <Badge variant="default" className="text-xs">
                                                                             <CheckCircle className="w-3 h-3 mr-1" />
-                                                                            Uploaded
+                                                                            {t('tenants.uploaded')}
                                                                         </Badge>
                                                                     </div>
                                                                 ) : (
                                                                     <Badge variant="secondary" className="text-xs">
                                                                         <AlertCircle className="w-3 h-3 mr-1" />
-                                                                        Not uploaded
+                                                                        {t('tenants.notUploaded')}
                                                                     </Badge>
                                                                 )}
                                                             </div>
@@ -411,7 +413,7 @@ const TenantDetail: React.FC = () => {
                                                                 className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                                             >
                                                                 <Download className="w-3 h-3 mr-1" />
-                                                                Download
+                                                                {t('tenants.download')}
                                                             </button>
                                                         )}
                                                     </div>
@@ -419,24 +421,24 @@ const TenantDetail: React.FC = () => {
                                             })}
                                             <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                                                 <p className="text-xs text-gray-600">
-                                                    Total files: {tenantFiles.totalFileCount} •
-                                                    Total size: {Math.round(tenantFiles.totalFileSize / 1024 / 1024 * 100) / 100} MB
+                                                    {t('tenants.totalFiles')} {tenantFiles.totalFileCount} •
+                                                    {t('tenants.totalSize')} {Math.round(tenantFiles.totalFileSize / 1024 / 1024 * 100) / 100} MB
                                                 </p>
                                             </div>
                                         </div>
                                     ) : (
                                         <div className="text-center py-8">
                                             <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                            <h3 className="text-sm font-medium text-gray-900 mb-2">No documents uploaded</h3>
+                                            <h3 className="text-sm font-medium text-gray-900 mb-2">{t('tenants.noDocumentsUploaded')}</h3>
                                             <p className="text-sm text-gray-500 mb-4">
-                                                Upload important documents like rental agreement, address proof, and Aadhaar card.
+                                                {t('tenants.uploadDocumentsDesc')}
                                             </p>
                                             <Link
                                                 to={`/tenants/${tenantId}/documents`}
                                                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
                                             >
                                                 <FileText className="w-4 h-4 mr-2" />
-                                                Upload Documents
+                                                {t('tenants.uploadDocuments')}
                                             </Link>
                                         </div>
                                     )}
@@ -448,8 +450,8 @@ const TenantDetail: React.FC = () => {
                         <TabsContent value="profile-picture" className="space-y-6">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Profile Picture</CardTitle>
-                                    <CardDescription>Manage tenant profile picture</CardDescription>
+                                    <CardTitle>{t('tenants.profilePicture')}</CardTitle>
+                                    <CardDescription>{t('tenants.manageProfilePicture')}</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <ProfilePictureUpload
@@ -465,19 +467,19 @@ const TenantDetail: React.FC = () => {
                         <TabsContent value="details" className="space-y-6">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Additional Details</CardTitle>
-                                    <CardDescription>Creation and modification information</CardDescription>
+                                    <CardTitle>{t('properties.additionalInfo')}</CardTitle>
+                                    <CardDescription>{t('tenants.creationModificationInfo')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Creation Date</label>
+                                            <label className="text-sm font-medium text-gray-500">{t('tenants.creationDate')}</label>
                                             <p className="text-lg text-gray-900">
                                                 {formatDate(tenant.creationDate)}
                                             </p>
                                         </div>
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Last Modified</label>
+                                            <label className="text-sm font-medium text-gray-500">{t('tenants.lastModified')}</label>
                                             <p className="text-lg text-gray-900">
                                                 {formatDate(tenant.lastModificationDate)}
                                             </p>
@@ -487,7 +489,7 @@ const TenantDetail: React.FC = () => {
                                     {/* Note section if available */}
                                     {tenant.note && (
                                         <div>
-                                            <label className="text-sm font-medium text-gray-500">Note</label>
+                                            <label className="text-sm font-medium text-gray-500">{t('registration.note')}</label>
                                             <p className="mt-2 text-gray-900 leading-relaxed">{tenant.note}</p>
                                         </div>
                                     )}

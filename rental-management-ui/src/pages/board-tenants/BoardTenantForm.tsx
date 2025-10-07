@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
 import { roomTenantMappingApi, lookupApi } from '../../services/api';
 import { CreateRoomTenantMappingDto, UpdateRoomTenantMappingDto } from '../../types';
@@ -14,41 +15,42 @@ import { extractErrorMessage } from '../../utils/errorHandler';
 import { formToast, showError } from '../../utils/toast';
 import { useRoleAccess } from '../../hooks/useRoleAccess';
 
-const schema = yup.object({
-  tenantId: yup.number().when('$isEdit', {
-    is: false,
-    then: (schema) => schema.required('Tenant is required').min(1, 'Please select a tenant'),
-    otherwise: (schema) => schema.optional(),
-  }),
-  roomId: yup.number().when('$isEdit', {
-    is: false,
-    then: (schema) => schema.required('Room is required').min(1, 'Please select a room'),
-    otherwise: (schema) => schema.optional(),
-  }),
-  boardingDate: yup.string().required('Boarding date is required'),
-  leavingDate: yup.string().optional().test(
-    'is-after-boarding',
-    'Leaving date must be after boarding date',
-    function(value) {
-      const { boardingDate } = this.parent;
-      if (!value || !boardingDate) return true;
-      return new Date(value) > new Date(boardingDate);
-    }
-  ),
-  isActive: yup.boolean().when('$isEdit', {
-    is: true,
-    then: (schema) => schema.required('Active status is required'),
-    otherwise: (schema) => schema.optional(),
-  }),
-});
-
 const BoardTenantForm: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const isEdit = Boolean(id);
   const { isAdmin, isOwner, user } = useRoleAccess();
+
+  const schema = useMemo(() => yup.object({
+    tenantId: yup.number().when('$isEdit', {
+      is: false,
+      then: (schema) => schema.required(t('boardTenants.tenantRequired')).min(1, t('boardTenants.pleaseSelectTenant')),
+      otherwise: (schema) => schema.optional(),
+    }),
+    roomId: yup.number().when('$isEdit', {
+      is: false,
+      then: (schema) => schema.required(t('boardTenants.roomRequired')).min(1, t('boardTenants.pleaseSelectRoom')),
+      otherwise: (schema) => schema.optional(),
+    }),
+    boardingDate: yup.string().required(t('boardTenants.boardingDateRequired')),
+    leavingDate: yup.string().optional().test(
+      'is-after-boarding',
+      t('boardTenants.leavingDateMustBeAfter'),
+      function(value) {
+        const { boardingDate } = this.parent;
+        if (!value || !boardingDate) return true;
+        return new Date(value) > new Date(boardingDate);
+      }
+    ),
+    isActive: yup.boolean().when('$isEdit', {
+      is: true,
+      then: (schema) => schema.required(t('boardTenants.activeStatusRequired')),
+      otherwise: (schema) => schema.optional(),
+    }),
+  }), [t]);
 
   // Get pre-filled values from URL params (for create mode)
   const urlTenantId = searchParams.get('tenantId');
@@ -158,7 +160,7 @@ const BoardTenantForm: React.FC = () => {
     mutationFn: roomTenantMappingApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['room-tenant-mappings'] });
-      formToast.created('Board Tenant Mapping');
+      formToast.created(t('boardTenants.boardTenantMapping'));
       navigate('/board-tenants');
     },
     onError: (error) => {
@@ -174,7 +176,7 @@ const BoardTenantForm: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['room-tenant-mappings'] });
       queryClient.invalidateQueries({ queryKey: ['room-tenant-mapping', id] });
-      formToast.updated('Board Tenant Mapping');
+      formToast.updated(t('boardTenants.boardTenantMapping'));
       navigate('/board-tenants');
     },
     onError: (error) => {
@@ -188,7 +190,7 @@ const BoardTenantForm: React.FC = () => {
   const onSubmit = (data: any) => {
     // Check for duplicate before creating
     if (!isEdit && duplicateCheckResult.exists) {
-      showError('An active mapping already exists for this room-tenant combination');
+      showError(t('boardTenants.activeMappingExistsMessage'));
       return;
     }
 
@@ -224,10 +226,10 @@ const BoardTenantForm: React.FC = () => {
         </button>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            {isEdit ? 'Edit Board Tenant Mapping' : 'Board New Tenant'}
+            {isEdit ? t('boardTenants.editBoardTenantMapping') : t('boardTenants.boardNewTenant')}
           </h1>
           <p className="text-gray-600 mt-2">
-            {isEdit ? 'Update room-tenant mapping details' : 'Assign a tenant to a room'}
+            {isEdit ? t('boardTenants.updateMappingDetails') : t('boardTenants.assignTenantToRoom')}
           </p>
         </div>
       </div>
@@ -237,9 +239,9 @@ const BoardTenantForm: React.FC = () => {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3">
           <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="text-sm font-medium text-red-800">Active Mapping Exists</h3>
+            <h3 className="text-sm font-medium text-red-800">{t('boardTenants.activeMappingExists')}</h3>
             <p className="text-sm text-red-700 mt-1">
-              This tenant is already actively mapped to this room. Please choose a different tenant or room, or deactivate the existing mapping first.
+              {t('boardTenants.activeMappingExistsMessage')}
             </p>
           </div>
         </div>
@@ -250,19 +252,19 @@ const BoardTenantForm: React.FC = () => {
         {/* Tenant Selection - Only in create mode */}
         {!isEdit && (
           <div className="card p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Tenant Selection</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('boardTenants.tenantSelection')}</h2>
 
             <div className="grid grid-cols-1 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Tenant *
+                  {t('boardTenants.selectTenant')}
                 </label>
                 <select
                   {...register('tenantId')}
                   className="input"
                   disabled={!selectedOwnerId}
                 >
-                  <option value="">Select Tenant</option>
+                  <option value="">{t('boardTenants.selectTenantPlaceholder')}</option>
                   {tenants?.data.map((tenant) => (
                     <option key={tenant.id} value={tenant.id}>
                       {tenant.value}
@@ -280,13 +282,13 @@ const BoardTenantForm: React.FC = () => {
         {/* Room Selection - Only in create mode */}
         {!isEdit && (
           <div className="card p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Room Selection</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('boardTenants.roomSelection')}</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {isAdmin() && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Owner *
+                    {t('properties.owner')} *
                   </label>
                   <select
                     value={selectedOwnerId || ''}
@@ -297,7 +299,7 @@ const BoardTenantForm: React.FC = () => {
                     }}
                     className="input"
                   >
-                    <option value="">Select Owner</option>
+                    <option value="">{t('properties.selectOwner')}</option>
                     {owners?.data.map((owner) => (
                       <option key={owner.id} value={owner.id}>
                         {owner.value}
@@ -310,14 +312,14 @@ const BoardTenantForm: React.FC = () => {
               {isOwner() && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Owner *
+                    {t('properties.owner')} *
                   </label>
                   <select
                     value={selectedOwnerId || ''}
                     className="input bg-gray-100 cursor-not-allowed"
                     disabled={true}
                   >
-                    <option value="">Select Owner</option>
+                    <option value="">{t('properties.selectOwner')}</option>
                     {owners?.data.map((owner) => (
                       <option key={owner.id} value={owner.id}>
                         {owner.value}
@@ -325,14 +327,14 @@ const BoardTenantForm: React.FC = () => {
                     ))}
                   </select>
                   <p className="text-gray-500 text-sm mt-1">
-                    You can only create mappings for your own properties
+                    {t('tenants.ownerHelpText')}
                   </p>
                 </div>
               )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Property *
+                  {t('rooms.propertyLabel')} *
                 </label>
                 <select
                   value={selectedPropertyId || ''}
@@ -343,7 +345,7 @@ const BoardTenantForm: React.FC = () => {
                   className="input"
                   disabled={!selectedOwnerId}
                 >
-                  <option value="">Select Property</option>
+                  <option value="">{t('rooms.selectProperty')}</option>
                   {properties?.data.map((property) => (
                     <option key={property.id} value={property.id}>
                       {property.value}
@@ -354,17 +356,17 @@ const BoardTenantForm: React.FC = () => {
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Room *
+                  {t('boardTenants.selectRoom')}
                 </label>
                 <select
                   {...register('roomId')}
                   className="input"
                   disabled={!selectedPropertyId}
                 >
-                  <option value="">Select Room</option>
+                  <option value="">{t('boardTenants.selectRoomPlaceholder')}</option>
                   {rooms?.data.map((room) => (
                     <option key={room.id} value={room.id}>
-                      Room {room.value}
+                      {t('boardTenants.roomLabel')} {room.value}
                     </option>
                   ))}
                 </select>
@@ -379,36 +381,36 @@ const BoardTenantForm: React.FC = () => {
         {/* Display tenant and room in edit mode (read-only) */}
         {isEdit && mapping && (
           <div className="card p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Mapping Information</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('boardTenants.mappingInformation')}</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tenant
+                  {t('tenants.tenant')}
                 </label>
                 <input
                   type="text"
-                  value={`Tenant ID: ${mapping.tenantId}`}
+                  value={`${t('tenants.tenantId')}: ${mapping.tenantId}`}
                   className="input bg-gray-100 cursor-not-allowed"
                   disabled={true}
                 />
                 <p className="text-gray-500 text-sm mt-1">
-                  Tenant cannot be changed in edit mode
+                  {t('boardTenants.tenantCannotChange')}
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Room
+                  {t('boardTenants.roomLabel')}
                 </label>
                 <input
                   type="text"
-                  value={`Room ID: ${mapping.roomId}`}
+                  value={`${t('boardTenants.roomIdPrefix')} ${mapping.roomId}`}
                   className="input bg-gray-100 cursor-not-allowed"
                   disabled={true}
                 />
                 <p className="text-gray-500 text-sm mt-1">
-                  Room cannot be changed in edit mode
+                  {t('boardTenants.roomCannotChange')}
                 </p>
               </div>
             </div>
@@ -417,12 +419,12 @@ const BoardTenantForm: React.FC = () => {
 
         {/* Boarding Details */}
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Boarding Details</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('boardTenants.boardingDetails')}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Boarding Date *
+                {t('boardTenants.boardingDateLabel')}
               </label>
               <input
                 type="date"
@@ -436,7 +438,7 @@ const BoardTenantForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Leaving Date
+                {t('boardTenants.leavingDateLabel')}
               </label>
               <input
                 type="date"
@@ -447,18 +449,18 @@ const BoardTenantForm: React.FC = () => {
                 <p className="text-error-600 text-sm mt-1">{String(errors.leavingDate?.message || '')}</p>
               )}
               <p className="text-gray-500 text-sm mt-1">
-                Optional - Leave blank if tenant is still occupying
+                {t('boardTenants.leavingDateOptionalHelp')}
               </p>
             </div>
 
             {isEdit && (
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Active Status *
+                  {t('boardTenants.activeStatusLabel')}
                 </label>
                 <select {...register('isActive')} className="input">
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
+                  <option value="true">{t('common.active')}</option>
+                  <option value="false">{t('common.inactive')}</option>
                 </select>
                 {errors.isActive && (
                   <p className="text-error-600 text-sm mt-1">{String(errors.isActive?.message || '')}</p>
@@ -475,7 +477,7 @@ const BoardTenantForm: React.FC = () => {
             onClick={() => navigate('/board-tenants')}
             className="btn-secondary"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
@@ -487,7 +489,7 @@ const BoardTenantForm: React.FC = () => {
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
-            {isEdit ? 'Update Mapping' : 'Create Mapping'}
+            {isEdit ? t('boardTenants.updateMapping') : t('boardTenants.createMapping')}
           </button>
         </div>
       </form>

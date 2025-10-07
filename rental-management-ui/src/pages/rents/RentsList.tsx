@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { DollarSign, Calendar, Receipt, Eye } from 'lucide-react';
 import { rentTrackApi, lookupApi } from '../../services/api';
 import { RentTrackSearchRequest } from '../../types';
@@ -13,6 +14,7 @@ import { useLookup } from '../../contexts/LookupContext';
 
 
 const RentsList: React.FC = () => {
+  const { t } = useTranslation();
   const { lookups, getRentStatusName, getRentStatusBadgeClass } = useLookup();
   const [urlParams] = useSearchParams();
 
@@ -209,47 +211,47 @@ const RentsList: React.FC = () => {
   const filterOptions = [
     {
       key: 'ownerId',
-      label: 'Owner',
+      label: t('properties.owner'),
       options: owners?.data?.map(owner => ({
         value: owner.id.toString(),
         label: owner.value
       })) || [],
-      placeholder: 'Select Owner'
+      placeholder: t('rents.selectOwner')
     },
     {
       key: 'propertyId',
-      label: 'Property',
+      label: t('rooms.property'),
       options: properties?.data?.map(property => ({
         value: property.id.toString(),
         label: property.value
       })) || [],
-      placeholder: 'Select Property'
+      placeholder: t('rents.selectProperty')
     },
     {
       key: 'roomId',
-      label: 'Room',
+      label: t('rents.roomLabel'),
       options: rooms?.data?.map(room => ({
         value: room.id.toString(),
         label: room.value
       })) || [],
-      placeholder: 'Select Room'
+      placeholder: t('rents.selectRoom')
     },
     {
       key: 'tenantId',
-      label: 'Tenant',
+      label: t('tenants.tenant'),
       options: tenants?.data?.map(tenant => ({
         value: tenant.id.toString(),
         label: tenant.value
       })) || [],
-      placeholder: 'Select Tenant'
+      placeholder: t('rents.selectTenant')
     },
     {
       key: 'status',
-      label: 'Status',
+      label: t('common.status'),
       options: lookups.rentStatuses.map(status => ({
         value: status.id.toString(),
         label: status.value
-      })),      placeholder: 'Select Status'
+      })),      placeholder: t('rents.selectStatus')
     }
   ];
 
@@ -277,16 +279,16 @@ const RentsList: React.FC = () => {
 
   // Show error only for rents loading, not for lookups
   if (rentsError) {
-    return <ErrorMessage message="Failed to load rents" />;
+    return <ErrorMessage message={t('rents.errorLoading')} />;
   }
 
   const rents = rentsData?.data || [];
 
   return (
     <ListPageWrapper
-      title="Rent Track"
-      subtitle="Monitor rent payments and financial records"
-      addButtonText="Add Rent Track"
+      title={t('rents.title')}
+      subtitle={t('rents.manageDescription')}
+      addButtonText={t('rents.addRentTrack')}
       addButtonUrl="/rents/new"
       isLoading={rentsLoading}
       error={rentsError}
@@ -306,10 +308,10 @@ const RentsList: React.FC = () => {
       searchTerm={filters.searchTerm}
       filterValues={filters.filterValues}
       filters={filterOptions}
-      placeholder="Search rent records by amount or notes..."
+      placeholder={t('rents.searchPlaceholder')}
       emptyStateIcon={Receipt}
-      emptyStateTitle="No rent track records found"
-      emptyStateMessage="Get started by adding your first rent track record."
+      emptyStateTitle={t('rents.noRentRecordsFound')}
+      emptyStateMessage={t('rents.getStarted')}
       hasActiveFilters={hasActiveFilters}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -328,29 +330,29 @@ const RentsList: React.FC = () => {
           const cardItem: EntityCardItem = {
             id: rent.rentTrackId,
             title: `${rent.tenantName}`,
-            subtitle: `Property: ${rent.propertyName}${rent.roomNo ? ` |  Room: ${rent.roomNo}` : ''}`,
+            subtitle: `${t('rents.propertyLabel2')}: ${rent.propertyName}${rent.roomNo ? ` |  ${t('rents.roomLabel')}: ${rent.roomNo}` : ''}`,
             viewUrl: `/rents/${rent.rentTrackId}`,
             editUrl: `/rents/${rent.rentTrackId}/edit`,
             badges: [
               {
-                label: 'Rent Track',
+                label: t('rents.rentTrack'),
                 variant: 'secondary' as const
               }
             ],
             details: [
               {
                 icon: <DollarSign className="w-4 h-4" />,
-                label: 'Expected',
+                label: t('rents.expected'),
                 value: formatCurrency(rent.expectedRentValue || 0)
               },
               {
                 icon: <Receipt className="w-4 h-4" />,
-                label: 'Received',
+                label: t('rents.received'),
                 value: formatCurrency(rent.receivedRentValue || 0)
               },
               {
                 icon: <Calendar className="w-4 h-4" />,
-                label: 'Period',
+                label: t('rents.period'),
                 value: `${formatDate(rent.rentPeriodStartDate)} - ${formatDate(rent.rentPeriodEndDate)}`
               }
             ],
@@ -359,7 +361,7 @@ const RentsList: React.FC = () => {
               variant: getVariantFromBadgeClass(badgeClass)
             },
             footerAction: {
-              label: `View ${rent.tenantName}`,
+              label: `${t('rents.viewTenant')} ${rent.tenantName}`,
               icon: <Eye className="w-3 h-3" />,
               url: `/tenants/${rent.tenantId}`
             }
