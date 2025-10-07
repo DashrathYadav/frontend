@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save } from 'lucide-react';
 import { tenantApi, lookupApi, ownerApi } from '../../services/api';
 import { CreateTenantDto, UpdateTenantDto } from '../../types';
@@ -14,58 +15,60 @@ import ErrorMessage from '../../components/ErrorMessage';
 import { extractErrorMessage } from '../../utils/errorHandler';
 import { formToast } from '../../utils/toast';
 
-const schema = yup.object({
-  tenantName: yup.string().required('Tenant name is required'),
-  tenantMobile: yup.string().required('Mobile number is required').matches(/^\d{10}$/, 'Mobile number must be 10 digits'),
-  tenantEmail: yup.string().email('Invalid email format').optional(),
-  tenantAdharId: yup.string().when('$isEdit', {
-    is: false,
-    then: (schema) => schema.required('Aadhar ID is required').matches(/^\d{12}$/, 'Aadhar ID must be 12 digits'),
-    otherwise: (schema) => schema.optional(),
-  }),
-
-  // Authentication fields (only for create)
-  loginId: yup.string().when('$isEdit', {
-    is: false,
-    then: (schema) => schema.required('Login ID is required').min(3, 'Login ID must be at least 3 characters').max(50, 'Login ID must not exceed 50 characters').matches(/^[a-zA-Z0-9_]+$/, 'Login ID can only contain letters, numbers, and underscores'),
-    otherwise: (schema) => schema.optional(),
-  }),
-  password: yup.string().when('$isEdit', {
-    is: true,
-    then: (schema) => schema.optional().min(6, 'Password must be at least 6 characters'),
-    otherwise: (schema) => schema.required('Password is required').min(6, 'Password must be at least 6 characters'),
-  }),
-
-  // Owner selection (only for create)
-  ownerId: yup.number().when('$isEdit', {
-    is: false,
-    then: (schema) => schema.required('Owner is required').min(1, 'Please select an owner'),
-    otherwise: (schema) => schema.optional(),
-  }),
-
-  lockInPeriod: yup.string().required('Lock-in period is required'),
-  isActive: yup.boolean().when('$isEdit', {
-    is: true,
-    then: (schema) => schema.required('Active status is required'),
-    otherwise: (schema) => schema.optional(),
-  }),
-  permanentAddress: yup.object({
-    addressId: yup.number().optional(),
-    street: yup.string().required('Street is required'),
-    landMark: yup.string().required('Landmark is required'),
-    area: yup.string().required('Area is required'),
-    city: yup.string().required('City is required'),
-    pincode: yup.string().required('Pincode is required').matches(/^\d{6}$/, 'Pincode must be 6 digits'),
-    stateId: yup.number().required('State is required').min(1),
-    countryId: yup.number().required('Country is required').min(1),
-  }),
-});
-
 const TenantForm: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams();
   const queryClient = useQueryClient();
   const isEdit = Boolean(id);
+
+  // Validation schema with translations
+  const schema = useMemo(() => yup.object({
+    tenantName: yup.string().required(t('validation.tenantNameRequired')),
+    tenantMobile: yup.string().required(t('validation.tenantMobileRequired')).matches(/^\d{10}$/, t('validation.tenantMobileInvalid')),
+    tenantEmail: yup.string().email(t('validation.tenantEmailInvalid')).optional(),
+    tenantAdharId: yup.string().when('$isEdit', {
+      is: false,
+      then: (schema) => schema.required(t('validation.tenantAadharRequired')).matches(/^\d{12}$/, t('validation.tenantAadharInvalid')),
+      otherwise: (schema) => schema.optional(),
+    }),
+
+    // Authentication fields (only for create)
+    loginId: yup.string().when('$isEdit', {
+      is: false,
+      then: (schema) => schema.required(t('validation.tenantLoginIdRequired')).min(3, t('validation.tenantLoginIdMin')).max(50, t('validation.tenantLoginIdMax')).matches(/^[a-zA-Z0-9_]+$/, t('validation.tenantLoginIdInvalid')),
+      otherwise: (schema) => schema.optional(),
+    }),
+    password: yup.string().when('$isEdit', {
+      is: true,
+      then: (schema) => schema.optional().min(6, t('validation.tenantPasswordMin')),
+      otherwise: (schema) => schema.required(t('validation.passwordRequired')).min(6, t('validation.tenantPasswordMin')),
+    }),
+
+    // Owner selection (only for create)
+    ownerId: yup.number().when('$isEdit', {
+      is: false,
+      then: (schema) => schema.required(t('validation.ownerRequired')).min(1, t('validation.ownerSelectRequired')),
+      otherwise: (schema) => schema.optional(),
+    }),
+
+    lockInPeriod: yup.string().required(t('validation.lockInPeriodRequired')),
+    isActive: yup.boolean().when('$isEdit', {
+      is: true,
+      then: (schema) => schema.required(t('validation.activeStatusRequired')),
+      otherwise: (schema) => schema.optional(),
+    }),
+    permanentAddress: yup.object({
+      addressId: yup.number().optional(),
+      street: yup.string().required(t('validation.streetRequired')),
+      landMark: yup.string().required(t('validation.landmarkRequired')),
+      area: yup.string().required(t('validation.areaRequired')),
+      city: yup.string().required(t('validation.cityRequired')),
+      pincode: yup.string().required(t('validation.pincodeRequired')).matches(/^\d{6}$/, t('validation.pincodeInvalid')),
+      stateId: yup.number().required(t('validation.stateRequired')).min(1),
+      countryId: yup.number().required(t('validation.countryRequired')).min(1),
+    }),
+  }), [t]);
   const { isAdmin } = useRoleAccess();
 
   const { data: states } = useQuery({
@@ -190,10 +193,10 @@ const TenantForm: React.FC = () => {
         </button>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            {isEdit ? 'Edit Tenant' : 'Add New Tenant'}
+            {isEdit ? t('tenants.editTenant') : t('tenants.addNewTenant')}
           </h1>
           <p className="text-gray-600 mt-2">
-            {isEdit ? 'Update tenant information' : 'Register a new tenant'}
+            {isEdit ? t('tenants.updateTenantInfo') : t('tenants.registerNewTenant')}
           </p>
         </div>
       </div>
@@ -201,17 +204,17 @@ const TenantForm: React.FC = () => {
       {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Personal Information</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('tenants.personalInfo')}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name *
+                {t('tenants.fullName')}
               </label>
               <input
                 {...register('tenantName')}
                 className="input"
-                placeholder="Enter full name"
+                placeholder={t('tenants.fullNamePlaceholder')}
               />
               {errors.tenantName && (
                 <p className="text-error-600 text-sm mt-1">{String(errors.tenantName?.message || '')}</p>
@@ -220,12 +223,12 @@ const TenantForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mobile Number *
+                {t('tenants.mobileNumberLabel')}
               </label>
               <input
                 {...register('tenantMobile')}
                 className="input"
-                placeholder="Enter 10-digit mobile number"
+                placeholder={t('tenants.mobileNumberPlaceholder')}
               />
               {errors.tenantMobile && (
                 <p className="text-error-600 text-sm mt-1">{String(errors.tenantMobile?.message || '')}</p>
@@ -234,13 +237,13 @@ const TenantForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+                {t('tenants.emailLabel')}
               </label>
               <input
                 type="email"
                 {...register('tenantEmail')}
                 className="input"
-                placeholder="Enter email address"
+                placeholder={t('tenants.emailPlaceholder')}
               />
               {errors.tenantEmail && (
                 <p className="text-error-600 text-sm mt-1">{String(errors.tenantEmail?.message || '')}</p>
@@ -250,12 +253,12 @@ const TenantForm: React.FC = () => {
             {!isEdit && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Aadhar ID *
+                  {t('tenants.aadharId')}
                 </label>
                 <input
                   {...register('tenantAdharId')}
                   className="input"
-                  placeholder="Enter 12-digit Aadhar number"
+                  placeholder={t('tenants.aadharIdPlaceholder')}
                 />
                 {(errors as any).tenantAdharId && (
                   <p className="text-error-600 text-sm mt-1">{(errors as any).tenantAdharId?.message}</p>
@@ -267,10 +270,10 @@ const TenantForm: React.FC = () => {
             {!isEdit && isAdmin() && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Owner *
+                  {t('tenants.ownerLabel')}
                 </label>
                 <select {...register('ownerId')} className="input">
-                  <option value="">Select Owner</option>
+                  <option value="">{t('tenants.selectOwner')}</option>
                   {owners?.map((owner) => (
                     <option key={owner.ownerId} value={owner.ownerId}>
                       {owner.fullName} ({owner.mobileNumber})
@@ -281,7 +284,7 @@ const TenantForm: React.FC = () => {
                   <p className="text-error-600 text-sm mt-1">{(errors as any).ownerId?.message}</p>
                 )}
                 <p className="text-gray-500 text-sm mt-1">
-                  Select the owner who manages this tenant
+                  {t('tenants.ownerHelpText')}
                 </p>
               </div>
             )}
@@ -290,16 +293,16 @@ const TenantForm: React.FC = () => {
             {isEdit && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Login ID
+                  {t('tenants.loginIdLabel')}
                 </label>
                 <input
                   {...register('loginId')}
                   className="input bg-gray-100 cursor-not-allowed"
-                  placeholder="Login ID"
+                  placeholder={t('tenants.loginIdLabel')}
                   disabled={true}
                 />
                 <p className="text-gray-500 text-sm mt-1">
-                  Login ID cannot be changed
+                  {t('tenants.loginIdCannotChange')}
                 </p>
               </div>
             )}
@@ -308,12 +311,12 @@ const TenantForm: React.FC = () => {
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Login ID *
+                    {t('tenants.loginIdLabel')} *
                   </label>
                   <input
                     {...register('loginId')}
                     className="input"
-                    placeholder="Enter login ID (3-50 characters)"
+                    placeholder={t('tenants.loginIdPlaceholder')}
                   />
                   {(errors as any).loginId && (
                     <p className="text-error-600 text-sm mt-1">{(errors as any).loginId?.message}</p>
@@ -322,13 +325,13 @@ const TenantForm: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Password *
+                    {t('tenants.passwordLabel')}
                   </label>
                   <input
                     type="password"
                     {...register('password')}
                     className="input"
-                    placeholder="Enter password (min 6 characters)"
+                    placeholder={t('tenants.passwordPlaceholder')}
                   />
                   {(errors as any).password && (
                     <p className="text-error-600 text-sm mt-1">{(errors as any).password?.message}</p>
@@ -339,12 +342,12 @@ const TenantForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Lock-in Period *
+                {t('tenants.lockInPeriodLabel')}
               </label>
               <input
                 {...register('lockInPeriod')}
                 className="input"
-                placeholder="e.g., 12 months"
+                placeholder={t('tenants.lockInPeriodPlaceholder')}
               />
               {errors.lockInPeriod && (
                 <p className="text-error-600 text-sm mt-1">{String(errors.lockInPeriod?.message || '')}</p>
@@ -354,11 +357,11 @@ const TenantForm: React.FC = () => {
             {isEdit && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Active Status *
+                  {t('tenants.activeStatus')}
                 </label>
                 <select {...register('isActive')} className="input">
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
+                  <option value="true">{t('common.active')}</option>
+                  <option value="false">{t('common.inactive')}</option>
                 </select>
                 {(errors as any).isActive && (
                   <p className="text-error-600 text-sm mt-1">{(errors as any).isActive?.message}</p>
@@ -370,17 +373,17 @@ const TenantForm: React.FC = () => {
 
         {/* Permanent Address */}
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Permanent Address</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('tenants.permanentAddress')}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Street Address *
+                {t('tenants.streetAddress')}
               </label>
               <input
                 {...register('permanentAddress.street')}
                 className="input"
-                placeholder="Enter street address"
+                placeholder={t('tenants.streetAddressPlaceholder')}
               />
               {(errors as any).permanentAddress?.street && (
                 <p className="text-error-600 text-sm mt-1">{(errors as any).permanentAddress.street?.message}</p>
@@ -389,12 +392,12 @@ const TenantForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Landmark *
+                {t('tenants.landmark')}
               </label>
               <input
                 {...register('permanentAddress.landMark')}
                 className="input"
-                placeholder="Enter landmark"
+                placeholder={t('tenants.landmarkPlaceholder')}
               />
               {(errors as any).permanentAddress?.landMark && (
                 <p className="text-error-600 text-sm mt-1">{(errors as any).permanentAddress.landMark?.message}</p>
@@ -403,12 +406,12 @@ const TenantForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Area *
+                {t('tenants.area')}
               </label>
               <input
                 {...register('permanentAddress.area')}
                 className="input"
-                placeholder="Enter area"
+                placeholder={t('tenants.areaPlaceholder')}
               />
               {(errors as any).permanentAddress?.area && (
                 <p className="text-error-600 text-sm mt-1">{(errors as any).permanentAddress.area?.message}</p>
@@ -417,12 +420,12 @@ const TenantForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                City *
+                {t('tenants.city')}
               </label>
               <input
                 {...register('permanentAddress.city')}
                 className="input"
-                placeholder="Enter city"
+                placeholder={t('tenants.cityPlaceholder')}
               />
               {(errors as any).permanentAddress?.city && (
                 <p className="text-error-600 text-sm mt-1">{(errors as any).permanentAddress.city?.message}</p>
@@ -431,12 +434,12 @@ const TenantForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Pincode *
+                {t('tenants.pincode')}
               </label>
               <input
                 {...register('permanentAddress.pincode')}
                 className="input"
-                placeholder="Enter 6-digit pincode"
+                placeholder={t('tenants.pincodePlaceholder')}
               />
               {(errors as any).permanentAddress?.pincode && (
                 <p className="text-error-600 text-sm mt-1">{(errors as any).permanentAddress.pincode?.message}</p>
@@ -445,10 +448,10 @@ const TenantForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                State *
+                {t('tenants.state')}
               </label>
               <select {...register('permanentAddress.stateId')} className="input">
-                <option value="">Select State</option>
+                <option value="">{t('tenants.selectState')}</option>
                 {states?.data.map((state) => (
                   <option key={state.id} value={state.id}>
                     {state.value}
@@ -462,10 +465,10 @@ const TenantForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Country *
+                {t('tenants.country')}
               </label>
               <select {...register('permanentAddress.countryId')} className="input">
-                <option value="">Select Country</option>
+                <option value="">{t('tenants.selectCountry')}</option>
                 {countries?.data.map((country) => (
                   <option key={country.id} value={country.id}>
                     {country.value}
@@ -481,17 +484,17 @@ const TenantForm: React.FC = () => {
 
         {/* Additional Information */}
         <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Additional Information</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('tenants.additionalInfo')}</h2>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notes
+              {t('tenants.notes')}
             </label>
             <textarea
               {...register('note')}
               rows={4}
               className="input"
-              placeholder="Enter any additional notes..."
+              placeholder={t('tenants.notesPlaceholder')}
             />
           </div>
         </div>
@@ -503,7 +506,7 @@ const TenantForm: React.FC = () => {
             onClick={() => navigate('/tenants')}
             className="btn-secondary"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
@@ -515,7 +518,7 @@ const TenantForm: React.FC = () => {
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
-            {isEdit ? 'Update Tenant' : 'Create Tenant'}
+            {isEdit ? t('tenants.updateTenant') : t('tenants.createTenant')}
           </button>
         </div>
       </form>
