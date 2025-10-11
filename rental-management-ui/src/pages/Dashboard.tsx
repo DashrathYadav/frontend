@@ -257,45 +257,75 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Recent Activity */}
-      <div className="card p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('dashboard.recentRents')}</h2>
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <h2 className="text-lg font-semibold text-gray-900">{t('dashboard.recentRents')}</h2>
+        </div>
+        <div className="p-6">
           {rentsLoading ? (
             <div className="flex items-center justify-center py-8">
               <LoadingSpinner size="md" />
             </div>
           ) : recentRents?.data && recentRents.data.length > 0 ? (
-            <div className="space-y-3">
-              {recentRents.data.map((rent) => (
-                  <div key={rent.rentTrackId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900">{rent.tenantName}</p>
-                      <p className="text-sm text-gray-600">
+            <div className="divide-y divide-gray-200">
+              {recentRents.data.map((rent) => {
+                const statusLabel = getRentStatusName(rent.statusId);
+                const badgeClass = getRentStatusBadgeClass(rent.statusId);
+                const colorMap: Record<string, string> = {
+                  'success': 'bg-green-100 text-green-800',
+                  'warning': 'bg-yellow-100 text-yellow-800',
+                  'danger': 'bg-red-100 text-red-800',
+                  'error': 'bg-red-100 text-red-800',
+                  'default': 'bg-gray-100 text-gray-800',
+                };
+                const baseClass = badgeClass.replace('badge-', '');
+
+                return (
+                  <Link
+                    key={rent.rentTrackId}
+                    to={`/rents/${rent.rentTrackId}`}
+                    className="flex items-center justify-between py-4 hover:bg-blue-50/50 transition-colors -mx-6 px-6 group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">{rent.tenantName}</p>
+                      <p className="text-sm text-gray-600 mt-0.5">
                         {formatDate(rent.rentPeriodStartDate)} - {formatDate(rent.rentPeriodEndDate)}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <span className={`badge-${getRentStatusBadgeClass(rent.statusId)}`}>
-                        {getRentStatusName(rent.statusId)}
+                    <div className="flex items-center gap-4 ml-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorMap[baseClass] || colorMap.default}`}>
+                        {statusLabel}
                       </span>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {formatCurrency(rent.expectedRentValue || 0)}
-                      </p>
+                      <div className="text-right min-w-[100px]">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {formatCurrency(rent.expectedRentValue || 0)}
+                        </p>
+                        {rent.receivedRentValue !== undefined && rent.receivedRentValue < (rent.expectedRentValue || 0) && (
+                          <p className="text-xs text-red-600">
+                            {formatCurrency((rent.expectedRentValue || 0) - rent.receivedRentValue)} pending
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-12 text-gray-500">
               <p>{t('dashboard.noRecentRents')}</p>
             </div>
           )}
+        </div>
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
           <Link
             to="/rents"
-            className="inline-flex items-center text-primary-600 hover:text-primary-700 mt-4 text-sm font-medium"
+            className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
           >
             {t('dashboard.viewAllRents')}
             <ArrowRight className="w-4 h-4 ml-1" />
           </Link>
+        </div>
       </div>
     </div>
   );

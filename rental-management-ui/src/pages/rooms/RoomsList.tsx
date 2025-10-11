@@ -2,12 +2,12 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Users, DollarSign, Home } from 'lucide-react';
+import { Users, DollarSign, Home, Eye, Edit, ExternalLink } from 'lucide-react';
 import { roomApi, lookupApi } from '../../services/api';
 import { RoomSearchRequest } from '../../types';
 import { formatCurrency } from '../../utils';
 import ListPageWrapper from '../../components/ListPageWrapper';
-import EntityCard, { EntityCardItem } from '../../components/EntityCard';
+import DataTable, { DataTableColumn, DataTableAction } from '../../components/DataTable';
 import { useEnhancedPagination } from '../../hooks/useEnhancedPagination';
 import ErrorMessage from '../../components/ErrorMessage';
 import { useLookup } from '../../contexts/LookupContext';
@@ -227,6 +227,112 @@ const RoomsList: React.FC = () => {
 
   const rooms = roomsData?.data || [];
 
+  // Define table columns
+  const columns: DataTableColumn<typeof rooms[0]>[] = [
+    {
+      key: 'roomNo',
+      label: t('rooms.roomNumber'),
+      sortable: true,
+      render: (room) => (
+        <div>
+          <div className="font-medium text-gray-900">{t('rooms.roomPrefix')}{room.roomNo}</div>
+          <div className="text-sm text-gray-500">{room.roomSize || t('rooms.noSizeSpecified')}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'roomType',
+      label: t('rooms.type'),
+      render: (room) => (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+          {getRoomTypeName(room.roomTypeId || 0)}
+        </span>
+      ),
+    },
+    {
+      key: 'propertyName',
+      label: t('rooms.property'),
+      render: (room) => (
+        <div className="flex items-center gap-2 text-gray-600">
+          <Home className="w-4 h-4 text-gray-400" />
+          <span>{room.propertyName || t('properties.noDescription')}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'roomRent',
+      label: t('rooms.rent'),
+      align: 'right',
+      render: (room) => (
+        <div className="flex items-center justify-end gap-2 text-gray-900 font-medium">
+          <DollarSign className="w-4 h-4 text-gray-400" />
+          <span>{formatCurrency(room.roomRent)}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'tenants',
+      label: t('rooms.occupancy'),
+      align: 'center',
+      render: (room) => (
+        <div className="flex items-center justify-center gap-2">
+          <Users className="w-4 h-4 text-gray-400" />
+          <span className={`font-medium ${
+            room.currentTenantCount >= room.tenantLimit
+              ? 'text-red-600'
+              : room.currentTenantCount > 0
+                ? 'text-orange-600'
+                : 'text-green-600'
+          }`}>
+            {room.currentTenantCount}/{room.tenantLimit}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      label: t('common.status'),
+      align: 'center',
+      render: (room) => {
+        const badgeClass = getAvailabilityStatusBadgeClass(room.statusId);
+        const colorMap: Record<string, string> = {
+          'success': 'bg-green-100 text-green-800',
+          'warning': 'bg-yellow-100 text-yellow-800',
+          'danger': 'bg-red-100 text-red-800',
+          'default': 'bg-gray-100 text-gray-800',
+        };
+        return (
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorMap[badgeClass] || colorMap.default}`}>
+            {getAvailabilityStatusName(room.statusId)}
+          </span>
+        );
+      },
+    },
+  ];
+
+  // Define table actions
+  const actions: DataTableAction<typeof rooms[0]>[] = [
+    {
+      label: t('common.view'),
+      icon: <Eye className="h-4 w-4" />,
+      href: (room) => `/rooms/${room.roomId}`,
+      variant: 'ghost',
+    },
+    {
+      label: t('common.edit'),
+      icon: <Edit className="h-4 w-4" />,
+      href: (room) => `/rooms/${room.roomId}/edit`,
+      variant: 'ghost',
+    },
+    {
+      label: t('rooms.showTenants'),
+      icon: <ExternalLink className="h-4 w-4" />,
+      href: (room) => `/tenants?ownerId=${room.ownerId}&propertyId=${room.propertyId}&roomId=${room.roomId}`,
+      variant: 'ghost',
+      className: 'text-blue-600 hover:text-blue-700',
+    },
+  ];
+
   return (
     <ListPageWrapper
       title={t('rooms.title')}
@@ -257,57 +363,14 @@ const RoomsList: React.FC = () => {
       emptyStateMessage={t('rooms.getStarted')}
       hasActiveFilters={hasActiveFilters}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {rooms.map((room) => {
-
-          const cardItem: EntityCardItem = {
-            id: room.roomId,
-            title: `${t('rooms.roomPrefix')}${room.roomNo}`,
-            subtitle: room.roomSize || t('rooms.noSizeSpecified'),
-            viewUrl: `/rooms/${room.roomId}`,
-            editUrl: `/rooms/${room.roomId}/edit`,
-            badges: [
-              {
-                label: getRoomTypeName(room.roomTypeId || 0),
-                variant: 'secondary' as const
-              }
-            ],
-            details: [
-              {
-                icon: <DollarSign className="w-4 h-4" />,
-                label: t('rooms.rent'),
-                value: formatCurrency(room.roomRent)
-              },
-              {
-                icon: <Users className="w-4 h-4" />,
-                label: t('tenants.title'),
-                value: `${room.currentTenantCount}/${room.tenantLimit}`
-              },
-              {
-                icon: <Home className="w-4 h-4" />,
-                label: t('rooms.property'),
-                value: room.propertyName || t('properties.noDescription')
-              }
-            ],
-            footerStatus: {
-              label: getAvailabilityStatusName(room.statusId),
-              variant: getAvailabilityStatusBadgeClass(room.statusId) as 'default' | 'secondary' | 'destructive' | 'outline'
-            },
-            footerAction: {
-              label: t('rooms.showTenants'),
-              icon: <Users className="w-3 h-3" />,
-              url: `/tenants?ownerId=${room.ownerId}&propertyId=${room.propertyId}&roomNumber=${room.roomId}`
-            }
-          };
-
-          return (
-            <EntityCard
-              key={room.roomId}
-              item={cardItem}
-            />
-          );
-        })}
-      </div>
+      <DataTable
+        data={rooms}
+        columns={columns}
+        actions={actions}
+        getRowId={(room) => room.roomId.toString()}
+        emptyMessage={t('rooms.noRoomsFound')}
+        hoverable
+      />
     </ListPageWrapper>
   );
 };

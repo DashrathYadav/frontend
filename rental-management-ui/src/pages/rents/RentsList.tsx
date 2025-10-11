@@ -2,12 +2,12 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { DollarSign, Calendar, Receipt, Eye } from 'lucide-react';
+import { DollarSign, Calendar, Receipt, Eye, Edit, UserCheck } from 'lucide-react';
 import { rentTrackApi, lookupApi } from '../../services/api';
 import { RentTrackSearchRequest } from '../../types';
 import { formatDate, formatCurrency } from '../../utils';
 import ListPageWrapper from '../../components/ListPageWrapper';
-import EntityCard, { EntityCardItem } from '../../components/EntityCard';
+import DataTable, { DataTableColumn, DataTableAction } from '../../components/DataTable';
 import { useEnhancedPagination } from '../../hooks/useEnhancedPagination';
 import ErrorMessage from '../../components/ErrorMessage';
 import { useLookup } from '../../contexts/LookupContext';
@@ -284,6 +284,115 @@ const RentsList: React.FC = () => {
 
   const rents = rentsData?.data || [];
 
+  // Define table columns
+  const columns: DataTableColumn<typeof rents[0]>[] = [
+    {
+      key: 'tenantName',
+      label: t('tenants.tenant'),
+      sortable: true,
+      render: (rent) => (
+        <div>
+          <div className="font-medium text-gray-900">{rent.tenantName}</div>
+          <div className="text-sm text-gray-500">{rent.propertyName}{rent.roomNo ? ` | Room ${rent.roomNo}` : ''}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'expectedRentValue',
+      label: t('rents.expected'),
+      align: 'right',
+      sortable: true,
+      render: (rent) => (
+        <div className="flex items-center justify-end gap-2">
+          <DollarSign className="w-4 h-4 text-gray-400" />
+          <span className="font-medium text-gray-900">{formatCurrency(rent.expectedRentValue || 0)}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'receivedRentValue',
+      label: t('rents.received'),
+      align: 'right',
+      render: (rent) => (
+        <div className="flex items-center justify-end gap-2">
+          <Receipt className="w-4 h-4 text-gray-400" />
+          <span className="font-medium text-green-600">{formatCurrency(rent.receivedRentValue || 0)}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'pending',
+      label: t('rents.pending'),
+      align: 'right',
+      render: (rent) => {
+        const pending = (rent.expectedRentValue || 0) - (rent.receivedRentValue || 0);
+        return (
+          <span className={`font-medium ${pending > 0 ? 'text-red-600' : 'text-gray-500'}`}>
+            {formatCurrency(pending)}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'rentPeriod',
+      label: t('rents.period'),
+      render: (rent) => (
+        <div className="flex items-center gap-2 text-gray-600 text-sm">
+          <Calendar className="w-4 h-4 text-gray-400" />
+          <div>
+            <div>{formatDate(rent.rentPeriodStartDate)}</div>
+            <div className="text-gray-400">to {formatDate(rent.rentPeriodEndDate)}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      label: t('common.status'),
+      align: 'center',
+      render: (rent) => {
+        const statusLabel = getRentStatusName(rent.statusId);
+        const badgeClass = getRentStatusBadgeClass(rent.statusId);
+        const colorMap: Record<string, string> = {
+          'success': 'bg-green-100 text-green-800',
+          'warning': 'bg-yellow-100 text-yellow-800',
+          'danger': 'bg-red-100 text-red-800',
+          'error': 'bg-red-100 text-red-800',
+          'default': 'bg-gray-100 text-gray-800',
+        };
+        const baseClass = badgeClass.replace('badge-', '');
+        return (
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorMap[baseClass] || colorMap.default}`}>
+            {statusLabel}
+          </span>
+        );
+      },
+    },
+  ];
+
+  // Define table actions
+  const actions: DataTableAction<typeof rents[0]>[] = [
+    {
+      label: t('common.view'),
+      icon: <Eye className="h-4 w-4" />,
+      href: (rent) => `/rents/${rent.rentTrackId}`,
+      variant: 'ghost',
+    },
+    {
+      label: t('common.edit'),
+      icon: <Edit className="h-4 w-4" />,
+      href: (rent) => `/rents/${rent.rentTrackId}/edit`,
+      variant: 'ghost',
+    },
+    {
+      label: t('rents.viewTenant'),
+      icon: <UserCheck className="h-4 w-4" />,
+      href: (rent) => `/tenants/${rent.tenantId}`,
+      variant: 'ghost',
+      className: 'text-blue-600 hover:text-blue-700',
+    },
+  ];
+
   return (
     <ListPageWrapper
       title={t('rents.title')}
@@ -314,67 +423,14 @@ const RentsList: React.FC = () => {
       emptyStateMessage={t('rents.getStarted')}
       hasActiveFilters={hasActiveFilters}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {rents.map((rent) => {
-          // Use dynamic lookup functions from context
-          const statusLabel = getRentStatusName(rent.statusId);
-          const badgeClass = getRentStatusBadgeClass(rent.statusId);
-          
-          const getVariantFromBadgeClass = (badgeClass: string) => {
-            if (badgeClass.includes('success')) return 'default' as const;
-            if (badgeClass.includes('warning')) return 'secondary' as const;
-            if (badgeClass.includes('error')) return 'destructive' as const;
-            return 'destructive' as const;
-          };
-
-          const cardItem: EntityCardItem = {
-            id: rent.rentTrackId,
-            title: `${rent.tenantName}`,
-            subtitle: `${t('rents.propertyLabel2')}: ${rent.propertyName}${rent.roomNo ? ` |  ${t('rents.roomLabel')}: ${rent.roomNo}` : ''}`,
-            viewUrl: `/rents/${rent.rentTrackId}`,
-            editUrl: `/rents/${rent.rentTrackId}/edit`,
-            badges: [
-              {
-                label: t('rents.rentTrack'),
-                variant: 'secondary' as const
-              }
-            ],
-            details: [
-              {
-                icon: <DollarSign className="w-4 h-4" />,
-                label: t('rents.expected'),
-                value: formatCurrency(rent.expectedRentValue || 0)
-              },
-              {
-                icon: <Receipt className="w-4 h-4" />,
-                label: t('rents.received'),
-                value: formatCurrency(rent.receivedRentValue || 0)
-              },
-              {
-                icon: <Calendar className="w-4 h-4" />,
-                label: t('rents.period'),
-                value: `${formatDate(rent.rentPeriodStartDate)} - ${formatDate(rent.rentPeriodEndDate)}`
-              }
-            ],
-            footerStatus: {
-              label: statusLabel,
-              variant: getVariantFromBadgeClass(badgeClass)
-            },
-            footerAction: {
-              label: `${t('rents.viewTenant')} ${rent.tenantName}`,
-              icon: <Eye className="w-3 h-3" />,
-              url: `/tenants/${rent.tenantId}`
-            }
-          };
-
-          return (
-            <EntityCard
-              key={rent.rentTrackId}
-              item={cardItem}
-            />
-          );
-        })}
-      </div>
+      <DataTable
+        data={rents}
+        columns={columns}
+        actions={actions}
+        getRowId={(rent) => rent.rentTrackId.toString()}
+        emptyMessage={t('rents.noRentRecordsFound')}
+        hoverable
+      />
     </ListPageWrapper>
   );
 };

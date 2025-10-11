@@ -2,11 +2,11 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Calendar, MapPin } from 'lucide-react';
+import { Calendar, MapPin, Eye, Edit, Home, UserCheck } from 'lucide-react';
 import { roomTenantMappingApi, lookupApi } from '../../services/api';
 import { RoomTenantMappingSearchRequest } from '../../types';
 import ListPageWrapper from '../../components/ListPageWrapper';
-import EntityCard, { EntityCardItem } from '../../components/EntityCard';
+import DataTable, { DataTableColumn, DataTableAction } from '../../components/DataTable';
 import { useEnhancedPagination } from '../../hooks/useEnhancedPagination';
 import ErrorMessage from '../../components/ErrorMessage';
 
@@ -217,6 +217,92 @@ const BoardTenantList: React.FC = () => {
     }
   };
 
+  // Define table columns
+  const columns: DataTableColumn<typeof mappings[0]>[] = [
+    {
+      key: 'tenantName',
+      label: t('tenants.tenant'),
+      sortable: true,
+      render: (mapping) => (
+        <div>
+          <div className="font-medium text-gray-900">{mapping.tenantName}</div>
+          <div className="text-sm text-gray-500">#{mapping.roomTenantMappingId}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'property',
+      label: t('rooms.property'),
+      render: (mapping) => (
+        <div className="flex items-center gap-2 text-gray-600">
+          <Home className="w-4 h-4 text-gray-400" />
+          <div>
+            <div className="font-medium text-gray-900">{mapping.propertyName}</div>
+            <div className="text-sm text-gray-500">{t('boardTenants.roomPrefix')}{mapping.roomNo}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'boardingDate',
+      label: t('boardTenants.boardingDate'),
+      sortable: true,
+      render: (mapping) => (
+        <div className="flex items-center gap-2 text-gray-600">
+          <Calendar className="w-4 h-4 text-gray-400" />
+          <span>{formatDate(mapping.boardingDate)}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'leavingDate',
+      label: t('boardTenants.leavingDate'),
+      render: (mapping) => (
+        <div className="flex items-center gap-2 text-gray-600">
+          <Calendar className="w-4 h-4 text-gray-400" />
+          <span>{formatDate(mapping.leavingDate)}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'isActive',
+      label: t('common.status'),
+      align: 'center',
+      render: (mapping) => (
+        <div className="flex flex-col items-center gap-1">
+          <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              mapping.isActive
+                ? 'bg-green-100 text-green-800'
+                : 'bg-red-100 text-red-800'
+            }`}
+          >
+            {mapping.isActive ? t('common.active') : t('common.inactive')}
+          </span>
+          <span className="text-xs text-gray-500">
+            {mapping.isActive ? t('boardTenants.currentlyOccupied') : t('boardTenants.vacated')}
+          </span>
+        </div>
+      ),
+    },
+  ];
+
+  // Define table actions
+  const actions: DataTableAction<typeof mappings[0]>[] = [
+    {
+      label: t('common.view'),
+      icon: <Eye className="h-4 w-4" />,
+      href: (mapping) => `/board-tenants/${mapping.roomTenantMappingId}`,
+      variant: 'ghost',
+    },
+    {
+      label: t('common.edit'),
+      icon: <Edit className="h-4 w-4" />,
+      href: (mapping) => `/board-tenants/${mapping.roomTenantMappingId}/edit`,
+      variant: 'ghost',
+    },
+  ];
+
   return (
     <ListPageWrapper
       title={t('boardTenants.title')}
@@ -247,52 +333,14 @@ const BoardTenantList: React.FC = () => {
       emptyStateMessage={t('boardTenants.getStarted')}
       hasActiveFilters={hasActiveFilters}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {mappings.map((mapping) => {
-          const cardItem: EntityCardItem = {
-            id: mapping.roomTenantMappingId,
-            title: mapping.tenantName,
-            subtitle: `${t('boardTenants.roomPrefix')}${mapping.roomNo} - ${mapping.propertyName}`,
-            viewUrl: `/board-tenants/${mapping.roomTenantMappingId}`,
-            editUrl: `/board-tenants/${mapping.roomTenantMappingId}/edit`,
-            badges: [
-              {
-                label: mapping.isActive ? t('common.active') : t('common.inactive'),
-                variant: mapping.isActive ? 'default' as const : 'secondary' as const
-              }
-            ],
-            details: [
-              {
-                icon: <Calendar className="w-4 h-4" />,
-                label: t('boardTenants.boardingDate'),
-                value: formatDate(mapping.boardingDate)
-              },
-              {
-                icon: <Calendar className="w-4 h-4" />,
-                label: t('boardTenants.leavingDate'),
-                value: formatDate(mapping.leavingDate)
-              },
-              {
-                icon: <MapPin className="w-4 h-4" />,
-                label: t('boardTenants.mappingId'),
-                value: `#${mapping.roomTenantMappingId}`
-              }
-            ],
-            footerStatus: {
-              label: mapping.isActive ? t('boardTenants.currentlyOccupied') : t('boardTenants.vacated'),
-              variant: mapping.isActive ? 'default' as const : 'destructive' as const
-            },
-            footerActions: []
-          };
-
-          return (
-            <EntityCard
-              key={mapping.roomTenantMappingId}
-              item={cardItem}
-            />
-          );
-        })}
-      </div>
+      <DataTable
+        data={mappings}
+        columns={columns}
+        actions={actions}
+        getRowId={(mapping) => mapping.roomTenantMappingId.toString()}
+        emptyMessage={t('boardTenants.noMappingsFound')}
+        hoverable
+      />
     </ListPageWrapper>
   );
 };

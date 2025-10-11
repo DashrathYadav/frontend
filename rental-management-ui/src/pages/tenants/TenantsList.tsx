@@ -2,11 +2,11 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Mail, Phone, Calendar, UserCheck } from 'lucide-react';
+import { Mail, Phone, Calendar, UserCheck, Eye, Edit } from 'lucide-react';
 import { tenantApi, lookupApi } from '../../services/api';
 import { TenantSearchRequest } from '../../types';
 import ListPageWrapper from '../../components/ListPageWrapper';
-import EntityCard, { EntityCardItem } from '../../components/EntityCard';
+import DataTable, { DataTableColumn, DataTableAction } from '../../components/DataTable';
 import { useEnhancedPagination } from '../../hooks/useEnhancedPagination';
 import ErrorMessage from '../../components/ErrorMessage';
 
@@ -242,6 +242,81 @@ const TenantsList: React.FC = () => {
 
   const tenants = tenantsData?.data || [];
 
+  // Define table columns
+  const columns: DataTableColumn<typeof tenants[0]>[] = [
+    {
+      key: 'tenantName',
+      label: t('tenants.name'),
+      sortable: true,
+      render: (tenant) => (
+        <div className="font-medium text-gray-900">{tenant.tenantName}</div>
+      ),
+    },
+    {
+      key: 'tenantEmail',
+      label: t('tenants.email'),
+      render: (tenant) => (
+        <div className="flex items-center gap-2 text-gray-600">
+          <Mail className="w-4 h-4 text-gray-400" />
+          <span>{tenant.tenantEmail || t('tenants.noEmail')}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'tenantMobile',
+      label: t('tenants.mobile'),
+      render: (tenant) => (
+        <div className="flex items-center gap-2 text-gray-600">
+          <Phone className="w-4 h-4 text-gray-400" />
+          <span>{tenant.tenantMobile}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'lockInPeriod',
+      label: t('tenants.lockInPeriod'),
+      align: 'center',
+      render: (tenant) => (
+        <div className="flex items-center justify-center gap-2 text-gray-600">
+          <Calendar className="w-4 h-4 text-gray-400" />
+          <span>{tenant.lockInPeriod}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'isActive',
+      label: t('common.status'),
+      align: 'center',
+      render: (tenant) => (
+        <span
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+            tenant.isActive
+              ? 'bg-green-100 text-green-800'
+              : 'bg-red-100 text-red-800'
+          }`}
+        >
+          {tenant.isActive ? t('common.active') : t('common.inactive')}
+        </span>
+      ),
+    },
+  ];
+
+  // Define table actions
+  const actions: DataTableAction<typeof tenants[0]>[] = [
+    {
+      label: t('common.view'),
+      icon: <Eye className="h-4 w-4" />,
+      href: (tenant) => `/tenants/${tenant.tenantId}`,
+      variant: 'ghost',
+    },
+    {
+      label: t('common.edit'),
+      icon: <Edit className="h-4 w-4" />,
+      href: (tenant) => `/tenants/${tenant.tenantId}/edit`,
+      variant: 'ghost',
+    },
+  ];
+
   return (
     <ListPageWrapper
       title={t('tenants.title')}
@@ -272,53 +347,14 @@ const TenantsList: React.FC = () => {
       emptyStateMessage={t('tenants.getStarted')}
       hasActiveFilters={hasActiveFilters}
     >
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {tenants.map((tenant) => {
-          const cardItem: EntityCardItem = {
-            id: tenant.tenantId,
-            title: tenant.tenantName,
-            subtitle: tenant.tenantEmail || t('tenants.noEmailAvailable'),
-            viewUrl: `/tenants/${tenant.tenantId}`,
-            editUrl: `/tenants/${tenant.tenantId}/edit`,
-            badges: [
-              {
-                label: t('tenants.tenant'),
-                variant: 'secondary' as const
-              }
-            ],
-            details: [
-              {
-                icon: <Mail className="w-4 h-4" />,
-                label: t('tenants.email'),
-                value: tenant.tenantEmail || t('tenants.noEmail')
-              },
-              {
-                icon: <Phone className="w-4 h-4" />,
-                label: t('tenants.mobile'),
-                value: tenant.tenantMobile
-              },
-              {
-                icon: <Calendar className="w-4 h-4" />,
-                label: t('tenants.lockInPeriod'),
-                value: tenant.lockInPeriod
-              }
-            ],
-            footerStatus: {
-              label: tenant.isActive ? t('common.active') : t('common.inactive'),
-              variant: tenant.isActive ? 'default' as const : 'destructive' as const
-            },
-            footerActions: []
-          };
-
-          return (
-            <EntityCard
-              key={tenant.tenantId}
-              item={cardItem}
-            />
-          );
-        })}
-      </div>
+      <DataTable
+        data={tenants}
+        columns={columns}
+        actions={actions}
+        getRowId={(tenant) => tenant.tenantId.toString()}
+        emptyMessage={t('tenants.noTenantsFound')}
+        hoverable
+      />
     </ListPageWrapper>
   );
 };

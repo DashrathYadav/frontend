@@ -2,11 +2,11 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { DollarSign, Calendar } from 'lucide-react';
+import { DollarSign, Calendar, Eye, Edit, Home, UserCheck, Clock } from 'lucide-react';
 import { tenantRentSettingApi, lookupApi } from '../../services/api';
 import { TenantRentSettingSearchRequest } from '../../types';
 import ListPageWrapper from '../../components/ListPageWrapper';
-import EntityCard, { EntityCardItem } from '../../components/EntityCard';
+import DataTable, { DataTableColumn, DataTableAction } from '../../components/DataTable';
 import { useEnhancedPagination } from '../../hooks/useEnhancedPagination';
 import ErrorMessage from '../../components/ErrorMessage';
 import { formatCurrency } from '../../utils';
@@ -201,6 +201,96 @@ const TenantRentSettingsList: React.FC = () => {
 
   const settings = settingsData?.data || [];
 
+  // Define table columns
+  const columns: DataTableColumn<typeof settings[0]>[] = [
+    {
+      key: 'tenant',
+      label: t('tenants.tenant'),
+      sortable: true,
+      render: (setting) => (
+        <div className="flex items-center gap-2">
+          <UserCheck className="w-4 h-4 text-gray-400" />
+          <div>
+            <div className="font-medium text-gray-900">{setting.tenantName}</div>
+            <div className="text-sm text-gray-500">{t('boardTenants.roomPrefix')}{setting.roomNo}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'property',
+      label: t('rooms.property'),
+      render: (setting) => (
+        <div className="flex items-center gap-2 text-gray-600">
+          <Home className="w-4 h-4 text-gray-400" />
+          <span>{setting.propertyName}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'presentRentValue',
+      label: t('rentSettings.presentRent'),
+      align: 'right',
+      sortable: true,
+      render: (setting) => (
+        <div className="flex items-center justify-end gap-2">
+          <DollarSign className="w-4 h-4 text-gray-400" />
+          <span className="font-medium text-gray-900">{formatCurrency(setting.presentRentValue || 0)}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'deposited',
+      label: t('rentSettings.deposit'),
+      align: 'right',
+      render: (setting) => (
+        <div className="flex items-center justify-end gap-2">
+          <DollarSign className="w-4 h-4 text-blue-400" />
+          <span className="font-medium text-blue-600">{formatCurrency(setting.deposited)}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'depositToReturn',
+      label: t('rentSettings.depositToReturn'),
+      align: 'right',
+      render: (setting) => (
+        <span className="font-medium text-green-600">{formatCurrency(setting.depositToReturn)}</span>
+      ),
+    },
+    {
+      key: 'rentPeriod',
+      label: t('rentSettings.rentPeriod'),
+      align: 'center',
+      render: (setting) => (
+        <div className="flex items-center justify-center gap-2 text-gray-600">
+          <Clock className="w-4 h-4 text-gray-400" />
+          <span>
+            {setting.rentRecurringPeriodInDays
+              ? `${setting.rentRecurringPeriodInDays} ${setting.rentRecurringPeriodInDays > 1 ? t('boardTenants.days') : t('boardTenants.day')}`
+              : t('rentSettings.notSet')}
+          </span>
+        </div>
+      ),
+    },
+  ];
+
+  // Define table actions
+  const actions: DataTableAction<typeof settings[0]>[] = [
+    {
+      label: t('common.view'),
+      icon: <Eye className="h-4 w-4" />,
+      href: (setting) => `/rent-settings/${setting.tenantRentSettingId}`,
+      variant: 'ghost',
+    },
+    {
+      label: t('common.edit'),
+      icon: <Edit className="h-4 w-4" />,
+      href: (setting) => `/rent-settings/${setting.tenantRentSettingId}/edit`,
+      variant: 'ghost',
+    },
+  ];
+
   return (
     <ListPageWrapper
       title={t('rentSettings.tenantRentSettings')}
@@ -231,54 +321,14 @@ const TenantRentSettingsList: React.FC = () => {
       emptyStateMessage={t('rentSettings.getStarted')}
       hasActiveFilters={hasActiveFilters}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {settings.map((setting) => {
-          const cardItem: EntityCardItem = {
-            id: setting.tenantRentSettingId,
-            title: `${setting.tenantName} - ${t('boardTenants.roomPrefix')}${setting.roomNo}`,
-            subtitle: setting.propertyName,
-            viewUrl: `/rent-settings/${setting.tenantRentSettingId}`,
-            editUrl: `/rent-settings/${setting.tenantRentSettingId}/edit`,
-            badges: [
-              {
-                label: t('rentSettings.rentSetting'),
-                variant: 'default' as const
-              }
-            ],
-            details: [
-              {
-                icon: <DollarSign className="w-4 h-4" />,
-                label: t('rentSettings.presentRent'),
-                value: formatCurrency(setting.presentRentValue || 0)
-              },
-              {
-                icon: <DollarSign className="w-4 h-4" />,
-                label: t('rentSettings.deposit'),
-                value: formatCurrency(setting.deposited)
-              },
-              {
-                icon: <Calendar className="w-4 h-4" />,
-                label: t('rentSettings.rentPeriod'),
-                value: setting.rentRecurringPeriodInDays
-                  ? `${t('rentSettings.everyDays')} ${setting.rentRecurringPeriodInDays} ${setting.rentRecurringPeriodInDays > 1 ? t('boardTenants.days') : t('boardTenants.day')}`
-                  : t('rentSettings.notSet')
-              }
-            ],
-            footerStatus: {
-              label: `${t('rentSettings.depositToReturn')}: ${formatCurrency(setting.depositToReturn)}`,
-              variant: 'default' as const
-            },
-            footerActions: []
-          };
-
-          return (
-            <EntityCard
-              key={setting.tenantRentSettingId}
-              item={cardItem}
-            />
-          );
-        })}
-      </div>
+      <DataTable
+        data={settings}
+        columns={columns}
+        actions={actions}
+        getRowId={(setting) => setting.tenantRentSettingId.toString()}
+        emptyMessage={t('rentSettings.noSettingsFound')}
+        hoverable
+      />
     </ListPageWrapper>
   );
 };

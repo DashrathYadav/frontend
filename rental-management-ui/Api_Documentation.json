@@ -465,6 +465,118 @@
           "errors": []
         }
       },
+      "get_tenants_by_property": {
+        "description": "Get all tenants for a specific property",
+        "method": "GET",
+        "url": "{base_url}/tenant/property/{propertyId}",
+        "authorization": "Required - AdminOrOwnerPolicy with Property resource authorization",
+        "path_parameters": {
+          "propertyId": "number (required - propertyId)"
+        },
+        "role_based_access": {
+          "Admin": "Can view tenants for any property",
+          "Owner": "Can only view tenants for their own properties",
+          "Tenant": "Cannot access this endpoint (403 Forbidden)"
+        },
+        "response_body_success": {
+          "status": true,
+          "responseCode": 200,
+          "message": "No tenants found for property ID {propertyId} (if empty) OR Found {count} tenants for property ID {propertyId} (if has data)",
+          "data": [
+            {
+              "tenantId": "number",
+              "tenantName": "string",
+              "tenantMobile": "string",
+              "tenantEmail": "string (nullable)",
+              "tenantAdharId": "string",
+              "tenantProfilePic": "string (nullable - URL or path to profile picture)",
+              "tenantDocument": "string (nullable - URL or path to document)",
+              "loginId": "string",
+              "roleId": "number",
+              "permanentAddressId": "number",
+              "permanentAddress": {
+                "addressId": "number",
+                "street": "string",
+                "landMark": "string",
+                "area": "string",
+                "city": "string",
+                "pincode": "string",
+                "stateId": "number",
+                "countryId": "number"
+              },
+              "isActive": "boolean",
+              "note": "string (nullable)",
+              "ownerId": "number",
+              "creationDate": "string (ISO date)",
+              "lastModificationDate": "string (ISO date, nullable)"
+            }
+          ],
+          "errors": []
+        },
+        "response_body_error": {
+          "status": false,
+          "responseCode": 404,
+          "message": "Property not found",
+          "data": null,
+          "errors": []
+        }
+      },
+      "get_tenants_by_room": {
+        "description": "Get all tenants for a specific room",
+        "method": "GET",
+        "url": "{base_url}/tenant/room/{roomId}",
+        "authorization": "Required - AdminOrOwnerPolicy with Room resource authorization",
+        "path_parameters": {
+          "roomId": "number (required - roomId)"
+        },
+        "role_based_access": {
+          "Admin": "Can view tenants for any room",
+          "Owner": "Can only view tenants for their own rooms",
+          "Tenant": "Cannot access this endpoint (403 Forbidden)"
+        },
+        "response_body_success": {
+          "status": true,
+          "responseCode": 200,
+          "message": "No tenants found for room ID {roomId} (if empty) OR Found {count} tenants for room ID {roomId} (if has data)",
+          "data": [
+            {
+              "tenantId": "number",
+              "tenantName": "string",
+              "tenantMobile": "string",
+              "tenantEmail": "string (nullable)",
+              "tenantAdharId": "string",
+              "tenantProfilePic": "string (nullable - URL or path to profile picture)",
+              "tenantDocument": "string (nullable - URL or path to document)",
+              "loginId": "string",
+              "roleId": "number",
+              "permanentAddressId": "number",
+              "permanentAddress": {
+                "addressId": "number",
+                "street": "string",
+                "landMark": "string",
+                "area": "string",
+                "city": "string",
+                "pincode": "string",
+                "stateId": "number",
+                "countryId": "number"
+              },
+              "isActive": "boolean",
+              "note": "string (nullable)",
+              "ownerId": "number",
+              "creationDate": "string (ISO date)",
+              "lastModificationDate": "string (ISO date, nullable)"
+            }
+          ],
+          "errors": []
+        },
+        "response_body_error": {
+          "status": false,
+          "responseCode": 404,
+          "message": "Room not found",
+          "data": null,
+          "errors": []
+        }
+      },
       "search_tenants": {
         "description": "Search tenants with filters and pagination - Role-based access control: Admin sees all tenants, Owner sees only their tenants (ownerId auto-set), Tenant sees only their own record (all filters ignored)",
         "method": "GET",

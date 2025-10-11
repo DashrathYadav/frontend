@@ -1,9 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Mail, Phone, MapPin, Users } from 'lucide-react';
+import { Mail, Phone, MapPin, Users, Eye, Edit } from 'lucide-react';
 import { ownerApi } from '../../services/api';
 import ListPageWrapper from '../../components/ListPageWrapper';
-import EntityCard, { EntityCardItem } from '../../components/EntityCard';
+import DataTable, { DataTableColumn, DataTableAction } from '../../components/DataTable';
 import { useEnhancedPagination } from '../../hooks/useEnhancedPagination';
 import { useLookup } from '../../contexts/LookupContext';
 
@@ -75,6 +75,83 @@ const OwnersList: React.FC = () => {
     return ownersData.slice(startIndex, endIndex);
   }, [ownersData, pagination.currentPage, pagination.pageSize]);
 
+  // Define table columns
+  const columns: DataTableColumn<typeof owners[0]>[] = [
+    {
+      key: 'fullName',
+      label: 'Owner Name',
+      sortable: true,
+      render: (owner) => (
+        <div>
+          <div className="font-medium text-gray-900">{owner.fullName}</div>
+          <div className="text-sm text-gray-500 line-clamp-1">{owner.note || 'No notes available'}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'email',
+      label: 'Email',
+      render: (owner) => (
+        <div className="flex items-center gap-2 text-gray-600">
+          <Mail className="w-4 h-4 text-gray-400" />
+          <span>{owner.email || 'No email'}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'mobileNumber',
+      label: 'Mobile',
+      render: (owner) => (
+        <div className="flex items-center gap-2 text-gray-600">
+          <Phone className="w-4 h-4 text-gray-400" />
+          <span>{owner.mobileNumber}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'location',
+      label: 'Location',
+      render: (owner) => (
+        <div className="flex items-center gap-2 text-gray-600">
+          <MapPin className="w-4 h-4 text-gray-400" />
+          <span>{owner.address ? `${owner.address.city}, ${getStateName(owner.address.stateId)}` : 'No address'}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'isActive',
+      label: 'Status',
+      align: 'center',
+      render: (owner) => (
+        <span
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+            owner.isActive
+              ? 'bg-green-100 text-green-800'
+              : 'bg-red-100 text-red-800'
+          }`}
+        >
+          {owner.isActive ? 'Active' : 'Inactive'}
+        </span>
+      ),
+    },
+  ];
+
+  // Define table actions
+  const actions: DataTableAction<typeof owners[0]>[] = [
+    {
+      label: 'View',
+      icon: <Eye className="h-4 w-4" />,
+      href: (owner) => `/owners/${owner.ownerId}`,
+      variant: 'ghost',
+    },
+    {
+      label: 'Edit',
+      icon: <Edit className="h-4 w-4" />,
+      href: (owner) => `/owners/${owner.ownerId}/edit`,
+      variant: 'ghost',
+    },
+  ];
+
   return (
     <ListPageWrapper
       title="Owners"
@@ -104,46 +181,14 @@ const OwnersList: React.FC = () => {
       emptyStateMessage="Get started by adding your first owner."
       hasActiveFilters={hasActiveFilters}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {owners.map((owner) => {
-          const cardItem: EntityCardItem = {
-            id: owner.ownerId,
-            title: owner.fullName,
-            subtitle: owner.note || 'No notes available',
-            viewUrl: `/owners/${owner.ownerId}`,
-            badges: [
-              {
-                label: owner.isActive ? 'Active' : 'Inactive',
-                variant: owner.isActive ? 'default' as const : 'destructive' as const
-              }
-            ],
-            details: [
-              {
-                icon: <Mail className="w-4 h-4" />,
-                label: 'Email',
-                value: owner.email || 'No email'
-              },
-              {
-                icon: <Phone className="w-4 h-4" />,
-                label: 'Mobile',
-                value: owner.mobileNumber
-              },
-              {
-                icon: <MapPin className="w-4 h-4" />,
-                label: 'Location',
-                value: owner.address ? `${owner.address.city}, ${getStateName(owner.address.stateId)}` : 'No address'
-              }
-            ]
-          };
-
-          return (
-            <EntityCard
-              key={owner.ownerId}
-              item={cardItem}
-            />
-          );
-        })}
-      </div>
+      <DataTable
+        data={owners}
+        columns={columns}
+        actions={actions}
+        getRowId={(owner) => owner.ownerId.toString()}
+        emptyMessage="No owners found"
+        hoverable
+      />
     </ListPageWrapper>
   );
 };

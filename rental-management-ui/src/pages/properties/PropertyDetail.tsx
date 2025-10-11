@@ -62,10 +62,10 @@ const PropertyDetail: React.FC = () => {
         enabled: !!propertyId,
     });
 
-    // Fetch tenants for this property
+    // Fetch tenants for this property (first 6 only)
     const { data: tenants } = useQuery({
-        queryKey: ['tenants', propertyId],
-        queryFn: () => tenantApi.getByPropertyId(propertyId),
+        queryKey: ['tenants-by-property', propertyId],
+        queryFn: () => tenantApi.search({ propertyId, pageNumber: 1, pageSize: 6 }),
         enabled: !!propertyId,
     });
 
@@ -216,7 +216,7 @@ const PropertyDetail: React.FC = () => {
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-600">{t('properties.activeTenants')}</span>
-                                <span className="font-semibold text-lg">{tenants?.length || 0}</span>
+                                <span className="font-semibold text-lg">{tenants?.totalRecords || 0}</span>
                             </div>
                         </CardContent>
                     </Card>
@@ -426,60 +426,70 @@ const PropertyDetail: React.FC = () => {
                         <TabsContent value="tenants" className="space-y-6">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>{t('tenants.title')}</CardTitle>
-                                    <CardDescription>{t('properties.currentTenants')}</CardDescription>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <CardTitle>{t('tenants.title')}</CardTitle>
+                                            <CardDescription>
+                                                {tenants?.data && tenants.data.length > 0 && tenants.totalRecords > 6
+                                                    ? `Showing ${tenants.data.length} of ${tenants.totalRecords} tenants`
+                                                    : tenants?.totalRecords
+                                                        ? `${tenants.totalRecords} ${tenants.totalRecords === 1 ? 'tenant' : 'tenants'} in this property`
+                                                        : t('properties.currentTenants')}
+                                            </CardDescription>
+                                        </div>
+                                        {tenants && tenants.totalRecords > 0 && (
+                                            <Link
+                                                to={`/tenants?propertyId=${propertyId}`}
+                                                className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                                            >
+                                                <Users className="w-4 h-4 mr-2" />
+                                                View All Tenants
+                                            </Link>
+                                        )}
+                                    </div>
                                 </CardHeader>
-                                <CardContent>
-                                    {!tenants || tenants.length === 0 ? (
-                                        <div className="text-center py-8">
+                                <CardContent className="p-0">
+                                    {!tenants?.data || tenants.data.length === 0 ? (
+                                        <div className="text-center py-12 px-6">
                                             <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                                             <h3 className="text-lg font-medium text-gray-900 mb-2">{t('properties.noTenantsFound')}</h3>
                                             <p className="text-gray-600">{t('properties.noActiveTenantsYet')}</p>
                                         </div>
                                     ) : (
-                                        <div className="space-y-4">
-                                            {tenants.map((tenant) => (
-                                                <div
+                                        <div className="divide-y divide-gray-200">
+                                            {tenants.data.map((tenant) => (
+                                                <Link
                                                     key={tenant.tenantId}
-                                                    className="border rounded-lg p-4 hover:shadow-md transition-shadow duration-200"
+                                                    to={`/tenants/${tenant.tenantId}`}
+                                                    className="flex items-center justify-between px-6 py-4 hover:bg-blue-50/50 transition-colors group"
                                                 >
-                                                    <div className="flex items-center justify-between mb-3">
-                                                        <div className="flex items-center space-x-3">
-                                                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                                                                <Users className="w-5 h-5 text-green-600" />
-                                                            </div>
-                                                            <div>
-                                                                <h4 className="font-semibold text-gray-900">{tenant.tenantName}</h4>
-                                                                <p className="text-sm text-gray-600">{t('properties.tenantIdPrefix')}{tenant.tenantId}</p>
+                                                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                                                        <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                                            <Users className="w-6 h-6 text-green-600" />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <h4 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{tenant.tenantName}</h4>
+                                                            <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
+                                                                <span>{tenant.tenantMobile}</span>
+                                                                {tenant.tenantEmail && (
+                                                                    <>
+                                                                        <span className="text-gray-400">•</span>
+                                                                        <span className="truncate">{tenant.tenantEmail}</span>
+                                                                    </>
+                                                                )}
                                                             </div>
                                                         </div>
-                                                        <Badge variant={tenant.isActive ? "default" : "secondary"}>
+                                                    </div>
+                                                    <div className="flex-shrink-0 ml-4">
+                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                            tenant.isActive
+                                                                ? 'bg-green-100 text-green-800'
+                                                                : 'bg-gray-100 text-gray-800'
+                                                        }`}>
                                                             {tenant.isActive ? t('common.active') : t('common.inactive')}
-                                                        </Badge>
+                                                        </span>
                                                     </div>
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                                        <div>
-                                                            <span className="text-gray-600">{t('properties.mobileLabel')}</span>
-                                                            <span className="ml-2 font-medium">{tenant.tenantMobile}</span>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-gray-600">{t('properties.emailLabel')}</span>
-                                                            <span className="ml-2 font-medium">{tenant.tenantEmail || t('properties.notAvailable')}</span>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-gray-600">{t('properties.aadharIdLabel')}</span>
-                                                            <span className="ml-2 font-medium">{tenant.tenantAdharId || t('properties.notAvailable')}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="mt-3 pt-3 border-t">
-                                                        <Link
-                                                            to={`/tenants/${tenant.tenantId}`}
-                                                            className="text-sm text-blue-600 hover:text-blue-700 transition-colors duration-200"
-                                                        >
-                                                            {t('properties.viewDetailsArrow')}
-                                                        </Link>
-                                                    </div>
-                                                </div>
+                                                </Link>
                                             ))}
                                         </div>
                                     )}
