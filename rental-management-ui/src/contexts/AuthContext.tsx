@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import api from '../services/api';
 import { type UserRole } from '../constants';
-import { decodeJwtToken } from '../utils';
+import { decodeJwtToken, TokenStorage } from '../utils';
+import { type LoginResponse, type ApiResponse } from '../types';
 
 interface User {
     token: string;
@@ -16,7 +17,8 @@ interface AuthContextType {
     isAuthenticated: boolean;
     user: User | null;
     login: (loginId: string, password: string, role: string) => Promise<boolean>;
-    logout: () => void;
+    logout: () => Promise<void>;
+    logoutAll: () => Promise<void>;
     loading: boolean;
 }
 
@@ -41,13 +43,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Check for existing token on app load
     useEffect(() => {
-        const token = localStorage.getItem('authToken');
-        if (token) {
+        const token = TokenStorage.getAccessToken();
+        const refreshToken = TokenStorage.getRefreshToken();
+
+        if (token && refreshToken) {
             try {
                 // Decode JWT token to get user info
                 const tokenPayload = decodeJwtToken(token);
                 const roleId = parseInt(tokenPayload.roleId);
 
+                // Check if token is expired (will be refreshed automatically by interceptor on next API call)
+                const isExpired = TokenStorage.isTokenExpired();
+
+                // Set authenticated even if expired - the interceptor will handle refresh
                 setIsAuthenticated(true);
                 setUser({
                     token,
@@ -57,7 +65,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 });
             } catch (error) {
                 // Token is invalid, remove it
-                localStorage.removeItem('authToken');
+                console.error('Invalid token on app load:', error);
+                TokenStorage.clearTokens();
                 setIsAuthenticated(false);
                 setUser(null);
             }
@@ -68,11 +77,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const login = async (loginId: string, password: string, role: string): Promise<boolean> => {
         try {
             setLoading(true);
-            const response = await api.post('/auth/login', { loginId, password, role });
+            const response = await api.post<ApiResponse<LoginResponse>>('/auth/login', { loginId, password, role });
             const data = response.data;
-            if (data.status && data.data?.token) {
-                localStorage.setItem('authToken', data.data.token);
+
+            if (data.status && data.data?.token && data.data?.refreshToken) {
+                // CRITICAL: Store both access token and refresh token
+                TokenStorage.saveTokens(data.data.token, data.data.refreshToken, 900); // 900 seconds = 15 minutes
+
                 setIsAuthenticated(true);
+
                 // Decode JWT token to get roleId
                 const tokenPayload = decodeJwtToken(data.data.token);
                 const roleId = parseInt(tokenPayload.roleId);
@@ -80,10 +93,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 setUser({
                     token: data.data.token,
                     loginId: data.data.loginId,
-                    role: data.data.userType as UserRole, // Use the actual role from backend response
-                    roleId: roleId, // Extract roleId from JWT token
-                    userId: data.data.owner?.ownerId || data.data.tenant?.tenantId,
-                    fullName: data.data.owner?.fullName || data.data.tenant?.tenantName,
+                    role: data.data.userType as UserRole,
+                    roleId: roleId,
+                    userId: data.data.owner?.ownerId || data.data.tenant?.tenantId || data.data.admin?.adminId,
+                    fullName: data.data.owner?.fullName || data.data.tenant?.tenantName || data.data.admin?.adminName,
                 });
                 return true;
             } else {
@@ -98,10 +111,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     };
 
-    const logout = () => {
-        localStorage.removeItem('authToken');
-        setIsAuthenticated(false);
-        setUser(null);
+    const logout = async () => {
+        try {
+            const refreshToken = TokenStorage.getRefreshToken();
+            if (refreshToken) {
+                // Call backend API to revoke refresh token
+                await api.post('/auth/logout', { refreshToken });
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Continue with local logout even if API call fails
+        } finally {
+            // Always clear tokens and reset state
+            TokenStorage.clearTokens();
+            setIsAuthenticated(false);
+            setUser(null);
+        }
+    };
+
+    const logoutAll = async () => {
+        try {
+            // Call backend API to revoke all refresh tokens for this user
+            await api.post('/auth/logout-all');
+        } catch (error) {
+            console.error('Logout all error:', error);
+            // Continue with local logout even if API call fails
+        } finally {
+            // Always clear tokens and reset state
+            TokenStorage.clearTokens();
+            setIsAuthenticated(false);
+            setUser(null);
+        }
     };
 
     const value: AuthContextType = {
@@ -109,6 +149,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         user,
         login,
         logout,
+        logoutAll,
         loading,
     };
 

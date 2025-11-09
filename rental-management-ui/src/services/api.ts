@@ -1,4 +1,5 @@
-import axios from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { TokenStorage } from '../utils';
 import type {
   ApiResponse,
   PagedResult,
@@ -31,7 +32,8 @@ import type {
   LookupResponse,
   AllLookupsResponse,
   DashboardStats,
-  DashboardMonthlySummary
+  DashboardMonthlySummary,
+  RefreshTokenResponse
 } from '../types';
 
 // Create axios instance with base configuration
@@ -43,6 +45,25 @@ const api = axios.create({
   },
 });
 
+// Token refresh state management
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+/**
+ * Notify all waiting requests with the new access token
+ */
+function onTokenRefreshed(token: string) {
+  refreshSubscribers.forEach(callback => callback(token));
+  refreshSubscribers = [];
+}
+
+/**
+ * Add a waiting request to the queue
+ */
+function addRefreshSubscriber(callback: (token: string) => void) {
+  refreshSubscribers.push(callback);
+}
+
 // Auth API
 export const authApi = {
   register: async (data: any): Promise<ApiResponse<null>> => {
@@ -52,16 +73,19 @@ export const authApi = {
   },
 };
 
-// Request interceptor for auth token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// Request interceptor - Add auth token to all requests
+api.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const token = TokenStorage.getAccessToken();
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-// Response interceptor for error handling
+// Response interceptor - Handle responses and automatic token refresh
 api.interceptors.response.use(
   (response) => {
     // Handle 204 No Content responses (CORS preflight or actual no content)
@@ -86,11 +110,89 @@ api.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      window.location.href = '/login';
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // Check if error is 401 Unauthorized and we haven't retried yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      // Don't attempt refresh for login or refresh endpoints
+      if (originalRequest.url?.includes('/auth/login') ||
+          originalRequest.url?.includes('/auth/refresh')) {
+        TokenStorage.clearTokens();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      // If another request is already refreshing tokens, wait for it
+      if (isRefreshing) {
+        return new Promise((resolve) => {
+          addRefreshSubscriber((token: string) => {
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+            }
+            resolve(api(originalRequest));
+          });
+        });
+      }
+
+      // Mark this request as retried and start refresh process
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Attempt to refresh tokens
+        const refreshToken = TokenStorage.getRefreshToken();
+
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        // Call refresh endpoint (don't use api instance to avoid infinite loop)
+        const refreshResponse = await axios.post<ApiResponse<RefreshTokenResponse>>(
+          `${api.defaults.baseURL}/auth/refresh`,
+          { refreshToken }
+        );
+
+        if (refreshResponse.data.status && refreshResponse.data.data) {
+          const { accessToken, refreshToken: newRefreshToken, expiresIn } = refreshResponse.data.data;
+
+          // CRITICAL: Save BOTH new tokens (don't reuse old refresh token!)
+          TokenStorage.saveTokens(accessToken, newRefreshToken, expiresIn);
+
+          // Notify all waiting requests with new token
+          onTokenRefreshed(accessToken);
+
+          // Retry original request with new token
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          }
+
+          isRefreshing = false;
+          return api(originalRequest);
+        } else {
+          throw new Error('Token refresh failed');
+        }
+      } catch (refreshError: any) {
+        isRefreshing = false;
+        refreshSubscribers = [];
+
+        // Check for security alert (token reuse detection)
+        if (refreshError.response?.data?.message?.includes('Token reuse detected')) {
+          // SECURITY ALERT: Force logout and show warning
+          TokenStorage.clearTokens();
+          alert('⚠️ Security Alert: For your safety, you have been logged out from all devices. Please log in again.');
+          window.location.href = '/login';
+          return Promise.reject(new Error('SECURITY_ALERT: Token reuse detected'));
+        }
+
+        // Token refresh failed - clear tokens and redirect to login
+        console.error('Token refresh failed:', refreshError);
+        TokenStorage.clearTokens();
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
     }
+
     return Promise.reject(error);
   }
 );

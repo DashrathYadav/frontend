@@ -23,6 +23,9 @@ export interface PagedResult<T> {
 // Export pagination types
 export * from './pagination';
 
+// Export authentication types
+export * from './auth';
+
 // Address types
 export interface Address {
   addressId: number;
